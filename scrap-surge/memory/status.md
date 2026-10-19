@@ -27,10 +27,10 @@ success-only spawn counting) and S1c (presentation-only readability fixes). The
 explicit per-agent sign-off text lives in docs/reviews.md.
 
 S1 + S1b + S1c are implemented and frozen on branch codex/scrap-surge at the commit
-recorded below. Evidence: `npm test` 33/33, `npm run build` clean,
-`npm run test:browser` victory (282 kills, hp 3, chain peak 20, no page errors) and
-an author-run `npm run test:browser:regression` 14/14 including the idle-play defeat
-path and the arena-vs-HUD geometry checks. The regression checks were drafted by a
+recorded below. Evidence: `npm test` 35/35, `npm run build` clean,
+`npm run test:browser` victory (283 kills, hp 1, chain peak 19, pending peak 14, no
+page errors) and an author-run `npm run test:browser:regression` 19/19 including the
+idle-play defeat path and the arena-vs-HUD geometry checks. The checks were drafted by a
 separate agent, but the implementer ran them, so that is author evidence, not
 independent review. Frozen slice review by Astra, Opus and an isolated DeepSeek
 reviewer is pending and must run against the frozen source commit.

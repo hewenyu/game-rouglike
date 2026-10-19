@@ -47,7 +47,7 @@ Apple M4, 1440x960, DPR 1, seed 0x2a.
 
 Normal-play run: automatic first kill at 1.45s, ordinary movement plus weapon
 purchases plus two stacked mods, then a boss victory. Repeated runs land around
-260-290 kills at 3-5/10 health with chain peak 18-21 and pending-blast peak 13-16;
+260-290 kills at 1-5/10 health with chain peak 18-21 and pending-blast peak 13-16;
 the exact numbers depend on rAF timing, so the assertions check the outcome, not the
 totals. No uncaught page errors. A 390x844 DPR2 touch context moved, auto-fired,
 cancelled a touch and resumed with no ghost movement.
