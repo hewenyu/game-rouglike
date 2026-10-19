@@ -7,8 +7,9 @@ a `/tmp` path.
 
 The current source candidate is the F0 code checkpoint
 **42f4ff8f6163f6565ab4f939de147efa5a7b0564** (`a434f12` is the docs-only tip that
-records it); F0 scope and approval are in docs/reviews.md. F0 adds no gameplay rule, so
-the S1 numbers below still hold. The T2 browser-fixture revision is tests-only and was
+records it); F0 scope and approval are in docs/reviews.md. F0 adds no new player-facing
+mechanics; it fixes the boss-cap boundary and adds read-only instrumentation. The S1
+numbers below still hold. The T2 browser-fixture revision is tests-only and was
 frozen at **5e050b221775f57744e39bfd20f5fbc4499360a6**; no source, data, package or
 visual file changed in it.
 
@@ -106,10 +107,11 @@ slice-era fixture; the T2 revision of G is documented further down.
     "not covered", never counted as a death.
   - `won` - normal victory.
   - `timeout` - still fighting at 100s; a real failure, never retried.
-  Every run must also prove `mods === [magnet, popcorn]`, `gunsAtShop === 1` and
-  `gunsAtWave2 === 1`, with no page errors. The group must still contain at least one
-  real 0 hp loss. This fixture remains probabilistic and timing-sensitive; a green run
-  is evidence for these three fixed seeds only, not a stability or difficulty claim.
+  Only runs that actually reach the shop assert the exact mods and gun contract
+  (`mods === [magnet, popcorn]`, `gunsAtShop === 1`, `gunsAtWave2 === 1`); no page
+  errors applies to all runs. The group must still contain at least one real 0 hp loss.
+  This fixture remains probabilistic and timing-sensitive; a green run is evidence for
+  these three fixed seeds only, not a stability or difficulty claim.
 - H the read-only metrics API: `enemyPositions` returns a fresh array of fresh
   `{x,y}` copies, and mutating a returned snapshot does not change the next read.
 - A3-A6 the end panel offers retry, the record is written once, retry resets

@@ -14,15 +14,17 @@ below). The user then played it and set a new highest-priority target: **at leas
 waves**, with the build forming gradually and the over-fast / over-slow build pace
 brought under control (see memory/goal.md). The full 10-20 minute goal is **not**
 complete; there is **no user acceptance** of the visuals or feel yet - the new
-feedback only covers wave count and build-formation pacing - and **expansion beyond
-the slice is not authorized**.
+feedback only covers wave count and build-formation pacing. The 20-wave requirement is
+the user's explicit goal, not a pending proposal; what still needs three-party approval
+is the concrete implementation plan. The current page is still the two-wave slice.
 
 An F0 repair package (boss slot reservation, honest boss-spawn flag, read-only
 instruments) is implemented on top of the slice. The F0 code checkpoint is commit
-**42f4ff8f6163f6565ab4f939de147efa5a7b0564** (see the F0 section below); the frozen
-tip that carries this record is a docs-only commit on the same branch. F0 leaves
-ordinary combat, the waves, the weapons and the popcorn mechanic untouched and awaits
-independent review against that exact commit.
+**42f4ff8f6163f6565ab4f939de147efa5a7b0564** (see the F0 section below). F0 source and
+the T2 test revision at **5db93f97785e1b23e8c1a8723977bffe66d249ee** have completed the
+three-party scope review; only the final docs wording awaits review at the new docs-only
+SHA. F0 leaves ordinary combat, the waves, the weapons and the popcorn mechanic
+untouched.
 
 ## Roles
 Astra coordinates, owns architecture boundaries and integration review; Opus reviews
@@ -166,12 +168,13 @@ take exactly `magnet` + `popcorn`, then keep charging through wave 2 under a sin
 
 `endReason` is `death` (lost at 0 hp - the only death coverage), `deadline` (lost with
 hp > 0, boss alive at the 50s limit - recorded as not covered), `won`, or `timeout`
-(still fighting at 100s - a real failure). Every run asserts exactly magnet + popcorn,
-`gunsAtShop === 1`, `gunsAtWave2 === 1` and no page errors; a 0 hp death also requires
-the failure UI and a retry reset to fight / 10 hp / 0 kills / 1 gun / 0 mods. The group
-still requires at least one real 0 hp loss. The fixture remains probabilistic and
-timing-sensitive - a green group run covers these three seeds only and is not a
-stability claim.
+(still fighting at 100s - a real failure). Only runs that actually reach the shop
+assert the exact mods and gun contract (exactly `magnet` + `popcorn`,
+`gunsAtShop === 1`, `gunsAtWave2 === 1`); no page errors applies to all runs. A 0 hp
+death also requires the failure UI and a retry reset to fight / 10 hp / 0 kills / 1 gun
+/ 0 mods. The group still requires at least one real 0 hp loss. The fixture remains
+probabilistic and timing-sensitive - a green group run covers these three seeds only
+and is not a stability claim.
 
 Historic diagnostics are kept as history, not as T2 passes: Opus's `/tmp` 95s run
 produced 2 deaths and 1 win without the mod/gun assertions (seed 91 reached wave 2 and
@@ -197,6 +200,16 @@ three deaths showed the failure UI and a retry that reset to fight / 10 hp / 0 k
 1 gun / 0 mods, with no page errors; the group gate counted 3/3 real 0 hp deaths. This
 is one three-seed sample of a probabilistic, timing-sensitive fixture, not a stability
 claim and not user acceptance.
+
+Three-party single independent runs of the same source (`42f4ff8`) + T2 test revision
+(`5db93f9`) all passed 47/47 rules, a clean build and 23/23 regression, but diverged in
+G: Astra saw 2a wave-2 won hp 4, 17 wave-1 lost hp 0 (retry OK), 91 wave-2 won hp 3
+(1 death); Opus saw 2a wave-2 lost with 17 and 91 wave-1 lost (3 deaths); independent
+DeepSeek saw all three wave-2 lost (2a 188 kills / 42.1s, 17 202 / 41.7s,
+91 238 / 49.1s) with strict shop mod/gun matches, no page errors and normal retry. The
+divergence is recorded, not smoothed over: the fixture stays probabilistic and
+timing-sensitive, and this does not overwrite Opus's earlier genuine 22/23 failure on
+the slice-era G. Model review is not user acceptance.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 
@@ -310,6 +323,11 @@ simulation, rendering, numbers or shop logic.
   real timeout that fails. The group must contain at least one real loss at 0 hp with
   the failure UI visible and a working retry. A new H check proves the returned
   `enemyPositions` snapshot is a copy that cannot mutate live state.
+
+This T1 description of the G fixture is historical and **superseded by T2**: the
+40s cap and the wave-1 shop as a terminal end are old rules only. The current fixture
+is non-terminal at the shop, uses a single 100s cap, and classifies
+`death` / `deadline` / `won` / `timeout` as described in the T2 section above.
 
 At least one loss proves the defeat path is reachable. It does not prove every seed
 loses, and it is not a difficulty or acceptance judgement.

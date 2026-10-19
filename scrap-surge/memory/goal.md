@@ -34,10 +34,11 @@ This playtest feedback is only about wave count and build-formation pacing. It i
 recorded as user acceptance of the visuals or of any other part of the build.
 
 Scope stays gated: no one may unilaterally implement a 20-wave expansion. The
-concrete 20-wave content plan is a proposal for the next three-party review. Opus's
-20-wave timetable is still a proposal, not approved. Keeping two mod slots and the
-build-differentiation design are also still undecided; do not add a third mod slot
-without three-party agreement.
+20-wave requirement itself is the user's explicit goal, not a pending proposal; what
+still needs three-party approval is the concrete implementation plan. Opus's 20-wave
+timetable is a proposal, not approved. The current page is still the two-wave slice.
+Keeping two mod slots and the build-differentiation design are also still undecided; do
+not add a third mod slot without three-party agreement.
 
 ## Collaboration and ownership
 

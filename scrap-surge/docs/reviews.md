@@ -212,6 +212,11 @@ shop logic.
   contain at least one real loss at 0 hp with the failure UI and a working retry. An H
   check proves the `enemyPositions` snapshot cannot mutate live state.
 
+This T1 G description is historical and **superseded by T2**: the 40s cap and the
+wave-1 shop as a terminal end are old rules only. The current fixture keeps the shop
+non-terminal, uses a single 100s cap, and classifies
+`death` / `deadline` / `won` / `timeout` as described in the T2 section.
+
 At least one loss proves the defeat path is reachable; it is not a claim that every
 seed loses, and it is not a difficulty or acceptance judgement. The T1 evidence on the
 T1 commit: `npm test` 40/40, `npm run build` clean,
@@ -340,9 +345,10 @@ makes the first shop non-terminal. The final spec, agreed by Astra, Opus and Dee
 - `endReason` is `death` / `deadline` / `won` / `timeout`. `death` means lost at 0 hp and
   is the only outcome that counts toward the group gate; `deadline` means lost with
   hp > 0 (boss alive at the 50s limit) and is recorded as not covered; `timeout` fails.
-- Every run asserts `mods === [magnet, popcorn]`, `gunsAtShop === 1`,
-  `gunsAtWave2 === 1`, no page errors, and a 0 hp death requires the failure UI plus a
-  retry that resets to fight / 10 hp / 0 kills / 1 gun / 0 mods.
+- Only runs that actually reach the shop assert the exact mods and gun contract
+  (`mods === [magnet, popcorn]`, `gunsAtShop === 1`, `gunsAtWave2 === 1`); no page
+  errors applies to all runs. A 0 hp death requires the failure UI plus a retry that
+  resets to fight / 10 hp / 0 kills / 1 gun / 0 mods.
 - Three fixed seeds, one run each; nothing is retried to force a result.
 
 Historical diagnostics from this period are kept but are **not** T2 passes: Opus's
@@ -393,3 +399,26 @@ This is a single three-seed sample of a probabilistic, timing-sensitive fixture.
 not a stability claim, not a difficulty measurement and not user acceptance.
 
 T2 freeze checkpoint: **5e050b221775f57744e39bfd20f5fbc4499360a6** (tests + docs only).
+
+### Per-party single independent runs of `5db93f9`
+
+Each party ran its own session once against the same source (`42f4ff8`) and the same
+T2 test revision (`5db93f9`). The runs diverged - the fixture is probabilistic - and the
+divergence is recorded rather than smoothed over:
+
+| party | `npm test` | build | regression | G seeds |
+| --- | --- | --- | --- | --- |
+| Astra | 47/47 | clean | 23/23 | 2a wave-2 **won** hp 4; 17 wave-1 **lost** hp 0 with working retry; 91 wave-2 **won** hp 3. deaths = 1 |
+| Opus | 47/47 | clean | 23/23 | 2a wave-2 **lost**; 17 wave-1 **lost**; 91 wave-1 **lost**. deaths = 3 |
+| independent DeepSeek | 47/47 | clean | 23/23 | all three wave-2 **lost**: 2a 188 kills / 42.1s, 17 202 kills / 41.7s, 91 238 kills / 49.1s |
+
+In the independent DeepSeek run the shop mod and gun assertions matched strictly, there
+were no page errors, and retry behaved normally in every run. All three parties passed
+the 23/23 regression and the 47/47 rule suite on this exact source + test pair.
+
+Reading: the G result varies by seed and by run - one party saw a wave-2 win and one
+death, another saw three wave-1 deaths, a third saw three wave-2 deaths. That is the
+fixture's known probabilistic, timing-sensitive character. A 23/23 here is **not** a
+stability claim, and it does not overwrite Opus's earlier genuine 22/23 failure on the
+slice-era G (all three seeds stopped at the shop with 0 deaths). Model review is also
+not user acceptance.

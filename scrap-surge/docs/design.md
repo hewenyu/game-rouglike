@@ -18,8 +18,10 @@ The earlier 12-wave idea is void; the 4-wave build-difference check is an intern
 experiment only. The 10-20 minute run target still stands and is reconciled with 20
 waves plus shop pacing in a later three-party review, not silently stretched to 30
 minutes. This feedback covers only wave count and build pacing - it is not an
-aesthetic or feel acceptance of the slice. The concrete 20-wave plan is a proposal
-pending three-party review; no unilateral expansion is authorized.
+aesthetic or feel acceptance of the slice. The 20-wave requirement is the user's
+explicit goal, not a pending proposal; the concrete implementation plan is what awaits
+three-party review, and no unilateral expansion is authorized. The current page is
+still the two-wave slice.
 
 Weapons change attack geometry and rhythm. Free shop modifications alter drops or
 kill chains. Weapons are visible on the shell. Left-hand movement is the only
