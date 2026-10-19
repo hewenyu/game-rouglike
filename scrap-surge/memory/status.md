@@ -10,11 +10,15 @@ slice. No balance tuning was made to force a green result.
 The candidate now has 87/87 non-browser assertions (the historical 47 slice assertions
 unchanged, plus 40 expedition assertions), a clean build, and a preserved review-only
 20-wave keyboard harness at `tests/browser-expedition-review.mjs`. The harness has been
-run but has not produced a victory. The browser regression gained two checks, so its new
+run but has not produced a victory. The browser regression gained one check, so its new
 denominator is 24 at runtime, not the historical 23. No green claim exists for the
 current candidate: a fresh run on `40b3fc0` passed 23/24 and failed only the H
-boss-metrics check because the slice boss did not appear inside that fixture's wait
-window. This is a recorded failure, not a pass or a stability claim.
+boss-metrics check. The cause was reachability, not just a short window: idle play
+stopped at the wave-1 shop, so wave 2 and its boss were never entered. The fixture now
+uses ordinary keys to circle radius 210, buys one legal gun plus popcorn + domino at
+the real wave-1 shop, clicks next, and isolates the live wave-2 boss immediately. Its
+90s cap treats death, timeout, or a missing boss as a real failure. The historical
+23/24 result remains recorded and is not relabelled.
 
 Latest ordinary-input browser evidence on baseline
 **3140ddf2851e735334112050bfd5de46d10b4555** is a real failure, not a victory. Astra's

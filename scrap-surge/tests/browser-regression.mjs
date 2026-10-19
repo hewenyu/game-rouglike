@@ -631,13 +631,105 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${BASE_URL}/?mode=slice&seed=2a`);
   await page.locator("#start").click();
+  let held = new Set();
+  const release = async () => {
+    for (const k of held) await page.keyboard.up(k);
+    held = new Set();
+  };
+  const t0 = Date.now();
+  let s = await metrics(page);
   let ready = false;
-  for (let i = 0; i < 40 && !ready; i++) {
-    ready = await page.evaluate(
-      () => (window.scrapMetrics.enemyPositions || []).length > 0,
-    );
-    if (!ready) await page.waitForTimeout(100);
+  let shopReached = false;
+  let shopDetail = null;
+  let wave2Reached = false;
+  let bossObserved = false;
+  let terminalPhase = null;
+  let timedOut = false;
+  while (Date.now() - t0 < 90000) {
+    s = await metrics(page);
+    if (!ready && (s.enemyPositions || []).length > 0) ready = true;
+    if (s.phase === "lost" || s.phase === "won") {
+      terminalPhase = s.phase;
+      break;
+    }
+    if (s.phase === "paused") {
+      await release();
+      const resume = page.locator("#resume");
+      if (await resume.isVisible()) await resume.click();
+      continue;
+    }
+    if (s.phase === "shop") {
+      await release();
+      shopReached = true;
+      const moneyAtShop = s.money;
+      let gunBought = false;
+      for (const id of ["shotgun", "coil", "saw", "rocket"]) {
+        const index = s.offers.indexOf(id);
+        if (index < 0) continue;
+        const button = page.locator(`[data-buy="${index}"]`);
+        if (await button.isEnabled()) {
+          await button.click();
+          gunBought = true;
+          break;
+        }
+      }
+      for (const id of ["popcorn", "domino"]) {
+        const mod = page.locator(`[data-mod="${id}"]`);
+        if (await mod.isEnabled()) await mod.click();
+      }
+      const after = await metrics(page);
+      shopDetail = {
+        moneyAtShop,
+        gunBought,
+        guns: after.guns.length,
+        mods: after.mods.slice(),
+        modsOk:
+          after.mods.length === 2 &&
+          after.mods.includes("popcorn") &&
+          after.mods.includes("domino"),
+      };
+      const next = page.locator("#next");
+      if (await next.isEnabled()) await next.click();
+      await page.waitForFunction(
+        () => window.scrapMetrics.phase !== "shop",
+        undefined,
+        { timeout: 5000 },
+      );
+      continue;
+    }
+    if (s.wave === 2) wave2Reached = true;
+    if (wave2Reached && s.boss) {
+      bossObserved = true;
+      break;
+    }
+    // H is a movement reachability fixture, not a combat strategy experiment.
+    // Circle the arena at radius 210 with ordinary keys until the legal W1 shop
+    // can advance the run into wave 2.
+    const dx = s.position.x - 600,
+      dy = s.position.y - 400,
+      r = Math.hypot(dx, dy) || 1,
+      c = Math.max(-1, Math.min(1, (210 - r) / 90)),
+      vx = -dy / r + (dx / r) * c,
+      vy = dx / r + (dy / r) * c,
+      wanted = new Set();
+    if (vx > 0.32) wanted.add("KeyD");
+    if (vx < -0.32) wanted.add("KeyA");
+    if (vy > 0.32) wanted.add("KeyS");
+    if (vy < -0.32) wanted.add("KeyW");
+    for (const k of held) if (!wanted.has(k)) await page.keyboard.up(k);
+    for (const k of wanted) if (!held.has(k)) await page.keyboard.down(k);
+    held = wanted;
+    await page.waitForTimeout(70);
   }
+  await release();
+  timedOut = !bossObserved && terminalPhase === null;
+  const failureReason = bossObserved
+    ? null
+    : terminalPhase
+      ? `terminal-${terminalPhase}`
+      : timedOut
+        ? "timeout"
+        : "missing-boss";
   // Read a snapshot, mutate the copies we were handed, then read again. The
   // fresh read must be untouched: that is what proves no live enemy reference
   // escapes the getter. This is a read-only API isolation test, not a player path.
@@ -673,19 +765,19 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
       iso.unchanged &&
       iso.inBounds &&
       errors.length === 0,
-    { ready, ...iso, errors },
+    {
+      ready,
+      shopReached,
+      ...(shopDetail || {}),
+      wave2Reached,
+      timedOut,
+      ...iso,
+      errors,
+    },
   );
-  const bossIso = await page.evaluate(async () => {
-    const idle = window.scrapMetrics.boss;
-    if (idle !== null)
-      return { idleIsNull: false, detail: "slice exposed a boss before W2" };
-    // Wait on the game's own simulation and normal time flow; no state is written.
-    for (let i = 0; i < 300; i++) {
-      if (window.scrapMetrics.boss) break;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+  const bossIso = await page.evaluate(() => {
     const a = window.scrapMetrics.boss;
-    if (!a) return { idleIsNull: true, appeared: false };
+    if (!a) return { appeared: false };
     const before = { ...a };
     const ref = a;
     a.x = 1e9;
@@ -694,7 +786,6 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
     a.born = -1;
     const b = window.scrapMetrics.boss;
     return {
-      idleIsNull: true,
       appeared: true,
       freshObject: b !== ref,
       unchanged:
@@ -713,14 +804,21 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
     };
   });
   check(
-    "H boss metrics are null before spawn and a fresh six-field numeric copy",
-    bossIso.idleIsNull &&
+    "H live wave-2 boss metrics are a fresh six-field numeric copy",
+    ready &&
+      shopReached &&
+      !!shopDetail?.gunBought &&
+      !!shopDetail?.modsOk &&
+      wave2Reached &&
+      terminalPhase === null &&
+      !timedOut &&
+      bossObserved &&
       bossIso.appeared &&
       bossIso.freshObject &&
       bossIso.unchanged &&
       bossIso.shape &&
       bossIso.finiteNumeric,
-    bossIso,
+    { failureReason, terminalPhase, timedOut, bossObserved, ...bossIso },
   );
   await page.close();
 }

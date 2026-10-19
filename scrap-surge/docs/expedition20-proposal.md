@@ -620,9 +620,8 @@ one assertion per row where stated):
 The historical 23 regression checks remain unchanged except for fixture wiring that
 appends `mode=slice` to every existing browser test URL. No rule assertion may be
 removed or weakened by that change; the 47 slice assertions stay byte-for-byte the
-same. The current candidate adds two read-only boss-metrics checks, making the new
-browser-regression denominator 25; the earlier 23/23 results must not be relabelled as
-25/25.
+same. The current candidate adds one live boss-metrics check, making the
+browser-regression denominator 24; earlier results must not be relabelled.
 
 ### 12.2 Browser (real input only)
 
