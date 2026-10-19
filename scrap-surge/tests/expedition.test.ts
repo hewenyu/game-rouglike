@@ -19,6 +19,7 @@ import {
   rerollPrice,
   tier2Capacity,
   tier2Price,
+  waveRecovery,
 } from "../src/expedition";
 import type { Enemy } from "../src/sim";
 
@@ -100,6 +101,74 @@ test("expedition starts with two slots and follows the slot and tier-II ramps", 
   assert.equal(g.slotCap, 2);
   assert.equal(g.guns[0].paid, 0);
   assert.equal(g.guns[0].tier, 1);
+});
+
+test("wave recovery is 3 through W10, 4 on expedition W11-W20, and always 3 for slice", () => {
+  assert.deepEqual(
+    [1, 2, 9, 10, 11, 12, 19, 20].map((wave) =>
+      waveRecovery("expedition20", wave),
+    ),
+    [3, 3, 3, 3, 4, 4, 4, 4],
+  );
+  assert.deepEqual(
+    [1, 2, 10, 11, 20].map((wave) => waveRecovery("slice", wave)),
+    [3, 3, 3, 3, 3],
+  );
+});
+
+test("expedition every wave-entry route uses recovery once, caps at 10, and cannot revive terminal states", () => {
+  const quick = empty();
+  quick.mods = ["popcorn"];
+  quick.modTiers.set("popcorn", 1);
+  quick.wave = 9;
+  quick.phase = "quick";
+  quick.quickPicked = true;
+  quick.player.hp = 3;
+  quick.nextWave();
+  assert.equal(quick.wave, 10);
+  assert.equal(quick.player.hp, 6);
+  quick.nextWave();
+  assert.equal(quick.player.hp, 6);
+
+  const shop = empty();
+  shop.wave = 10;
+  shop.phase = "shop";
+  shop.player.hp = 3;
+  shop.nextWave();
+  assert.equal(shop.wave, 11);
+  assert.equal(shop.player.hp, 7);
+
+  const auto = empty();
+  auto.wave = 11;
+  auto.phase = "interlude";
+  auto.interludeRemaining = DT / 2;
+  auto.player.hp = 3;
+  step(auto, 1);
+  assert.equal(auto.wave, 12);
+  assert.equal(auto.player.hp, 7);
+
+  const full = empty();
+  full.wave = 10;
+  full.phase = "shop";
+  full.player.hp = 10;
+  full.nextWave();
+  assert.equal(full.player.hp, 10);
+
+  const lost = empty();
+  lost.phase = "lost";
+  lost.player.hp = 0;
+  const lostAttempt = lost.nextWave();
+  assert.equal(lost.phase, "lost");
+  assert.equal(lost.player.hp, 0);
+  assert.equal(lostAttempt, undefined);
+
+  const won = empty();
+  won.phase = "won";
+  won.player.hp = 1;
+  const wonAttempt = won.nextWave();
+  assert.equal(won.phase, "won");
+  assert.equal(won.player.hp, 1);
+  assert.equal(wonAttempt, undefined);
 });
 
 test("expedition constructor builds and fires both wave-1 pockets", () => {

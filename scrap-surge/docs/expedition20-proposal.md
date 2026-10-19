@@ -81,6 +81,11 @@ visibility loss still triggers the **real pause** path, and resuming clears ghos
 (input state is reset) so the player never drifts. Any auto transition still respects
 pause: if paused, the interlude does not advance.
 
+Recovery was revised on 2026-10-19 after late-wave attrition evidence: entering W11-W20
+restores 4 health, while W1-W10 and slice entries still restore 3. The destination wave
+selects the amount, so the stop after W10 advertises 4 and the stop after W9 advertises 3.
+Recovery remains capped at 10 and cannot revive a lost or won run.
+
 ### 2.3 Mods
 
 - Permanent **2 mod slots**.

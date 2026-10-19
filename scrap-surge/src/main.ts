@@ -13,6 +13,7 @@ import {
   rerollPrice,
   stopAfter,
   tier2OpeningWave,
+  waveRecovery,
   type ExpeditionBranch,
   type GameMode,
 } from "./expedition";
@@ -193,7 +194,7 @@ function shop() {
       })
       .join(
         "",
-      )}</div><div class="shop-tools"><span>当前壳上：${g.guns.map((v) => WEAPONS[v.id].name).join(" / ")}</span><button id="reroll" class="text-button">换一批 ↻ ${g.freeRerolls ? "首次免费" : "6 ◈"}</button></div><div class="mod-heading"><h3>让它们互相喂养</h3><span>免费选 2 种改装 · 已选 ${g.mods.length} / 2</span></div><div class="mod-cards">${(Object.entries(MODS) as [ModId, (typeof MODS)[ModId]][]).map(([id, m]) => `<button class="mod-card ${g.has(id) ? "selected" : ""}" data-mod="${id}" ${g.has(id) || g.mods.length === 2 ? "disabled" : ""}><b>${m.icon}</b><div><strong>${m.name} ${g.has(id) ? "✓" : ""}</strong><p>${m.desc}</p></div></button>`).join("")}</div><div class="loop-diagram"><div class="loop-step on"><b>击杀</b><small>敌人倒下</small></div><i>→</i><div class="loop-step on"><b>废料</b><small>掉落一地</small></div><i>→</i><div class="loop-step ${g.has("popcorn") ? "on" : ""}"><b>开火</b><small>废料爆米花</small></div><i>→</i><div class="loop-step ${g.has("domino") ? "on" : ""}"><b>连爆</b><small>易爆垃圾</small></div><i class="back">↺</i></div>${g.has("popcorn") && g.has("domino") ? '<div class="combo-note">连锁已接通：捡废料 → 喷子弹 → 击杀爆炸 → 更多废料。下一波，看看能滚多大。</div>' : g.mods.length === 2 ? '<div class="combo-note">连锁已接通。下一波，让掉落物也替你开火。</div>' : '<div class="combo-note muted">不是三选一。任选两种，把反馈回路接起来。</div>'}<div class="shop-footer"><small>下一波回复 3 格生命 · 商店不会流逝战斗时间</small><button id="next" class="primary" ${g.mods.length < 2 ? "disabled" : ""}>${g.mods.length < 2 ? "再选 " + (2 - g.mods.length) + " 种改装" : "让它们见识一下"} <b>→</b></button></div></section>`,
+      )}</div><div class="shop-tools"><span>当前壳上：${g.guns.map((v) => WEAPONS[v.id].name).join(" / ")}</span><button id="reroll" class="text-button">换一批 ↻ ${g.freeRerolls ? "首次免费" : "6 ◈"}</button></div><div class="mod-heading"><h3>让它们互相喂养</h3><span>免费选 2 种改装 · 已选 ${g.mods.length} / 2</span></div><div class="mod-cards">${(Object.entries(MODS) as [ModId, (typeof MODS)[ModId]][]).map(([id, m]) => `<button class="mod-card ${g.has(id) ? "selected" : ""}" data-mod="${id}" ${g.has(id) || g.mods.length === 2 ? "disabled" : ""}><b>${m.icon}</b><div><strong>${m.name} ${g.has(id) ? "✓" : ""}</strong><p>${m.desc}</p></div></button>`).join("")}</div><div class="loop-diagram"><div class="loop-step on"><b>击杀</b><small>敌人倒下</small></div><i>→</i><div class="loop-step on"><b>废料</b><small>掉落一地</small></div><i>→</i><div class="loop-step ${g.has("popcorn") ? "on" : ""}"><b>开火</b><small>废料爆米花</small></div><i>→</i><div class="loop-step ${g.has("domino") ? "on" : ""}"><b>连爆</b><small>易爆垃圾</small></div><i class="back">↺</i></div>${g.has("popcorn") && g.has("domino") ? '<div class="combo-note">连锁已接通：捡废料 → 喷子弹 → 击杀爆炸 → 更多废料。下一波，看看能滚多大。</div>' : g.mods.length === 2 ? '<div class="combo-note">连锁已接通。下一波，让掉落物也替你开火。</div>' : '<div class="combo-note muted">不是三选一。任选两种，把反馈回路接起来。</div>'}<div class="shop-footer"><small>下一波回复 ${waveRecovery(g.mode, 2)} 格生命 · 商店不会流逝战斗时间</small><button id="next" class="primary" ${g.mods.length < 2 ? "disabled" : ""}>${g.mods.length < 2 ? "再选 " + (2 - g.mods.length) + " 种改装" : "让它们见识一下"} <b>→</b></button></div></section>`,
   );
   $("overlay")
     .querySelectorAll<HTMLButtonElement>("[data-buy]")
@@ -273,7 +274,7 @@ function expeditionShop(g: Game) {
     <div class="shop-tools"><span>四张卡只购买新武器。强化和拆解在下方独立操作。</span><button id="reroll" class="text-button" ${g.money < reroll ? "disabled" : ""}>换一批 ↻ ${reroll ? `${reroll} ◈` : "本次免费"}</button></div>
     <div class="owned-heading"><h3>壳上的火力</h3><span>点任意槽位自己的按钮，无选中状态</span></div>
     <div class="owned-grid">${owned}</div>${g.guns.length < g.slotCap ? `<div class="empty-slots">还有 ${g.slotCap - g.guns.length} 个空槽可以买新武器；槽位是容量，不是免费枪。</div>` : ""}
-    <div class="shop-footer"><small>下一波回复 3 格生命 · 商店不计战斗时间</small><button id="next" class="primary">带着这批破烂下海 <b>→</b></button></div></section>`,
+    <div class="shop-footer"><small>下一波回复 ${waveRecovery(g.mode, g.wave + 1)} 格生命 · 商店不计战斗时间</small><button id="next" class="primary">带着这批破烂下海 <b>→</b></button></div></section>`,
   );
   $("overlay")
     .querySelectorAll<HTMLButtonElement>("[data-buy]")
@@ -361,7 +362,7 @@ function quick(g: Game) {
         ? g.quickPicked
         : g.quickPicked;
   overlay(
-    `<section class="quick-panel"><div class="eyebrow">${eyebrow}</div><h2>${kind === "branch" ? "海流往哪边走？" : kind === "mod-upgrade" ? "把回路再拧紧一格。" : "挑一件挂上壳。"}</h2><p>${lead}</p><div class="quick-grid">${cards}</div><div class="quick-footer"><small>第 ${g.wave} 波结束 · 免费，不消耗废料</small><button id="next" class="primary" ${canContinue ? "" : "disabled"}>${canContinue ? "继续下海" : "先选一件"} <b>→</b></button></div></section>`,
+    `<section class="quick-panel"><div class="eyebrow">${eyebrow}</div><h2>${kind === "branch" ? "海流往哪边走？" : kind === "mod-upgrade" ? "把回路再拧紧一格。" : "挑一件挂上壳。"}</h2><p>${lead}</p><div class="quick-grid">${cards}</div><div class="quick-footer"><small>第 ${g.wave} 波结束 · 接波回复 ${waveRecovery(g.mode, g.wave + 1)} 格 · 免费</small><button id="next" class="primary" ${canContinue ? "" : "disabled"}>${canContinue ? "继续下海" : "先选一件"} <b>→</b></button></div></section>`,
   );
   $("overlay")
     .querySelectorAll<HTMLButtonElement>("[data-quick]")
@@ -455,7 +456,7 @@ function updateHud() {
   const boss = g.enemies.find((e) => e.kind === "boss");
   $("wave-note").textContent =
     g.phase === "interlude"
-      ? "1.2 秒后继续 · 按键保持"
+      ? `接波回复 ${waveRecovery(g.mode, g.wave + 1)} 格 · 按键保持`
       : overtime
         ? "加时 · 击败首领"
         : g.mode === "expedition20"

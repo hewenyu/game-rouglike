@@ -149,6 +149,14 @@ export function gunSlotCap(wave: number) {
   return 2 + [2, 4, 7, 11].filter((opening) => wave >= opening).length;
 }
 
+export function waveRecovery(mode: GameMode, destinationWave: number) {
+  return mode === "expedition20" &&
+    destinationWave >= 11 &&
+    destinationWave <= 20
+    ? 4
+    : 3;
+}
+
 export function tier2Capacity(wave: number) {
   return wave >= 18 ? 6 : wave >= 16 ? 5 : wave >= 14 ? 4 : wave >= 12 ? 3 : wave >= 10 ? 2 : wave >= 8 ? 1 : 0;
 }

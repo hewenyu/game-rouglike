@@ -2,6 +2,14 @@
 
 ## Review candidate: expedition20 implemented, not validation-complete (2026-10-19)
 
+Late-heal decision (approved 2026-10-19): entering expedition W1-W10 restores 3
+health; entering W11-W20 restores 4. The destination wave decides the amount, so a
+W10 stop advertises 4 and a W9 stop advertises 3. Slice recovery remains 3. A shared
+`waveRecovery(mode, destinationWave)` helper feeds both simulation entry paths and the
+stop/interlude copy. The cap remains the player's maximum 10, and no lost/won state is
+revived. This is a bounded recovery change, not evidence that every build or seed can
+finish W20.
+
 The source contains a runnable `expedition20` implementation for three-party
 code/visual/failure review. It is **not user-accepted and not validation-complete**.
 The normal page defaults to `expedition20`; `?mode=slice` keeps the approved two-wave
@@ -205,6 +213,8 @@ popcorn mechanic, the camera and the visuals are untouched, and the expansion dr
   success-only meaning. The popcorn skip counter fires only for a real target pickup
   whose per-step 8-bullet budget is already spent; it draws no RNG, does not sort and
   does not change target choice. `scrapMetrics` exports these as scalars only.
+  `shootAcceptedEnemy` counts spawned enemy projectiles admitted before the cap; it does
+  not count hits or identify the damage source behind late-wave attrition.
 - Author evidence at the F0 checkpoint: `npm test` 47/47 (40 original + 7 new F0
   tests), `npm run build` clean, `npm run test:browser:first-shop` keyboard 3/3 +
   touch 3/3, `npm run test:browser:regression` 23/23 (incl. the H `enemyPositions`

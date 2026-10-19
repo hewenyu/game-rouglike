@@ -224,6 +224,7 @@ test("second wave heals, keeps equipment, and has reachable victory condition", 
   g.player.hp = 3;
   g.nextWave();
   assert.equal(g.player.hp, 6);
+  assert.equal(g.wave, 2);
   assert.equal(g.guns.length, 2);
   assert.equal(g.mods.length, 2);
   g.waveTime = 34.99;

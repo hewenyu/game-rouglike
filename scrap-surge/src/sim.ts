@@ -20,6 +20,7 @@ import {
   stopAfter,
   tier2Capacity,
   tier2Price,
+  waveRecovery,
   type ExpeditionBranch,
   type ExpeditionEnemyKind,
   type Formation,
@@ -937,7 +938,10 @@ export class Game {
     if (this.phase !== "shop") return;
     this.wave = 2;
     this.waveTime = 0;
-    this.player.hp = Math.min(10, this.player.hp + 3);
+    this.player.hp = Math.min(
+      this.player.maxHp,
+      this.player.hp + waveRecovery(this.mode, this.wave),
+    );
     this.player.invulnerable = 2;
     this.enemies = [];
     this.bullets = [];
@@ -961,7 +965,10 @@ export class Game {
     this.cancelExpeditionWavePending();
     this.wave = clamp(wave, 1, 20);
     this.waveTime = 0;
-    this.player.hp = Math.min(10, this.player.hp + 3);
+    this.player.hp = Math.min(
+      this.player.maxHp,
+      this.player.hp + waveRecovery(this.mode, this.wave),
+    );
     this.player.invulnerable = 2;
     this.enemies = [];
     this.bullets = [];

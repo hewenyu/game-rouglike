@@ -19,6 +19,16 @@ are the verifiable evidence. This is not one model roleplaying three.
 Author self-check is not independent review. The independent DeepSeek review must
 run in a separate context against a frozen commit.
 
+## Late-heal decision (2026-10-19)
+
+Astra, Opus and DeepSeek agreed to one bounded recovery change after the f7 ranged
+observation reached W18: entering expedition W11-W20 restores 4 health instead of 3.
+W1-W10 and all slice entries remain 3. Recovery is selected by the destination wave
+through one shared helper used by simulation and UI copy; the W10 stop therefore says 4
+and the W9 stop says 3. The cap remains 10, and lost/won states are not resurrected.
+This addresses attrition late in the run without changing damage, enemies, waves,
+prices, or strategy. It does not promise a W20 victory.
+
 ## Explicit sign-off: S1 (feel slice, fixed numbers)
 
 - Astra: agreed.
@@ -289,6 +299,9 @@ explicit agreement). F0 is a repair + instrument package only:
    `popcornBudgetSkippedPickups`. They are exposed as scalars on `scrapMetrics` and never
    change combat, RNG, target choice or the bullet budget, and they do not claim the
    budget is fixed or that enemy bullets are starved.
+   `shootAcceptedEnemy` counts enemy projectiles admitted into the bullet array before the
+   420 cap; it is **not** a player-hit or injury counter. The available evidence does not
+   establish which damage source caused the late-wave attrition.
 4. Unit tests for the boss reject / release-then-spawn / uniqueness path and for the
    reject-bullet and popcorn-budget counters, while the 40 simulation tests and the slice
    browser gates stay green.
