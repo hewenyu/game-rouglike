@@ -1,23 +1,25 @@
 # Status
 
-Render-order fix after `3305687`: enemy projectiles draw once above blasts and the
-chain readout with unchanged geometry, 3px INK outline; simulation state is unchanged.
+Render-order fix after `3305687`, pending review at freeze: every enemy projectile
+draws once above blasts and the chain readout with unchanged geometry, 3px INK
+outline. Tests cover a synthetic shape matrix and the first 60 rendered steps; this
+is bounded nonmutation evidence, not full slice equivalence.
 
-## Current PLAYTEST candidate: source identity `db74a8c` (2026-10-19)
+## Simulation/input baseline: `db74a8c` (2026-10-19)
 
-This is the final 20-wave candidate for user playtesting. It is runnable and
-**not user-accepted, validation-complete or goal-complete**. The normal page
-opens `expedition20`; `?mode=slice` preserves the approved two-wave feel slice.
-The completed three-party review is PLAYTEST-only, not final goal or user
-acceptance. Its bounded evidence is in `docs/reviews.md`.
+This is the final 20-wave simulation/input baseline for user playtesting. It is
+runnable and **not user-accepted, validation-complete or goal-complete**. The
+normal page opens `expedition20`; `?mode=slice` preserves the approved two-wave
+feel slice. The completed three-party review is historical PLAYTEST-only
+evidence, not review of the render-order fix or final goal acceptance. Its
+bounded evidence is in `docs/reviews.md`.
 
-The current source baseline is
-**851cd13faa17f930cbeb9cbf28eff3eeafe17073** plus this cleanup commit. The
-approved cleanup after that baseline changes only this documentation set, the
-expedition-only header label, three portable diagnostics and their npm scripts.
-It does not change combat, waves, economy, recovery, layout or slice rules.
-Only the rendered header text changes after `851cd13`; simulation source remains
-identical, so the rule, input and slice-equivalence evidence still applies.
+The historical test and diagnostic baseline is
+**851cd13faa17f930cbeb9cbf28eff3eeafe17073** plus its cleanup commit. The
+subsequent render-order fix changes rendering only; it does not change
+simulation, input, collision, waves, economy or recovery rules, so the historical
+rule, input and slice-equivalence evidence remains attributed to those recorded
+baselines. The render fix is pending review at freeze.
 
 ### Current rules
 
@@ -31,7 +33,7 @@ identical, so the rule, input and slice-equivalence evidence still applies.
 - `shootAcceptedEnemy` counts enemy projectiles admitted before the shared
   420-projectile cap. It does not count hits or attribute player injury.
 
-### Evidence for the current candidate
+### Evidence for the simulation/input baseline
 
 | Check | Result |
 | --- | --- |

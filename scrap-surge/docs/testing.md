@@ -1,15 +1,15 @@
 # Validation evidence and boundaries
 
-Source identity: **db74a8cc95806976bcdaf6896b79a4ccdb48afcc**. This is the
-runnable 20-wave `expedition20` PLAYTEST candidate. The completed three-party
-triad review covers PLAYTEST only, not final goal completion or user acceptance.
-It is not validation-complete, and `?mode=slice` retains the approved two-wave
-behavior.
+The simulation/input baseline is
+**db74a8cc95806976bcdaf6896b79a4ccdb48afcc**. Its three-party PLAYTEST review
+is historical evidence only. A render-order fix follows `3305687`; that fix is
+pending review at freeze. This is not final goal completion or user acceptance,
+and `?mode=slice` retains the approved two-wave behavior.
 
 The frozen slice reviewed at **8cb0e8f104d4150ceca8f8660ae6a6c62972e208**, the F0
 code checkpoint **42f4ff8f6163f6565ab4f939de147efa5a7b0564**, and the tests-only T2
 revision **5e050b221775f57744e39bfd20f5fbc4499360a6** remain historical evidence in
-`docs/reviews.md` and `docs/status-history.md`; they are not the current candidate.
+`docs/reviews.md` and `docs/status-history.md`; they are not the current render fix.
 All repository reproduction commands below run from this repository and do not
 depend on a `/tmp` path. `/tmp` paths appear only as raw evidence locations.
 
@@ -80,20 +80,26 @@ keeps its orange trail, red fill, glint, radius and rotation; its outer stroke i
 3px `#273b35`. The opaque `BLAST.core` fill previously covered the lethal red
 hitbox when both occupied the same point.
 
-`tests/render-occlusion.test.ts` uses a recording canvas to assert one enemy-bullet
-draw, retained player/rocket draws, blast-core and chain-text order, and unchanged
-state while rendering. It also compares rendered and control simulations every
-step for three seeds in both modes. This is render-order coverage, not a visual
-acceptance or gameplay-balance result.
+`tests/render-occlusion.test.ts` uses a synthetic recording-canvas matrix: two
+enemy bullets (r6 oval and r7 circle) each draw once after sweep text, blast,
+domino/ember effects and chain text; cap, bonus and rocket each draw once in the
+original world pass. Both enemy shapes retain their geometry with a 3px `#273b35`
+outline. This is render-order coverage, not a visual acceptance or gameplay
+balance result. A separate bounded check compares rendered and control
+simulations for the **first 60 steps** on seeds 42/23/145 in both modes. It is
+nonmutation evidence for that one-second window, not full slice equivalence.
 
 `tests/browser-render-occlusion.mjs` runs the same synthetic overlap fixture at
 1440x960 and 390x844 and checks for visible red centre and dark-ring pixels. The
 pre-fix checkout `3305687` produced 0 red / 0 ink pixels in both fixtures; the
 fixed checkout produced 56/115 at desktop and 14/18 at 390x844 (pixels are a
-focused fixture check, not a gameplay statistic). Its optional ordinary-input
-slice mode waits for `shootAcceptedEnemy` to increase and preserves sequential
-canvas frames, but that counter alone does not prove visual coexistence. Reviewers
-must inspect the frames; if no suitable frame exists, retain it as a coverage gap.
+focused fixture check, not a gameplay statistic). `syntheticOnly` is true by
+default; disabling normal capture leaves `normalCaptureReached` null. Its optional
+ordinary-input slice mode (`RUN_NORMAL=1`) waits for `shootAcceptedEnemy` to
+increase and preserves sequential canvas frames. Enabling it without any captured
+frame, including a lost/deadline/failed run, fails the harness. The report always
+marks `visualCoexistence: "requires-manual-review"`; the counter alone never
+proves visual coexistence. Reviewers must inspect the frames.
 
 ## Browser method
 
@@ -142,7 +148,7 @@ checks 3 recovery through W10, 4 from W11, and the 10 cap. It writes nothing.
 Environment: Google Chrome 155.0.8059.80, headless Playwright, macOS 26.6.2 /
 Apple M4, 1440x960, DPR 1, seed 0x2a.
 
-Current candidate evidence on `851cd13`:
+Historical simulation-baseline evidence on `851cd13`:
 
 - `npm test`: **89/89**; `npm run build`: **clean**.
 - Fresh browser regression on `851cd13`: **24/24**, log

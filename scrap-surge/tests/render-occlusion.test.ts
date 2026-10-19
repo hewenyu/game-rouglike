@@ -21,6 +21,7 @@ type DrawOp = {
 const INK = "#273b35";
 const ENEMY_RED = "#e9695b";
 const CAP = "#fff3c8";
+const BONUS = "#e9cf4a";
 const ROCKET = "#e88951";
 
 class RecordingContext {
@@ -172,6 +173,7 @@ function bullet(
   y: number,
   kind: Bullet["kind"],
   id: number,
+  r = kind === "enemy" ? 7 : 5,
 ): Bullet {
   return {
     x,
@@ -183,7 +185,7 @@ function bullet(
     life: 1,
     kind,
     target: 0,
-    r: kind === "enemy" ? 7 : 5,
+    r,
     homing: false,
   };
 }
@@ -193,9 +195,11 @@ function visualGame() {
   g.enemies = [];
   g.guns = [];
   g.bullets = [
-    bullet(560, 450, "cap", 1),
-    bullet(600, 450, "enemy", 2),
-    bullet(640, 450, "rocket", 3),
+    bullet(500, 450, "cap", 1),
+    bullet(520, 450, "bonus", 2),
+    bullet(540, 450, "rocket", 3),
+    bullet(580, 450, "enemy", 4, 6),
+    bullet(620, 450, "enemy", 5, 7),
   ];
   g.fx = [
     {
@@ -228,6 +232,7 @@ function visualGame() {
   ];
   g.chainCount = 5;
   g.chainTimer = 0.5;
+  g.phase = "sweep";
   return g;
 }
 
@@ -241,7 +246,7 @@ function snapshot(game: Game) {
   });
 }
 
-test("enemy bullets render once above opaque blasts and the chain readout", () => {
+test("synthetic bullet matrix preserves player pass and draws each enemy once last", () => {
   const ctx = new RecordingContext();
   const renderer = rendererWith(ctx);
   renderer.render(visualGame(), 1);
@@ -252,43 +257,77 @@ test("enemy bullets render once above opaque blasts and the chain readout", () =
   const enemyStrokes = ctx.ops.filter(
     (op) => op.kind === "stroke" && op.fill === ENEMY_RED,
   );
-  assert.equal(enemyFills.length, 1);
-  assert.equal(enemyStrokes.length, 1);
-  assert.equal(enemyStrokes[0].stroke, INK);
-  assert.equal(enemyStrokes[0].width, 3);
+  assert.equal(enemyFills.length, 2);
+  assert.equal(enemyStrokes.length, 2);
+
+  const smallFill = enemyFills.find((op) => op.rx === 6);
+  const roundFill = enemyFills.find((op) => op.rx === 7);
+  const smallStroke = enemyStrokes.find((op) => op.rx === 6);
+  const roundStroke = enemyStrokes.find((op) => op.rx === 7);
+  assert(smallFill && roundFill && smallStroke && roundStroke);
+  assert.equal(smallFill.rx, 6);
+  assert.equal(smallFill.ry, 4.5);
+  assert.equal(roundFill.rx, 7);
+  assert.equal(roundFill.ry, 7);
+  assert.deepEqual(
+    [smallStroke.stroke, smallStroke.width],
+    [INK, 3],
+    "r<7 enemy oval must keep the agreed 3px INK outline",
+  );
+  assert.deepEqual(
+    [roundStroke.stroke, roundStroke.width],
+    [INK, 3],
+    "r>=7 enemy circle must keep the agreed 3px INK outline",
+  );
 
   const cap = ctx.ops.findIndex((op) => op.kind === "fill" && op.fill === CAP);
+  const bonus = ctx.ops.findIndex(
+    (op) => op.kind === "fill" && op.fill === BONUS,
+  );
   const rocket = ctx.ops.findIndex(
     (op) => op.kind === "fill" && op.fill === ROCKET,
   );
   const blast = ctx.ops.findIndex(
     (op) => op.kind === "fill" && op.fill === BLAST.core,
   );
+  const sweep = ctx.ops.findIndex(
+    (op) => op.kind === "text" && op.text === "退潮了！统统收回来",
+  );
   const chainText = ctx.ops.findIndex(
     (op) => op.kind === "text" && op.text === "×5",
   );
-  const enemy = ctx.ops.findIndex(
-    (op) => op.kind === "fill" && op.fill === ENEMY_RED,
-  );
-  const enemyStroke = ctx.ops.findIndex(
-    (op) => op.kind === "stroke" && op.fill === ENEMY_RED,
-  );
 
+  assert.equal(
+    ctx.ops.filter((op) => op.kind === "fill" && op.fill === CAP).length,
+    1,
+  );
+  assert.equal(
+    ctx.ops.filter((op) => op.kind === "fill" && op.fill === BONUS).length,
+    1,
+  );
+  assert.equal(
+    ctx.ops.filter((op) => op.kind === "fill" && op.fill === ROCKET).length,
+    1,
+  );
   assert(cap >= 0, "player cap bullet was not rendered");
+  assert(bonus >= 0, "player bonus bullet was not rendered");
   assert(rocket >= 0, "player rocket was not rendered");
   assert(blast >= 0, "opaque blast core was not rendered");
+  assert(sweep >= 0, "sweep text was not rendered");
   assert(chainText >= 0, "chain readout was not rendered");
   assert(cap < blast, "player bullets should keep their original world pass");
+  assert(bonus < blast, "bonus bullet should keep its original world pass");
   assert(rocket < blast);
-  assert(enemy > blast, "enemy bullet must be after the opaque blast core");
-  assert(enemy > chainText, "enemy bullet must be after the final chain text");
-  assert(
-    enemyStroke > enemy,
-    "enemy red fill and dark ring must use the same final-play transform",
-  );
+  assert(blast < sweep, "world FX must precede the sweep text");
+  assert(sweep < chainText, "sweep text must precede the chain readout");
+  for (const enemy of [...enemyFills, ...enemyStrokes])
+    assert(
+      ctx.ops.indexOf(enemy) > chainText,
+      "every enemy projectile must be after sweep text, FX and chain text",
+    );
 });
 
-test("rendering leaves slice and expedition state unchanged for three seeds", () => {
+test("first 60 rendered steps leave slice and expedition state unchanged for three seeds", () => {
   for (const mode of ["slice", "expedition20"] as const) {
     for (const seed of [42, 23, 145]) {
       const rendered = new Game(seed, mode);
@@ -307,7 +346,7 @@ test("rendering leaves slice and expedition state unchanged for three seeds", ()
         assert.equal(
           snapshot(rendered),
           snapshot(control),
-          `${mode} seed ${seed} diverged after render step ${i}`,
+          `${mode} seed ${seed} diverged in the first 60 steps after render step ${i}`,
         );
       }
     }

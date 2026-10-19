@@ -974,7 +974,7 @@ export class Renderer {
                 ? "#e9cf4a"
                 : "#fff3c8",
         INK,
-        1.8,
+        b.kind === "enemy" ? 3 : 1.8,
       );
       if (isTierIIPopcorn) {
         // Tier-II popcorn pierces one extra enemy; the trailing fork makes

@@ -11,6 +11,7 @@
 // projectile, then preserves sequential canvas frames for human visual review.
 // That counter alone is not treated as proof that a bullet is visible.
 import { chromium } from "@playwright/test";
+import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -23,6 +24,129 @@ const RUN_NORMAL = process.env.RUN_NORMAL !== "0";
 const CHROME =
   process.env.CHROME_PATH ||
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const VISUAL_COEXISTENCE = "requires-manual-review";
+
+function harnessOutcome({
+  syntheticPass,
+  runNormal,
+  normalCaptures,
+  pageErrors,
+}) {
+  const syntheticOnly = !runNormal;
+  const normalCaptureReached = syntheticOnly
+    ? null
+    : normalCaptures > 0
+      ? "captured"
+      : "not-reached";
+  return {
+    syntheticOnly,
+    normalCaptureReached,
+    visualCoexistence: VISUAL_COEXISTENCE,
+    pass:
+      syntheticPass &&
+      pageErrors.length === 0 &&
+      (syntheticOnly || normalCaptures > 0),
+  };
+}
+
+if (process.env.HARNESS_SELF_CHECK === "1") {
+  const cases = [
+    {
+      name: "synthetic only",
+      input: {
+        syntheticPass: true,
+        runNormal: false,
+        normalCaptures: 0,
+        pageErrors: [],
+      },
+      expected: {
+        syntheticOnly: true,
+        normalCaptureReached: null,
+        visualCoexistence: VISUAL_COEXISTENCE,
+        pass: true,
+      },
+    },
+    {
+      name: "normal lost or deadline with no capture",
+      input: {
+        syntheticPass: true,
+        runNormal: true,
+        normalCaptures: 0,
+        pageErrors: [],
+      },
+      expected: {
+        syntheticOnly: false,
+        normalCaptureReached: "not-reached",
+        visualCoexistence: VISUAL_COEXISTENCE,
+        pass: false,
+      },
+    },
+    {
+      name: "normal capture with page error",
+      input: {
+        syntheticPass: true,
+        runNormal: true,
+        normalCaptures: 1,
+        pageErrors: ["boom"],
+      },
+      expected: {
+        syntheticOnly: false,
+        normalCaptureReached: "captured",
+        visualCoexistence: VISUAL_COEXISTENCE,
+        pass: false,
+      },
+    },
+    {
+      name: "normal capture without errors",
+      input: {
+        syntheticPass: true,
+        runNormal: true,
+        normalCaptures: 1,
+        pageErrors: [],
+      },
+      expected: {
+        syntheticOnly: false,
+        normalCaptureReached: "captured",
+        visualCoexistence: VISUAL_COEXISTENCE,
+        pass: true,
+      },
+    },
+    {
+      name: "synthetic failure",
+      input: {
+        syntheticPass: false,
+        runNormal: false,
+        normalCaptures: 0,
+        pageErrors: [],
+      },
+      expected: {
+        syntheticOnly: true,
+        normalCaptureReached: null,
+        visualCoexistence: VISUAL_COEXISTENCE,
+        pass: false,
+      },
+    },
+  ];
+  for (const entry of cases)
+    assert.deepEqual(
+      harnessOutcome(entry.input),
+      entry.expected,
+      entry.name,
+    );
+  console.log(
+    JSON.stringify(
+      {
+        harnessSelfCheck: "passed",
+        cases: cases.map((entry) => entry.name),
+        visualCoexistence: VISUAL_COEXISTENCE,
+      },
+      null,
+      2,
+    ),
+  );
+  process.exit(0);
+}
+
 await mkdir(OUTPUT_DIR, { recursive: true });
 
 const browser = await chromium.launch({
@@ -32,8 +156,11 @@ const browser = await chromium.launch({
 const report = {
   baseUrl: BASE_URL,
   expectedVisible: EXPECT_VISIBLE,
+  syntheticOnly: !RUN_NORMAL,
   synthetic: [],
+  normalCaptureReached: null,
   normalSlice: null,
+  visualCoexistence: VISUAL_COEXISTENCE,
   errors: [],
 };
 
@@ -314,6 +441,7 @@ async function normalSliceCapture() {
   await keys(new Set());
   report.normalSlice = {
     captures,
+    visualCoexistence: VISUAL_COEXISTENCE,
     shootAcceptedEnemyAtEnd: final?.shootAcceptedEnemy ?? 0,
     phase: final?.phase,
     wave: final?.wave,
@@ -328,12 +456,22 @@ async function normalSliceCapture() {
 try {
   await synthetic({ width: 1440, height: 960 });
   await synthetic({ width: 390, height: 844 });
-  await normalSliceCapture();
+  if (RUN_NORMAL) {
+    await normalSliceCapture();
+  }
 } finally {
   await browser.close();
 }
 
-report.pass = report.synthetic.every((entry) => entry.pass);
+Object.assign(
+  report,
+  harnessOutcome({
+    syntheticPass: report.synthetic.every((entry) => entry.pass),
+    runNormal: RUN_NORMAL,
+    normalCaptures: report.normalSlice?.captures ?? 0,
+    pageErrors: report.errors,
+  }),
+);
 await writeFile(
   join(OUTPUT_DIR, "result.json"),
   `${JSON.stringify(report, null, 2)}\n`,
