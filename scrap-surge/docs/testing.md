@@ -1,10 +1,10 @@
 # Validation evidence and boundaries
 
-Current source baseline: **851cd13faa17f930cbeb9cbf28eff3eeafe17073**, plus this
-approved docs/header/portable-diagnostic cleanup. This is the runnable 20-wave
-`expedition20` candidate for user playtesting. It is not user-accepted or
-validation-complete, the full goal is not complete, and same-SHA final review
-remains required. `?mode=slice` retains the approved two-wave behavior.
+Source identity: **db74a8cc95806976bcdaf6896b79a4ccdb48afcc**. This is the
+runnable 20-wave `expedition20` PLAYTEST candidate. The completed three-party
+triad review covers PLAYTEST only, not final goal completion or user acceptance.
+It is not validation-complete, and `?mode=slice` retains the approved two-wave
+behavior.
 
 The frozen slice reviewed at **8cb0e8f104d4150ceca8f8660ae6a6c62972e208**, the F0
 code checkpoint **42f4ff8f6163f6565ab4f939de147efa5a7b0564**, and the tests-only T2
@@ -100,6 +100,9 @@ clicks only. It requires `SOURCE_SHA` and supports `CHROME_PATH`, `BASE_URL` and
 JSONL trace and screenshots; the harness never retries to force a pass. Without
 `OUTPUT_DIR`, it creates a unique path under the system temporary directory and
 refuses to overwrite an existing target.
+
+For the ranged and CPU diagnostics, `SOURCE_SHA` is an explicit provenance label
+only. It does not independently prove that the executed checkout matched it.
 
 `tests/astra-perf.ts` (`npm run test:astra:perf`) is a diagnostic simulation CPU
 benchmark, not a browser or frame-rate test. It requires `SOURCE_SHA`, accepts
@@ -234,3 +237,58 @@ not a peak-load or midrange-phone claim.
   completed ordinary ranged run died during the W20 boss spawn without the boss
   fight being observed. There is no physical device or Safari performance
   measurement, and no user acceptance. W16-W20 were not part of the CPU sample.
+
+## Seed-42 paired injury diagnostic
+
+This is one fixed-seed simulation diagnostic, not a browser replay, human
+difficulty sample, FPS result or win-rate estimate. It reused the previously
+registered `expedition20` input and panel strategy; that strategy was not
+changed or re-evaluated here. It used seed 42, `dt = 1/60`, and a 90,000-tick
+cap. Held input was polled at steps 0, 5, 10, ... The script is a single fixed
+body and does not perform scripted bullet dodging.
+
+Control and observed instances ran the same panels, input policy and steps.
+Every step compared complete nonfunction state hashes, drained-event hashes,
+the original `random` and `shopRandom` value streams, and their cumulative draw
+counts. The observed `hurt()` override classified only the immediate source
+line: contact at `src/sim.ts:1786:51` or enemy bullet at `src/sim.ts:1889:18`.
+It does not establish shooter identity, entity identity or geometry.
+
+Result: **pass**, 40,860 paired steps (0 through 40,859), with 40,860/40,860
+matches for state, events, RNG values and cumulative RNG counts. Damage was
+45 accepted hits (contact 3, enemy bullet 42) and 32 ignored hits (contact 26,
+enemy bullet 6). The run ended lost on W20 at HP 0 and wave time
+`39.916666666665684s`, before the W20 boss appeared around 57s. It does **not**
+show that one source caused all W20 damage, and it makes no boss-balance claim.
+
+W20 accepted-hit timeline:
+
+| Step | Wave time | Source | HP |
+| ---: | ---: | --- | ---: |
+| 38,877 | 6.883s | enemy bullet | 6 -> 5 |
+| 38,955 | 8.183s | enemy bullet | 5 -> 4 |
+| 39,278 | 13.567s | contact | 4 -> 3 |
+| 40,207 | 29.050s | enemy bullet | 3 -> 2 |
+| 40,474 | 33.500s | enemy bullet | 2 -> 1 |
+| 40,859 | 39.917s | enemy bullet | 1 -> 0 |
+
+This differs from the browser run on `851cd13`, which died at W20 wave time
+`57.583333333331346s` during boss spawn. The two runs used different execution
+methods and are separate samples. This diagnostic does not propose a gameplay
+change and does not call the earlier strategy stale.
+
+Artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Harness `/tmp/astra-db74a8c-hurt-diagnostic/harness.ts` | `0201fab7fdf6df3e16c3ade7b22693d0bf2bb5dbf715fb9e0883e06d6b9f8c7b` |
+| Report `/tmp/astra-db74a8c-hurt-diagnostic/paired-full/report.json` | `a341e3d79675d0a5dc5258712291b56af6226b13ce022103d2a5f76a85183797` |
+| Steps `/tmp/astra-db74a8c-hurt-diagnostic/paired-full/steps.jsonl` | `7ccb122d19c946e8fcaa72ebacd98a12e36c8fb00e62be47af35dd76064eab49` |
+| Stdout `/tmp/astra-db74a8c-hurt-diagnostic/execution.stdout.txt` | `6f75d0d4550c04f494c9652a8e18a888f374745590f72572154b47d0f1027798` |
+| Stderr `/tmp/astra-db74a8c-hurt-diagnostic/execution.stderr.txt` | `e8e0f4293947f9c466ee195e0c524587ae350f0abcd314ad788a5c4024b4ee6f` |
+| Environment `/tmp/astra-db74a8c-hurt-diagnostic/execution.environment.txt` | `6202c61a9694113854a769d960a55c0419a871d5a56e87248819de2d466f8a2e` |
+
+The authorized harness was executed once. It completed with a pass report and
+all 40,860 step records; the surrounding zsh wrapper then failed while assigning
+the read-only shell variable `status`, so no shell exit status was captured.
+The harness and artifacts were not rerun or altered after that wrapper error.

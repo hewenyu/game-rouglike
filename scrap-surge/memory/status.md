@@ -1,12 +1,12 @@
 # Status
 
-## Current candidate: expedition20 through `851cd13` (2026-10-19)
+## Current PLAYTEST candidate: source identity `db74a8c` (2026-10-19)
 
 This is the final 20-wave candidate for user playtesting. It is runnable and
-**not user-accepted or validation-complete**, and the full 10-20 minute goal is
-not complete. The normal page opens `expedition20`; `?mode=slice` preserves the
-approved two-wave feel slice. The three-party approval history for its bounded
-changes is in `docs/reviews.md`; same-SHA final review remains required.
+**not user-accepted, validation-complete or goal-complete**. The normal page
+opens `expedition20`; `?mode=slice` preserves the approved two-wave feel slice.
+The completed three-party review is PLAYTEST-only, not final goal or user
+acceptance. Its bounded evidence is in `docs/reviews.md`.
 
 The current source baseline is
 **851cd13faa17f930cbeb9cbf28eff3eeafe17073** plus this cleanup commit. The
@@ -39,6 +39,14 @@ identical, so the rule, input and slice-equivalence evidence still applies.
 | Three-seed slice equivalence on `851cd13` | **0 differences** |
 | Simulation CPU diagnostic | W1-W15 only; p95 **0.060041 ms**, max **1.301042 ms** |
 | Ordinary ranged run on `851cd13` | **lost W20 during boss spawn; boss fight unobserved**, 0 HP |
+| Seed-42 paired diagnostic on `db74a8c` | **40,860/40,860 equal**, 45 accepted, W20 loss at **39.917 s** |
+
+The paired diagnostic is one fixed simulation body, not a browser or human
+sample. It matched control and observed state, events, RNG values and cumulative
+RNG counts on every step; damage was 45 accepted (contact 3, enemy bullet 42)
+and 32 ignored. It does not prove one cause of all W20 damage or establish boss
+balance, shooter identity or human difficulty. Method, W20 timeline and artifact
+hashes are in `docs/testing.md`.
 
 The unit, build, slice-equivalence and browser-regression checks ran on
 `851cd13`. The named 7/7 input-lifecycle log is the **author DeepSeek** run on the
@@ -134,8 +142,9 @@ diagnostic. `tests/astra-heal-trace.cjs` reads the ranged trace after a run and
 checks first-fight HP against the 3/4 recovery and 10 cap. None changes game state
 or is part of `npm test`.
 
-The browser and CPU diagnostics require `SOURCE_SHA`, so an artifact cannot claim
-a source it did not run. Optional settings:
+The browser and CPU diagnostics require `SOURCE_SHA` as an explicit provenance
+label. It is not independently verified, so artifacts must be checked against
+their run setup. Optional settings:
 
 - Ranged: `CHROME_PATH`, `BASE_URL`, `OUTPUT_DIR`. A loss remains an assertion
   failure and its JSON, trace, screenshots and terminal state are preserved.

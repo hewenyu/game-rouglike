@@ -4,9 +4,8 @@ This file is the chronological review and sign-off archive. Historical decisions
 remain intact even when a later commit superseded their implementation or evidence.
 For the current candidate, evidence and open boundaries live in
 `memory/status.md` and `docs/testing.md`; the longer superseded status narrative is
-preserved in `docs/status-history.md`. This cleanup is the final candidate for user
-playtesting, not validation completion; Astra, Opus and independent DeepSeek must
-review this exact frozen SHA after the cleanup commit exists.
+preserved in `docs/status-history.md`. This docs-only checkpoint is the PLAYTEST
+candidate, not validation completion or user acceptance.
 
 Astra coordinates, defines architecture boundaries and reviews integration. Opus
 reviews gameplay, aesthetics, audiovisual direction and feel. DeepSeek is the only
@@ -26,6 +25,40 @@ are the verifiable evidence. This is not one model roleplaying three.
 
 Author self-check is not independent review. The independent DeepSeek review must
 run in a separate context against a frozen commit.
+
+## PLAYTEST triad review: source identity `db74a8c` (2026-10-19)
+
+Astra, Opus and independent DeepSeek approved the bounded `db74a8c` evidence for
+**PLAYTEST only**. This is not final goal completion, final validation or user
+acceptance. The subsequent docs commit targets the same source identity; it does
+not change source behavior.
+
+Per-party evidence, not merged:
+
+- **Opus:** independently ran the 89 tests, build and browser screens.
+- **Independent DeepSeek:** previously ran its short browser check and tests;
+  this was not a full final acceptance pass.
+- **Astra:** reviewed integration and independently ran 89/89 unit tests this
+  turn (`/tmp/astra-db74-unit.log`, SHA-256
+  `2ff90632740fb2e37489de12fc0f92dc8f1efd9fe899479f13993def99b8de27`). Astra
+  also independently validated the 40,860-row paired report and totals.
+
+The fixed-seed paired diagnostic is `/tmp/astra-db74a8c-hurt-diagnostic/`:
+40,860 rows passed at 45 accepted (3 contact, 42 enemy bullet) and 32 ignored
+hits. It reused the previously registered input and panel strategy without
+changing or re-evaluating it. Report SHA-256:
+`a341e3d79675d0a5dc5258712291b56af6226b13ce022103d2a5f76a85183797`.
+The method, limits, W20 timeline and complete artifact hashes are in
+`docs/testing.md`.
+
+Controls and observed used the same seed 42, ordinary panels and fixed input
+policy; this one body does not dodge bullets or represent a human sample.
+Classification is by source line only, so shooter identity, entity identity,
+all W20 causes and boss balance remain unknown.
+
+The W20 death at wave time `39.916666666665684s` is distinct from the earlier
+browser run on `851cd13`, which died at `57.583333333331346s` during boss spawn.
+The two are separate execution samples; neither is a win or deadline result.
 
 ## Late-heal decision (2026-10-19)
 
