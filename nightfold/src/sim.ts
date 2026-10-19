@@ -10,16 +10,18 @@ export type Effect = { kind: 'fold'|'echo'|'gravity'|'loom'|'beam'|'burst'|'hit'
 export type GameEvent = { type: 'fold'|'kill'|'hurt'|'capture'|'draft'|'chapter'|'end'; count?: number; text?: string };
 export class Game {
   phase: Phase = 'playing'; previousPhase: Phase = 'playing';
-  player = { x: 600, y: 470, hp: 6, maxHp: 6, invulnerable: 1.6 };
+  player = { x: 600, y: 470, hp: 6, maxHp: 6, invulnerable: 10 };
   enemies: Enemy[] = []; bullets: Bullet[] = []; effects: Effect[] = []; events: GameEvent[] = [];
   trail: Vec[] = []; drawing = false; drawTime = 0; cooldown = 0; holdLatch = false;
   time = 0; chapter = 0; kills = 0; folds = 0; captures = 0; bestFold = 0; damageTaken = 0;
+  mendCooldown = 0; mends = 0;
   rules: RuleId[] = []; choices: RuleId[] = []; stars: Vec[] = []; satellites = 0; orbitAngle = 0; satelliteCooldown = 0;
   shake = 0; lastCombo = ''; comboTime = 0; bossSpawned = false; bossDeadline = 0;
-  random: () => number; id = 0; spawnTimer = 2.5; nextDraft = 0; draftIndex = 0; initialWave = false;
+  random: () => number; draftRandom: () => number; id = 0; spawnTimer = 8; draftIndex = 0;
   readonly draftTimes: number[]; readonly bossTime: number;
   constructor(public seed: number, public mode: 'voyage'|'slice' = 'voyage') {
-    this.random = rng(seed); this.draftTimes = mode === 'slice' ? [12, 32, 52] : [20, 80, 160, 250, 340, 430, 520];
+    this.random = rng(seed); this.draftRandom = rng(seed ^ 0x91E10DA5);
+    this.draftTimes = mode === 'slice' ? [12, 32, 52] : [15, 45, 90, 155, 240, 350, 470];
     this.bossTime = mode === 'slice' ? 65 : 570;
     this.spawn('chaser', { x: 545, y: 350 }); this.spawn('chaser', { x: 655, y: 350 });
     this.spawn('shooter', { x: 600, y: 210 });
@@ -28,15 +30,17 @@ export class Game {
   emit(type: GameEvent['type'], count?: number, text?: string) { this.events.push({ type, count, text }); }
   drainEvents() { const e = this.events; this.events = []; return e; }
   spawn(kind: Enemy['kind'], at?: Vec) {
+    // Consume a fixed budget even when a boundary fallback or entity cap applies.
+    const angle = this.random() * Math.PI * 2, fallbackY = this.random(), delay = this.random();
     if (this.enemies.length >= 72) return;
     let p = at;
     if (!p) {
-      const a = this.random() * Math.PI * 2;
+      const a = angle;
       p = { x: clamp(this.player.x + Math.cos(a) * 470, 42, WORLD.w - 42), y: clamp(this.player.y + Math.sin(a) * 470, 42, WORLD.h - 42) };
-      if (dist(p, this.player) < 230) p = { x: this.player.x < 600 ? 1110 : 90, y: 100 + this.random() * 600 };
+      if (dist(p, this.player) < 230) p = { x: this.player.x < 600 ? 1110 : 90, y: 100 + fallbackY * 600 };
     }
     const hp = kind === 'boss' ? (this.mode === 'slice' ? 420 : 1850) : (kind === 'chaser' ? 32 : kind === 'shooter' ? 48 : 58) + this.chapter * 6;
-    this.enemies.push({ ...p, id: ++this.id, kind, hp, maxHp: hp, r: kind === 'boss' ? 39 : kind === 'shooter' ? 18 : kind === 'dasher' ? 17 : 13, age: 0, cooldown: kind === 'boss' ? 2 : 2.6 + this.random(), warning: 0, aim: { x: 0, y: 0 }, flash: 0, born: 1.1 });
+    this.enemies.push({ ...p, id: ++this.id, kind, hp, maxHp: hp, r: kind === 'boss' ? 39 : kind === 'shooter' ? 18 : kind === 'dasher' ? 17 : 13, age: 0, cooldown: kind === 'boss' ? 2 : 2.6 + delay, warning: 0, aim: { x: 0, y: 0 }, flash: 0, born: 1.1 });
     this.effect('spawn', [p], 1.1, '#ff9872');
   }
   effect(kind: Effect['kind'], points: Vec[], life: number, color: string, power?: number) {
@@ -49,11 +53,12 @@ export class Game {
   choose(id: RuleId) {
     if (this.phase !== 'draft' || !this.choices.includes(id) || this.has(id)) return false;
     this.rules.push(id); this.phase = 'playing'; this.player.invulnerable = 1.5; this.choices = [];
+    if (this.rules.length === 1) this.player.hp = Math.min(this.player.maxHp, this.player.hp + 1);
     this.lastCombo = RULES.find(r => r.id === id)!.name; this.comboTime = 3.5; return true;
   }
   offer() {
     const pool = RULES.filter(r => !this.has(r.id)).map(r => r.id);
-    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(this.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(this.draftRandom() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
     if (!pool.length) return;
     this.choices = pool.slice(0, 3); this.phase = 'draft'; this.cancelDrawing(); this.emit('draft');
   }
@@ -117,6 +122,7 @@ export class Game {
     const power = 57 + this.rules.length * 4;
     const before = this.kills;
     const result = this.strike(points, power, true, true);
+    const primaryKills = this.kills - before;
     this.effect('fold', points, .55, '#a4efcf'); this.shake = Math.max(this.shake, .12); this.emit('fold', result.hitCount);
     if (this.has('satellite')) this.satellites = Math.min(8, this.satellites + 1);
     if (this.has('echo')) this.effect('echo', points, 1.4, '#b9dafa', power * .7);
@@ -141,10 +147,26 @@ export class Game {
     }
     const combo = this.kills - before; this.bestFold = Math.max(this.bestFold, combo);
     if (combo >= 2 || result.caught > 0) { this.lastCombo = result.caught > 0 ? `借光 ×${result.caught}${combo >= 2 ? ` · 折落 ${combo}` : ''}` : `一笔折落 ${combo}`; this.comboTime = 2; }
+    // Only this primary, nondegenerate fold can mend: no mirror/echo/beam credit.
+    if (this.phase === 'playing' && result.validArea && (primaryKills >= 3 || result.caught >= 3) && this.mendCooldown <= 0 && this.player.hp < this.player.maxHp) {
+      this.player.hp++; this.mends++; this.mendCooldown = 12;
+      this.effect('burst', [this.player], .8, '#a4efcf');
+      this.lastCombo += ' · 缝补 +1'; this.comboTime = 2.5;
+    }
+    if (this.folds === 1 && this.captures === 0) {
+      const c = center(points);
+      for (let i = 0; i < 3; i++) {
+        const a = i * Math.PI * 2 / 3;
+        this.shoot({ x: c.x + Math.cos(a) * 26, y: c.y + Math.sin(a) * 26 }, { x: Math.cos(a), y: Math.sin(a) }, 9, false);
+        this.bullets[this.bullets.length - 1].life = 14;
+      }
+      this.lastCombo = '三颗慢光出现了，再围一次试试'; this.comboTime = 3;
+    }
   }
   step(dt: number, input: Input) {
     if (this.phase !== 'playing') return;
     this.time += dt; this.player.invulnerable = Math.max(0, this.player.invulnerable - dt);
+    this.mendCooldown = Math.max(0, this.mendCooldown - dt);
     this.cooldown = Math.max(0, this.cooldown - dt); this.shake = Math.max(0, this.shake - dt); this.comboTime = Math.max(0, this.comboTime - dt);
     const magnitude = Math.hypot(input.x, input.y), speed = 235;
     if (magnitude > 0) { this.player.x = clamp(this.player.x + input.x / Math.max(1,magnitude) * speed * dt, 26, WORLD.w-26); this.player.y = clamp(this.player.y + input.y / Math.max(1,magnitude) * speed * dt, 26, WORLD.h-26); }
@@ -195,12 +217,12 @@ export class Game {
         else if(e.cooldown<=0 && d<500) { e.warning=.85; e.aim={x:dx/d*150,y:dy/d*150}; }
         else { e.x+=dx/d*42*dt*slow; e.y+=dy/d*42*dt*slow; }
       } else {
-        const move = e.kind === 'chaser' ? 48+this.chapter*4 : e.kind === 'boss' ? (d>180?22:0) : (d>300?26:d<190?-22:0);
+        const move = this.time < 8 ? 0 : e.kind === 'chaser' ? 48+this.chapter*4 : e.kind === 'boss' ? (d>180?22:0) : (d>300?26:d<190?-22:0);
         e.x+=dx/d*move*dt*slow; e.y+=dy/d*move*dt*slow;
         if (e.kind !== 'chaser') {
           e.cooldown-=dt;
           e.warning=e.cooldown < .75 && d < 560 ? Math.max(.01,e.cooldown) : 0;
-          if(e.cooldown<=0 && d<560) {
+          if(e.cooldown<=0 && d<560 && this.time >= 8) {
             if(e.kind==='boss') {
               const n=e.hp<e.maxHp*.5?16:12;
               for(let i=0;i<n;i++) { const a=i/n*Math.PI*2+e.age*.14; this.shoot(e,{x:Math.cos(a),y:Math.sin(a)},105+this.chapter*6,false); }

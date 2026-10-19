@@ -41,6 +41,7 @@ function closeOverlay(){$('overlay').hidden=true;$('overlay').innerHTML='';}
 function home(){controls.clear();view='title';game=null;lastPhase='';closeOverlay();$('title-screen').hidden=false;$('hud').hidden=true;$('touch-controls').hidden=true;$('pause').hidden=true;records();$('start').focus({preventScroll:true});}
 function start(mode:'voyage'|'slice',seed?:number){
   sound.init(); controls.clear();game=new Game(seed??crypto.getRandomValues(new Uint32Array(1))[0],mode);view='game';saved=false;lastPhase='';accumulator=0;
+  perfFrames=[];
   $('title-screen').hidden=true;$('hud').hidden=false;$('touch-controls').hidden=false;$('pause').hidden=false;closeOverlay();sync();updateHud();
   (document.activeElement as HTMLElement | null)?.blur();
 }
@@ -88,7 +89,7 @@ function updateHud(){
   const boss=g.enemies.find(e=>e.kind==='boss');$('boss-bar').hidden=!boss;
   if(boss){$('boss-bar').querySelector('i')!.style.width=`${Math.max(0,boss.hp/boss.maxHp*100)}%`;$('boss-countdown').textContent=`在 ${Math.ceil(g.bossDeadline-g.time)} 秒内折出黎明`;}
   $('rules-bar').innerHTML=g.rules.map(id=>{const r=RULES.find(r=>r.id===id)!;return `<span title="${r.description}" style="--rule-color:${r.color}"><b>${r.icon}</b>${r.name}</span>`;}).join('');
-  const lesson=g.folds===0?'按住画线，移动，再松手。试着绕过前方的橙色敌人。':g.folds<3?'金色虚线是闭合边。围住敌人，伤害比擦过线缘更高。':g.captures===0&&g.time<40?'试着圈住橙色子弹。松手那一刻，它会替你攻击。':g.time<55?'每一条新规则都会叠加。不要停下，下一笔可以完全不同。':'';
+  const lesson=g.folds===0?(g.time<10?'前 10 秒有保护：按住画线，绕过橙色敌人，再松手。':'按住画线，移动，再松手。试着绕过前方的橙色敌人。'):g.captures===0&&g.time<30?'三颗慢光留在第一笔附近。再围一次，松手借走它们。':g.folds<3?'金色虚线是闭合边。围住敌人，伤害比擦过线缘更高。':g.time<55?'每一条新规则都会叠加。不要停下，下一笔可以完全不同。':'';
   $('lesson').textContent=lesson;$('lesson').hidden=!lesson;
   $('seed-label').textContent=`SEED / ${g.seed.toString(16).toUpperCase()}`;
   const button=$<HTMLButtonElement>('weave');button.classList.toggle('drawing',g.drawing);button.classList.toggle('cooling',g.cooldown>0);$('weave-label').textContent=g.drawing?'松手':'画线';button.style.setProperty('--charge',String(g.drawing?1-g.drawTime/4:g.cooldown>0?0:1));

@@ -1,3 +1,9 @@
+# USER-REJECTED CONCEPT — STOPPED
+
+The user played this game and explicitly rejected its core feel. Do not resume
+polishing Nightfold without renewed authorization. The replacement is scrap-surge/.
+The following is historical implementation state, not acceptance.
+
 # Current state
 
 - Project isolated in nightfold/; parent README untouched. Branch codex/nightfold.
