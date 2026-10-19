@@ -1,5 +1,6 @@
 import { Game, type Enemy, type Gun } from "./sim";
 import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
+import { bossForWave } from "./expedition";
 const INK = "#273b35",
   SAND = "#e8c696",
   CREAM = "#fff1c8",
@@ -304,6 +305,7 @@ export class Renderer {
     recoil = 0,
     scale = 1,
     plate = false,
+    tier: 1 | 2 = 1,
   ) {
     const c = this.ctx;
     c.save();
@@ -316,6 +318,17 @@ export class Renderer {
     if (plate) {
       this.round(-23, -16, 46, 32, 10, WEAPON_TINT[id], INK, 3);
       this.round(-20, -13, 40, 26, 8, "#d9ddd4", INK, 2);
+      if (tier === 2) {
+        this.round(-24, -17, 48, 34, 11, "#e8edf0", INK, 2);
+        this.line(
+          [
+            { x: -21, y: -13 },
+            { x: 21, y: -13 },
+          ],
+          "#ffffff",
+          2,
+        );
+      }
     }
     if (id === "slinger") {
       this.round(-12, -8, 27, 16, 5, "#c3ccc0");
@@ -328,6 +341,10 @@ export class Renderer {
         INK,
         2,
       );
+      if (tier === 2) {
+        this.round(8, -11, 23, 7, 2, "#dce5df");
+        this.round(8, 4, 23, 7, 2, "#dce5df");
+      }
     }
     if (id === "shotgun") {
       this.round(-13, -10, 25, 20, 4, "#c1874f");
@@ -346,6 +363,10 @@ export class Renderer {
         CREAM,
         3,
       );
+      if (tier === 2) {
+        this.round(-10, -17, 8, 34, 3, "#89aa99");
+        this.ellipse(-14, 0, 4, 7, "#fff0a0");
+      }
     }
     if (id === "coil") {
       this.round(-15, -10, 24, 20, 4, "#b5c48b");
@@ -359,6 +380,18 @@ export class Renderer {
           3,
         );
       this.ellipse(26, 0, 6, 6, "#dff4be");
+      if (tier === 2) {
+        this.line(
+          [
+            { x: 24, y: -12 },
+            { x: 17, y: -4 },
+            { x: 29, y: 0 },
+            { x: 20, y: 10 },
+          ],
+          "#bff7d1",
+          2.5,
+        );
+      }
     }
     if (id === "fist") {
       this.line(
@@ -413,6 +446,16 @@ export class Renderer {
       c.strokeStyle = "#b87b30";
       c.lineWidth = 1.5;
       c.stroke();
+      if (tier === 2) {
+        c.beginPath();
+        c.moveTo(30, 10);
+        c.lineTo(46, 18);
+        c.lineTo(37, 4);
+        c.closePath();
+        c.fillStyle = "#d8e4df";
+        c.fill();
+        c.stroke();
+      }
     }
     c.restore();
   }
@@ -516,15 +559,61 @@ export class Renderer {
       c.save();
       c.translate(s.x, s.y);
       c.rotate(s.age * 2 + s.id);
-      this.round(-5, -5, 10, 10, 2, "#e8b843", "#756b34", 1.5);
-      this.line(
-        [
-          { x: -2, y: 0 },
-          { x: 2, y: 0 },
-        ],
-        "#fff0b6",
-        1.5,
+      if (g.branch === "ember" && (s.heat ?? 0) > 0) {
+        this.ellipse(0, 0, 9, 9, "#e98545", "#743f2d", 2);
+        this.line(
+          [
+            { x: -4, y: 2 },
+            { x: -1, y: -4 },
+            { x: 2, y: 4 },
+            { x: 5, y: -3 },
+          ],
+          "#fff0a0",
+          2,
+        );
+      } else {
+        this.round(-5, -5, 10, 10, 2, "#e8b843", "#756b34", 1.5);
+        this.line(
+          [
+            { x: -2, y: 0 },
+            { x: 2, y: 0 },
+          ],
+          "#fff0b6",
+          1.5,
+        );
+      }
+      c.restore();
+    }
+    for (const point of g.wakePoints) {
+      const a = Math.max(0, point.life / point.max);
+      c.save();
+      c.globalAlpha = 0.25 + a * 0.65;
+      this.ellipse(
+        point.x,
+        point.y,
+        point.radius * (1.4 - a * 0.4),
+        point.radius * (0.55 + a * 0.25),
+        "#f6bd6033",
+        "#f2a64e",
+        2,
       );
+      for (let i = 0; i < 4; i++) {
+        const ang = (i * Math.PI) / 2 + point.id;
+        this.line(
+          [
+            {
+              x: point.x + Math.cos(ang) * 6,
+              y: point.y + Math.sin(ang) * 4,
+            },
+            {
+              x: point.x + Math.cos(ang) * 19,
+              y: point.y + Math.sin(ang) * 12,
+            },
+          ],
+          "#fff0a0",
+          2,
+        );
+      }
       c.restore();
     }
     for (const e of g.enemies) this.enemy(e);
@@ -566,6 +655,17 @@ export class Renderer {
           "#fff0a0",
           4,
         );
+      } else if (b.kind === "enemy" && b.r >= 7) {
+        this.line(
+          [
+            { x: -12, y: 0 },
+            { x: -3, y: 0 },
+          ],
+          "#f7a05d",
+          4,
+        );
+        this.ellipse(0, 0, b.r, b.r, "#e9695b", "#813b31", 2);
+        this.ellipse(-2, -2, 2, 2, "#fff0a0", "#0000", 0);
       } else {
         this.line(
           [
@@ -601,19 +701,32 @@ export class Renderer {
     );
     g.guns.forEach((gun, i) => {
       if (gun.id === "saw") {
-        const a = g.time * 4 + (i * Math.PI) / 2;
-        this.gun(
-          gun.id,
-          g.player.x + Math.cos(a) * 92,
-          g.player.y + Math.sin(a) * 92,
-          g.time * 9,
-          0,
-          1,
-          true,
-        );
+        const saws = gun.tier === 2 ? 2 : 1;
+        for (let n = 0; n < saws; n++) {
+          const a = g.time * 4 + (i * Math.PI) / 2 + n * Math.PI;
+          this.gun(
+            gun.id,
+            g.player.x + Math.cos(a) * 92,
+            g.player.y + Math.sin(a) * 92,
+            g.time * 9,
+            0,
+            1,
+            true,
+            gun.tier ?? 1,
+          );
+        }
       } else {
         const p = g.mount(i);
-        this.gun(gun.id, p.x, p.y, gun.angle, gun.recoil, 0.95, true);
+        this.gun(
+          gun.id,
+          p.x,
+          p.y,
+          gun.angle,
+          gun.recoil,
+          0.95,
+          true,
+          gun.tier ?? 1,
+        );
       }
     });
     for (const f of g.fx) {
@@ -694,6 +807,35 @@ export class Renderer {
             1,
           );
         }
+      } else if (f.kind === "wake") {
+        this.ellipse(
+          f.x,
+          f.y,
+          8 + 14 * (1 - a),
+          5 + 9 * (1 - a),
+          "#0000",
+          "#fff0a0",
+          3,
+        );
+      } else if (f.kind === "ember") {
+        for (let i = 0; i < 7; i++) {
+          const ang = (i * Math.PI * 2) / 7 + f.x * 0.07,
+            d = f.size * (0.4 + (1 - a) * 0.8);
+          this.line(
+            [
+              {
+                x: f.x + Math.cos(ang) * d * 0.55,
+                y: f.y + Math.sin(ang) * d * 0.55,
+              },
+              {
+                x: f.x + Math.cos(ang) * d,
+                y: f.y + Math.sin(ang) * d,
+              },
+            ],
+            i % 2 ? "#fff0a0" : BLAST.ring,
+            3,
+          );
+        }
       } else {
         this.ellipse(
           f.x,
@@ -723,6 +865,18 @@ export class Renderer {
   }
   enemy(e: Enemy) {
     const c = this.ctx;
+    const stage =
+      e.kind === "boss" && e.bossStage
+        ? bossForWave(
+            e.bossStage === 1
+              ? 5
+              : e.bossStage === 2
+                ? 10
+                : e.bossStage === 3
+                  ? 15
+                  : 20,
+          )
+        : undefined;
     c.save();
     c.translate(e.x, e.y);
     if (e.born > 0) {
@@ -733,7 +887,18 @@ export class Renderer {
     this.ellipse(0, e.r * 0.7, e.r, e.r * 0.36, "#85694744", INK, 0);
     c.rotate(Math.sin(e.age * 9 + e.id) * 0.07);
     c.scale(1 + e.flash * 2, 1 - e.flash * 1.7);
-    const color = e.flash > 0 ? CREAM : e.kind === "can" ? "#839f99" : ORANGE;
+    const color =
+      e.flash > 0
+        ? CREAM
+        : e.kind === "can"
+          ? "#858a85"
+          : e.kind === "splitter"
+            ? "#d88b62"
+            : e.kind === "chip"
+              ? "#efb35d"
+              : e.kind === "spitter"
+                ? "#c9944f"
+                : ORANGE;
     if (e.kind === "runner") {
       c.beginPath();
       c.moveTo(0, -21);
@@ -754,8 +919,8 @@ export class Renderer {
         5,
       );
     } else if (e.kind === "can") {
-      this.round(-22, -25, 44, 48, 8, color);
-      this.ellipse(0, -20, 22, 7, "#b8c6af");
+      this.round(-22, -25, 44, 48, 8, color, "#424d49", 3);
+      this.ellipse(0, -20, 22, 7, "#c1c6b3");
       this.line(
         [
           { x: -14, y: 12 },
@@ -764,11 +929,107 @@ export class Renderer {
         INK,
         3,
       );
+      this.line(
+        [
+          { x: -18, y: -18 },
+          { x: 18, y: -18 },
+        ],
+        "#c26f4f",
+        3,
+      );
+    } else if (e.kind === "splitter") {
+      this.ellipse(0, 0, 25, 23, color);
+      this.line(
+        [
+          { x: -20, y: -17 },
+          { x: -8, y: -5 },
+          { x: -19, y: 9 },
+        ],
+        INK,
+        3,
+      );
+      this.line(
+        [
+          { x: 20, y: -17 },
+          { x: 8, y: -5 },
+          { x: 19, y: 9 },
+        ],
+        INK,
+        3,
+      );
+      this.line(
+        [
+          { x: 0, y: -21 },
+          { x: 2, y: -8 },
+          { x: -5, y: 8 },
+        ],
+        "#7e4e39",
+        3,
+      );
+    } else if (e.kind === "chip") {
+      this.ellipse(0, 0, 8, 8, color, "#7e4e39", 2);
+      this.line(
+        [
+          { x: -5, y: 1 },
+          { x: 0, y: -4 },
+          { x: 5, y: 2 },
+        ],
+        "#7e4e39",
+        2,
+      );
+    } else if (e.kind === "spitter") {
+      this.ellipse(0, 0, 20, 20, color, "#6c5538", 3);
+      this.round(10, -5, 23, 12, 5, "#8d987f", "#4d5d50", 3);
+      this.ellipse(32, 1, 4, 6, "#d37550");
+      this.line(
+        [
+          { x: -14, y: -15 },
+          { x: -11, y: -24 },
+          { x: -4, y: -20 },
+        ],
+        INK,
+        3,
+      );
+      if ((e.tell ?? 0) > 0) {
+        c.setLineDash([3, 5]);
+        this.line(
+          [
+            { x: 34, y: 0 },
+            { x: 62, y: 0 },
+          ],
+          "#ffbe66",
+          3,
+        );
+        c.setLineDash([]);
+      }
     } else if (e.kind === "boss") {
-      this.round(-42, -43, 84, 83, 15, e.flash > 0 ? CREAM : "#466d64", INK, 5);
+      this.round(
+        -42,
+        -43,
+        84,
+        83,
+        15,
+        e.flash > 0 ? CREAM : (stage?.armor ?? "#466d64"),
+        INK,
+        5,
+      );
       this.ellipse(0, -37, 42, 13, "#b5bba0", INK, 4);
-      this.round(-27, -20, 54, 40, 5, "#db9d51");
+      this.round(-27, -20, 54, 40, 5, stage?.core ?? "#db9d51");
+      const marks = e.bossStage ?? 1;
+      for (let i = 0; i < marks; i++)
+        this.line(
+          [
+            { x: -22 + i * 14, y: 26 },
+            { x: -18 + i * 14, y: 35 },
+          ],
+          i % 2 ? "#d6e1d7" : "#e88a55",
+          4,
+        );
       this.text("!", 0, 10, 30);
+      if ((e.bossStage ?? 1) >= 3) {
+        this.round(-59, -8, 16, 31, 5, stage?.armor ?? "#52636d", INK, 3);
+        this.round(43, -8, 16, 31, 5, stage?.armor ?? "#52636d", INK, 3);
+      }
       this.line(
         [
           { x: -47, y: 17 },
@@ -827,6 +1088,15 @@ export class Renderer {
       c.fillRect(e.x - 20, e.y - 34, 40, 4);
       c.fillStyle = "#a6d2af";
       c.fillRect(e.x - 19, e.y - 33, (38 * e.hp) / e.maxHp, 2);
+    }
+    if (
+      (e.kind === "splitter" || e.kind === "spitter") &&
+      e.hp < e.maxHp
+    ) {
+      c.fillStyle = INK;
+      c.fillRect(e.x - 20, e.y - e.r - 12, 40, 4);
+      c.fillStyle = e.kind === "spitter" ? "#e5a04d" : "#e08a65";
+      c.fillRect(e.x - 19, e.y - e.r - 11, (38 * e.hp) / e.maxHp, 2);
     }
   }
 }

@@ -44,7 +44,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
     failed = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("requestfailed", (r) => failed.push(r.url()));
-  await page.goto(`${BASE_URL}/?seed=${SEED}`);
+  await page.goto(`${BASE_URL}/?mode=slice&seed=${SEED}`);
   await page.evaluate(() => localStorage.removeItem("scrap-surge.v1"));
   await page.reload();
   await page.waitForTimeout(500);
@@ -171,7 +171,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   const page = await browser.newPage({
     viewport: { width: 1440, height: 960 },
   });
-  await page.goto(`${BASE_URL}/?seed=${SEED}`);
+  await page.goto(`${BASE_URL}/?mode=slice&seed=${SEED}`);
   await page.locator("#start").click();
   await page.waitForTimeout(1200);
   const box = async (sel) => page.locator(sel).boundingBox();
@@ -205,7 +205,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   const page = await browser.newPage({
     viewport: { width: 1440, height: 960 },
   });
-  await page.goto(`${BASE_URL}/?seed=${SEED}`);
+  await page.goto(`${BASE_URL}/?mode=slice&seed=${SEED}`);
   await page.locator("#start").click();
   await page.waitForTimeout(800);
   await page.keyboard.down("KeyD");
@@ -299,7 +299,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   page.on("response", (r) => {
     if (r.status() >= 400) bad.push(`${r.status()} ${r.url()}`);
   });
-  await page.goto(`http://127.0.0.1:${port}/sub/`);
+  await page.goto(`http://127.0.0.1:${port}/sub/?mode=slice`);
   await page.waitForTimeout(600);
   await page.locator("#start").click();
   await page.waitForTimeout(2500);
@@ -340,7 +340,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto(`${BASE_URL}/?seed=${SEED}`);
+  await page.goto(`${BASE_URL}/?mode=slice&seed=${SEED}`);
   await page.locator("#start").tap();
   await page.waitForTimeout(2500);
   await page.screenshot({
@@ -464,7 +464,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
     });
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(`${BASE_URL}/?seed=${seed}`);
+    await page.goto(`${BASE_URL}/?mode=slice&seed=${seed}`);
     await page.locator("#start").click();
     let held = new Set();
     const release = async () => {
@@ -629,7 +629,7 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto(`${BASE_URL}/?seed=2a`);
+  await page.goto(`${BASE_URL}/?mode=slice&seed=2a`);
   await page.locator("#start").click();
   let ready = false;
   for (let i = 0; i < 40 && !ready; i++) {

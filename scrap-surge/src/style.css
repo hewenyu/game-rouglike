@@ -448,6 +448,12 @@ h1 > i {
   align-items: center;
   justify-content: center;
 }
+.loadout > div.tier-two {
+  background: #e9eef0;
+  box-shadow:
+    inset 0 0 0 2px #ffffff,
+    2px 2px 0 #68786e;
+}
 .loadout svg {
   width: 38px;
   height: 28px;
@@ -511,12 +517,28 @@ h1 > i {
   border-radius: 3px;
   padding: 3px 7px;
 }
+#mod-strip > span.tier-2 {
+  background: #d6c783;
+}
+#mod-strip > span.tier-3 {
+  background: #f0b95d;
+  box-shadow: inset 0 0 0 1px #fff2b1;
+}
+#mod-strip > span.branch-strip {
+  background: #2f4a40;
+  color: var(--paper);
+  border-color: #172b27;
+}
+#mod-strip b {
+  font-size: 8px;
+  margin-left: 2px;
+}
 #boss {
   position: absolute;
   top: calc(var(--edge) + 12px);
   left: 50%;
   transform: translateX(-50%);
-  width: 320px;
+  width: min(320px, 100vw - 32px);
   text-align: center;
 }
 #boss > span {
@@ -948,6 +970,10 @@ h1 > i {
 .end-build > .mod {
   background: #bbd5a9;
 }
+.end-build > .branch {
+  background: #2f4a40;
+  color: var(--paper);
+}
 .end-actions {
   display: flex;
   justify-content: center;
@@ -964,6 +990,26 @@ h1 > i {
 }
 .guide > .primary {
   width: 100%;
+}
+.expedition-end {
+  max-width: 860px;
+}
+.end-metrics {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+.end-metrics > span {
+  font-size: 9px;
+  border: 1.5px solid #273b3555;
+  border-radius: 4px;
+  padding: 5px 8px;
+  color: #64705b;
+}
+.end-metrics b {
+  color: var(--ink);
 }
 #toast {
   position: absolute;
@@ -1750,4 +1796,302 @@ h1 > i {
 
 #overlay > .shop-panel {
   animation: none;
+}
+
+/* Expedition shop: gun cards and owned-slot actions are separate surfaces. */
+.expedition-shop {
+  width: 1080px;
+}
+.owned-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-top: 1.5px solid #273b3533;
+  margin-top: 17px;
+  padding-top: 15px;
+}
+.owned-heading h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.owned-heading span {
+  font-size: 10px;
+  color: #697258;
+}
+.owned-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.owned-slot {
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #f8eac5;
+  box-shadow: 2px 2px 0 #b09973;
+  padding: 10px;
+}
+.owned-weapon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.owned-weapon > svg {
+  width: 76px;
+  height: 52px;
+  flex: 0 0 76px;
+}
+.owned-weapon > div {
+  min-width: 0;
+}
+.owned-weapon strong,
+.owned-weapon small {
+  display: block;
+}
+.owned-weapon strong {
+  font-size: 12px;
+}
+.owned-weapon small {
+  font-size: 10px;
+  line-height: 1.55;
+  color: #626b54;
+  margin-top: 3px;
+}
+.slot-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.slot-actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  background: #aecda3;
+  padding: 5px 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.slot-actions button + button {
+  flex: 0 0 42%;
+  background: #f1d3aa;
+}
+.slot-actions button:disabled {
+  opacity: 0.44;
+  background: #d7cab0;
+}
+.empty-slots {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #726d5266;
+  border-radius: 7px;
+  color: #6f755e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Free quick choices and the permanent branch fork. */
+.quick-panel {
+  width: 850px;
+  max-width: 100%;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 15px;
+  box-shadow: 8px 8px 0 #172b27;
+  padding: 30px 34px;
+}
+.quick-panel h2 {
+  font-size: 34px;
+  margin: 12px 0 7px;
+}
+.quick-panel > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #626e57;
+  margin: 0;
+}
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 22px;
+}
+.quick-card {
+  position: relative;
+  min-height: 248px;
+  flex-direction: column;
+  align-items: flex-start;
+  border-width: 3px;
+  justify-content: center;
+}
+.quick-card > b {
+  display: block;
+  margin: 0 auto;
+  font-size: 34px;
+}
+.quick-card > b svg {
+  width: 128px;
+  height: 98px;
+  color: #6c8e6d;
+  overflow: visible;
+}
+.quick-card > b svg text {
+  font-size: 20px;
+}
+.quick-card > small {
+  position: absolute;
+  right: 11px;
+  top: 11px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.tier-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.7px;
+  color: #5d745a;
+}
+.quick-card strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 16px;
+}
+.quick-card p {
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.branch-card {
+  border: 3px solid var(--ink);
+  border-radius: 9px;
+  background: #f6e3b3;
+  box-shadow: 4px 4px 0 #8a7652;
+  padding: 20px;
+  text-align: left;
+  transition: 0.15s;
+}
+.branch-card:hover {
+  transform: translateY(-4px);
+  background: #dce5b5;
+}
+.branch-card > b {
+  display: block;
+  font-size: 48px;
+  line-height: 1;
+  color: #8c7442;
+}
+.branch-card > span {
+  font:
+    10px "Courier New",
+    monospace;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+}
+.branch-card h3 {
+  font-size: 27px;
+  margin: 8px 0;
+}
+.branch-card p {
+  font-size: 12px;
+  line-height: 1.8;
+  min-height: 86px;
+  color: #5b674f;
+}
+.branch-card small {
+  font-size: 10px;
+  font-weight: 800;
+}
+.quick-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+.quick-footer > small {
+  font-size: 10px;
+  color: #697258;
+}
+.quick-footer > .primary {
+  min-width: 220px;
+  padding: 13px 18px;
+  font-size: 12px;
+}
+
+@media (max-width: 800px) {
+  .owned-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .quick-panel {
+    padding: 24px;
+  }
+  .quick-panel h2 {
+    font-size: 29px;
+  }
+  .quick-card {
+    min-height: 228px;
+  }
+}
+
+@media (max-width: 520px) {
+  .expedition-shop {
+    padding-bottom: 18px;
+  }
+  .owned-heading {
+    display: block;
+  }
+  .owned-heading span {
+    display: block;
+    margin-top: 4px;
+  }
+  .owned-grid,
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+  .owned-weapon > svg {
+    width: 66px;
+    flex-basis: 66px;
+  }
+  .slot-actions button {
+    font-size: 11px;
+  }
+  .quick-panel {
+    border-radius: 10px;
+    padding: 20px 16px;
+  }
+  .quick-panel h2 {
+    font-size: 26px;
+  }
+  .quick-card {
+    min-height: 0;
+  }
+  .quick-card > b svg {
+    width: 104px;
+    height: 78px;
+  }
+  .branch-card {
+    padding: 15px;
+  }
+  .branch-card p {
+    min-height: 0;
+  }
+  .quick-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .quick-footer > small {
+    text-align: center;
+  }
+  .quick-footer > .primary {
+    width: 100%;
+  }
 }

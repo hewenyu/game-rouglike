@@ -4,3 +4,4 @@ artifacts/*.png
 artifacts/*.webm
 artifacts/browser-results.json
 artifacts/*.json
+artifacts/expedition-attempts/

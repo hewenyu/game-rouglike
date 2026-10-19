@@ -16,7 +16,7 @@ async function run(seed,touch){
  const p=await context.newPage(),cdp=touch?await context.newCDPSession(p):null;let held=new Set(),point,touching=false;const errors=[];p.on('pageerror',e=>errors.push(e.message));
  const metrics=()=>p.evaluate(()=>window.scrapMetrics);
  async function release(){for(const k of held)await p.keyboard.up(k);held.clear();if(touching)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});touching=false;}
- try{await p.goto((process.env.BASE_URL||'http://127.0.0.1:4188')+'/?seed='+seed);const start=p.locator('#start');if(touch)await start.tap();else await start.click();const begun=Date.now();
+ try{await p.goto((process.env.BASE_URL||'http://127.0.0.1:4188')+'/?mode=slice&seed='+seed);const start=p.locator('#start');if(touch)await start.tap();else await start.click();const begun=Date.now();
  while(Date.now()-begun<35000){const s=await metrics();if(s.phase==='shop'||s.phase==='lost'||s.phase==='won'){await release();return {mode:touch?'touch':'keyboard',seed,phase:s.phase,hp:s.hp,kills:s.kills,time:s.time,errors};}if(s.phase==='paused'){await release();if(touch)await p.locator('#resume').tap();else await p.locator('#resume').click();continue;}
  const dx=s.position.x-600,dy=s.position.y-400,r=Math.hypot(dx,dy)||1,c=Math.max(-1,Math.min(1,(210-r)/90)),vx=-dy/r+dx/r*c,vy=dx/r+dy/r*c;
  if(touch){if(!touching){const rect=await p.locator('#joystick').boundingBox();point={x:rect.x+rect.width/2,y:rect.y+rect.height/2};await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,id:1}]});touching=true;}const l=Math.hypot(vx,vy)||1;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:point.x+vx/l*40,y:point.y+vy/l*40,id:1}]});}

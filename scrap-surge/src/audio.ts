@@ -80,6 +80,31 @@ export class Sound {
       this.tone(330, 660, 0.24, 0.3);
       setTimeout(() => this.tone(494, 988, 0.22, 0.15), 90);
     }
+    if (e.type === "boss") {
+      const stage = e.value ?? 1;
+      this.tone(110 - stage * 8, 42, 0.42, 0.32, "sawtooth");
+      setTimeout(
+        () => this.tone(175 + stage * 24, 75 + stage * 8, 0.28, 0.2),
+        80,
+      );
+    }
+    if (e.type === "branch") {
+      if (e.value === 1) {
+        this.tone(520, 1040, 0.24, 0.22, "sine");
+        setTimeout(() => this.tone(780, 1240, 0.18, 0.12, "triangle"), 80);
+      } else {
+        this.tone(190, 95, 0.36, 0.26, "square");
+        setTimeout(() => this.tone(130, 55, 0.3, 0.16, "sawtooth"), 100);
+      }
+    }
+    if (e.type === "tier") {
+      const tier = e.tier ?? 2;
+      this.tone(420 + tier * 110, 690 + tier * 180, 0.16, 0.16, "triangle");
+      setTimeout(
+        () => this.tone(620 + tier * 140, 920 + tier * 120, 0.2, 0.1, "sine"),
+        65,
+      );
+    }
     if (e.type === "end") this.tone(660, 220, 0.8, 0.3);
   }
 }

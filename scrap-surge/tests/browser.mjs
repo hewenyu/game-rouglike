@@ -27,7 +27,7 @@ const report = {
 const m = () => page.evaluate(() => window.scrapMetrics);
 await mkdir("artifacts", { recursive: true });
 try {
-  await page.goto(`${origin}/?seed=2a`);
+  await page.goto(`${origin}/?mode=slice&seed=2a`);
   await page.waitForTimeout(700);
   await page.screenshot({
     animations: "disabled",
@@ -151,7 +151,7 @@ try {
   });
   const mp = await mobile.newPage();
   mp.on("pageerror", (e) => errors.push(e.message));
-  await mp.goto(origin);
+  await mp.goto(`${origin}/?mode=slice`);
   await mp.waitForTimeout(700);
   await mp.screenshot({
     animations: "disabled",

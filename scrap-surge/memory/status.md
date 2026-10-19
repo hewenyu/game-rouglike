@@ -1,4 +1,31 @@
 # Status
+## Review candidate: expedition20 implemented, unverified (2026-10-19)
+
+The working tree contains a runnable `expedition20` implementation for three-party
+code/visual/failure review. It is **not user-accepted and not validation-complete**.
+The normal page defaults to `expedition20`; `?mode=slice` keeps the approved two-wave
+slice. No balance tuning was made to force a green result.
+
+Unverified at this review freeze: no ordinary-input 20-wave victory; no real
+ordinary-input `ember` run; post-mode-pin regression/mobile expedition interaction
+coverage; simulation-CPU fixed-step measurement; physical touch/audio/user feel.
+Three development attempts failed before/at wave 10/13: wave 13 death at 0 hp and two
+wave-10 boss deadlines. They are development evidence only; their old `spawnCount`
+field used timer-only accounting.
+
+Immutable development attempt directories remain under
+`artifacts/expedition-attempts/`, but are intentionally excluded from Git because
+screenshots/traces are large. The older attempts predate dirty/fingerprint provenance
+and cannot be retroactively pinned to exact source hashes; do not infer them from the
+docs-only `058951f` revision. Future attempts record `dirty`, changed paths and
+source/test SHA-256 fingerprints in each result.
+
+Approved implementation spec: **058951fc84994abb8ee24a2c587bb9232c1c1ccd**.
+Astra, Opus, author DeepSeek and independent DeepSeek explicitly approved this same
+text for full `expedition20` implementation. This is approval of the plan, not user
+acceptance. The runnable expedition candidate is being frozen for three-party
+implementation review; it is not yet validation-complete.
+
 User played and rejected Nightfold: not satisfying, wants a Brotato-like roguelike.
 The rejected prototype has been deleted under the user's direct authorization.
 Current project: Scrap Surge, a scrap-armored hermit crab with automatic multi-weapons.
