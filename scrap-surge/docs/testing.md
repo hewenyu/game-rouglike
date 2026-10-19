@@ -121,8 +121,11 @@ Current candidate evidence on `851cd13`:
 - Fresh browser regression on `851cd13`: **24/24**, log
   `/tmp/astra-851cd13-regression.log`.
 - Input lifecycle on `f7d0741`: **author DeepSeek 7/7**, log
-  `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`. Independent
-  DeepSeek separately reported 7/7 but supplied no path in this cleanup.
+  `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`. The separate
+  root-verified independent DeepSeek 7/7 artifact is
+  `/tmp/astra-f7d-review.B5iCbP/f7/scrap-surge/artifacts/input-lifecycle-results.json`
+  (SHA-256 `241fea027757a430d2088b5f5776c1a1f9904738524c4853b82f434836f1a6f3`);
+  its keyboard and touch runs completed.
 - Ordinary ranged run on `f7d0741`: lost W18 at 0 hp, 4,781 kills, simulated
   `594.7166666664544s`, wall `599.635s`, no page errors; raw result in
   `/tmp/astra-f7d0741-ranged/result.json`.
@@ -132,17 +135,19 @@ Current candidate evidence on `851cd13`:
   (`/tmp/astra-f7d0741-domino-diagnostic.json`). The preserved file contains the
   diagnostic CPU result and terminal outcome, not a full browser stop trace. No
   further strategy variants.
-- Slice equivalence on `851cd13`: **0 step differences** for seeds 42/23/145;
-  all won, with kills 307/308/307 and chain peaks 20/18/18
-  (`/tmp/astra-851cd13-slice-equivalence.log`).
+- Slice equivalence on `851cd13` against the approved pre-expansion slice at
+  `058951fc84994abb8ee24a2c587bb9232c1c1ccd`: **0 step differences** for seeds
+  42/23/145; all won, with kills 307/308/307, HP 10/7/10 and chain peaks
+  20/18/18 (`/tmp/astra-851cd13-slice-equivalence.log`).
 - Simulation CPU diagnostic on `851cd13`: W1-W15 only, p95 `0.060041ms`, max
   `1.301042ms`, Apple M4 / Node 26 (`/tmp/astra-851cd13-perf.json`). This is
   neither FPS nor W20/mobile/render/audio/GPU evidence.
-- Ordinary ranged run on `851cd13`: **death at W20**, 0 hp, 5,965 kills at wave
-  time `57.583333333331346s`, entered the boss at 1 hp, boss untouched at 6,400
-  hp, simulated `698.6666666663599s`, wall `703.349s`, no page errors, all 12
-  functional checks passed, and the victory assertion failed as intended. Raw
-  result: `/tmp/astra-851cd13-ranged/result.json`.
+- Ordinary ranged run on `851cd13`: **death at W20 during boss spawn**, 0 hp,
+  5,965 kills at wave time `57.583333333331346s`; no final boss fight was
+  observed and the boss was untouched at 6,400 hp. Simulated
+  `698.6666666663599s`, wall `703.349s`, no page errors, all 12 functional checks
+  passed, and the victory assertion failed as intended. Raw result:
+  `/tmp/astra-851cd13-ranged/result.json`.
 - Final read-only heal trace: **19/19 through W20** at
   `/tmp/astra-851cd13-heal-trace.json` (also mirrored as
   `/tmp/astra-851cd13-heal-trace-final.json`). The earlier 12/12 W13 read was an
@@ -226,6 +231,6 @@ not a peak-load or midrange-phone claim.
   neither a rejection count nor an injury attribution.
 - Physical touch ergonomics, the audible mix and user enjoyment remain unverified.
 - The 20-wave candidate has no ordinary-input victory on `851cd13`; its one
-  completed ordinary ranged run reached W20 and lost at the boss. There is no physical
-  device or Safari performance measurement, and no user acceptance. W16-W20 were
-  not part of the CPU sample.
+  completed ordinary ranged run died during the W20 boss spawn without the boss
+  fight being observed. There is no physical device or Safari performance
+  measurement, and no user acceptance. W16-W20 were not part of the CPU sample.

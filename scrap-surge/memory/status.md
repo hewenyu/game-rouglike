@@ -38,13 +38,17 @@ identical, so the rule, input and slice-equivalence evidence still applies.
 | Input lifecycle on `f7d0741` | **7/7 author**, independent DeepSeek **7/7** |
 | Three-seed slice equivalence on `851cd13` | **0 differences** |
 | Simulation CPU diagnostic | W1-W15 only; p95 **0.060041 ms**, max **1.301042 ms** |
-| Ordinary ranged run on `851cd13` | **lost W20 boss**, 0 HP |
+| Ordinary ranged run on `851cd13` | **lost W20 during boss spawn; boss fight unobserved**, 0 HP |
 
 The unit, build, slice-equivalence and browser-regression checks ran on
 `851cd13`. The named 7/7 input-lifecycle log is the **author DeepSeek** run on the
-parent `f7d0741`, before the recovery-only change. Independent DeepSeek separately
-reported 7/7 but provided no captured path in this cleanup; that is recorded as a
-report, not as the author log. These are finite checks, not a W20 acceptance claim.
+parent `f7d0741`, before the recovery-only change. The separate root-verified
+independent DeepSeek artifact is
+`/tmp/astra-f7d-review.B5iCbP/f7/scrap-surge/artifacts/input-lifecycle-results.json`
+with SHA-256
+`241fea027757a430d2088b5f5776c1a1f9904738524c4853b82f434836f1a6f3`;
+it records 7/7 with keyboard and touch runs completed. These are finite checks,
+not a W20 acceptance claim.
 
 The lifecycle log is
 `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`. It separately covers
@@ -53,8 +57,9 @@ held direction moving immediately in W8, rejection in quick/shop/pause, and no
 page errors.
 
 The slice-equivalence log is `/tmp/astra-851cd13-slice-equivalence.log`. Against
-the pre-recovery implementation, all three seeds finished with zero per-step
-differences:
+the approved pre-expansion slice at
+`058951fc84994abb8ee24a2c587bb9232c1c1ccd`, all three seeds finished with zero
+per-step differences:
 
 | Seed | Outcome | Kills | HP | Chain peak |
 | --- | --- | ---: | ---: | ---: |
@@ -80,9 +85,10 @@ The final heal post-analysis, `/tmp/astra-851cd13-heal-trace.json` (mirrored as
 read was an intermediate state, not a separate final artifact.
 
 The ordinary ranged run on `851cd13` is a real failure, not a victory or deadline.
-It entered W20 with 8 health, reached the W20 boss at 1 health at wave time
-`57.583333333331346 s`, and died at 0 health before dealing damage to it (boss
-still at 6,400 hp). The result recorded 5,965 kills, simulated
+It entered W20 with 8 health. The boss was first observed around `57.05 s`, while
+player health was 1; at wave time `57.583333333331346 s`, still during boss spawn,
+health reached 0. No final boss fight was observed and no boss damage was dealt
+(boss still at 6,400 hp). The result recorded 5,965 kills, simulated
 `698.6666666663599 s`, wall `703.349 s`, six Tier-II guns, popcorn III plus
 domino II, chain peak 21, no page errors, all 12 functional checks passed, and a
 working terminal retry; the full-victory assertion failed as intended. Raw
@@ -96,8 +102,10 @@ green checks.
 
 - **Input lifecycle, `f7`:** the preserved
   `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log` is the **author
-  DeepSeek 7/7** run. Independent DeepSeek separately reported 7/7 without a
-  captured path in this cleanup. The shared
+  DeepSeek 7/7** run. The root-verified independent DeepSeek 7/7 artifact is
+  `/tmp/astra-f7d-review.B5iCbP/f7/scrap-surge/artifacts/input-lifecycle-results.json`
+  (SHA-256 `241fea027757a430d2088b5f5776c1a1f9904738524c4853b82f434836f1a6f3`),
+  with keyboard and touch runs completed. The shared
   `tests/browser-input-lifecycle.mjs` remains the reproducible ordinary-input
   check.
 - **Ordinary ranged on `f7d0741`:** lost in W18 at 0 hp, 4,781 kills, simulated

@@ -40,14 +40,19 @@ prices, or strategy. It does not promise a W20 victory.
 Implementation landed at
 **851cd13faa17f930cbeb9cbf28eff3eeafe17073** after the input-lifecycle fix at
 **f7d0741bf9ac87340d76d7f02143d2be2021de4d**. On `851cd13`, `npm test` passed
-89/89 and the build was clean. The three-seed slice-equivalence diagnostic found
-zero step differences for seeds 42, 23 and 145
+89/89 and the build was clean. Against the approved pre-expansion slice at
+`058951fc84994abb8ee24a2c587bb9232c1c1ccd`, the three-seed slice-equivalence
+diagnostic found zero step differences for seeds 42, 23 and 145; all won with
+kills 307/308/307, HP 10/7/10 and chain peaks 20/18/18
 (`/tmp/astra-851cd13-slice-equivalence.log`). The ordinary ranged run on `851cd13`
-later reached W20 and lost at the boss; the final result is recorded below.
+later died during the W20 boss spawn; the final result is recorded below.
 
 Current evidence also includes the **author DeepSeek** lifecycle run on `f7d0741`
-(7/7, `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`); independent
-DeepSeek separately reported 7/7 but supplied no captured path in this cleanup.
+(7/7, `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`). The separate
+root-verified independent DeepSeek 7/7 artifact is
+`/tmp/astra-f7d-review.B5iCbP/f7/scrap-surge/artifacts/input-lifecycle-results.json`
+(SHA-256 `241fea027757a430d2088b5f5776c1a1f9904738524c4853b82f434836f1a6f3`),
+with keyboard and touch runs completed.
 A fresh root-reported browser regression on `851cd13` passed 24/24
 (`/tmp/astra-851cd13-regression.log`). The preserved ranged failure
 on `f7d0741` ended lost in W18 at 0 hp with 4,781 kills, simulated
@@ -58,11 +63,12 @@ lost in W15 with 3,455 kills
 not proof that W20 is unwinnable.
 
 The final ranged run reached W20 and died at 0 hp at wave time
-`57.583333333331346s`, before damaging the W20 boss (5,965 kills, 1 hp at boss
-spawn, boss still at 6,400 hp, simulated `698.6666666663599s`, wall `703.349s`,
-no page errors). All 12 functional checks passed and the full-victory assertion
-failed as intended. This is a real failure, not a victory or deadline. Its final
-read-only heal post-analysis passed **19/19**
+`57.583333333331346s`, while the boss was still spawning; no final boss fight was
+observed and no boss damage was dealt (5,965 kills, boss still at 6,400 hp,
+simulated `698.6666666663599s`, wall `703.349s`, no page errors). All 12
+functional checks passed and the full-victory assertion failed as intended. This
+is a real failure, not a victory or deadline. Its final read-only heal
+post-analysis passed **19/19**
 (`/tmp/astra-851cd13-heal-trace.json`, mirrored as
 `/tmp/astra-851cd13-heal-trace-final.json`); the earlier 12/12 W13 read was an
 intermediate state, not a separate final artifact.
