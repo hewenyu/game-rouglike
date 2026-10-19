@@ -5,6 +5,20 @@ const INK = "#273b35",
   CREAM = "#fff1c8",
   ORANGE = "#ee7956",
   MINT = "#91c9ae";
+// The player must never be confused with an orange-red enemy, so the shell is
+// ivory + teal and gets a bright white rim and a teal ground ring.
+const TEAL = "#2f9e8f",
+  TEAL_LIGHT = "#3fd0a8",
+  IVORY = "#f4efe0",
+  IVORY_HI = "#fffdf6";
+const WEAPON_TINT: Record<WeaponId, string> = {
+  slinger: "#ffcf5c",
+  shotgun: "#d8a869",
+  rocket: "#ff8a5c",
+  coil: "#b6e05a",
+  fist: "#f0a05c",
+  saw: "#8fb3d9",
+};
 export class Renderer {
   ctx: CanvasRenderingContext2D;
   width = 0;
@@ -13,6 +27,9 @@ export class Renderer {
   scale = 1;
   ox = 0;
   oy = 0;
+  // Vertical bands reserved for HUD chrome so the arena never sits under it.
+  reserveTop = 0;
+  reserveBottom = 0;
   reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   constructor(public canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext("2d", { alpha: false })!;
@@ -25,6 +42,17 @@ export class Renderer {
     this.dpr = Math.min(devicePixelRatio || 1, 2);
     this.canvas.width = r.width * this.dpr;
     this.canvas.height = r.height * this.dpr;
+  }
+  // Screen-space rect of the drawn arena, in CSS pixels. Lets the browser test
+  // prove the HUD bands really sit outside the play field.
+  arenaRect() {
+    return {
+      x: this.ox,
+      y: this.oy,
+      w: W * this.scale,
+      h: H * this.scale,
+      scale: this.scale,
+    };
   }
   ellipse(
     x: number,
@@ -136,44 +164,85 @@ export class Renderer {
     c.lineWidth = 4;
     c.stroke();
   }
-  crab(x: number, y: number, size: number, walk: number, hurt = false) {
+  crab(
+    x: number,
+    y: number,
+    size: number,
+    walk: number,
+    hurt = false,
+    player = false,
+  ) {
     const c = this.ctx;
     c.save();
     c.translate(x, y);
     c.scale(size, size);
     if (hurt) c.globalAlpha = 0.65;
-    this.ellipse(0, 18, 34, 13, "#866d4b44", INK, 0);
+    const legDark = player ? "#20302c" : INK,
+      legLight = player ? TEAL_LIGHT : ORANGE,
+      shellOuter = player ? IVORY : "#5f867a",
+      shellInner = player ? IVORY_HI : "#8eac86",
+      limb = player ? TEAL : ORANGE,
+      mark = player ? "#bfe6dd" : "#d8d9a1",
+      crease = player ? "#0f7d72" : "#365448";
+    if (player) {
+      // Complete translucent ground ring keeps the player anchored in a swarm.
+      this.ellipse(0, 20, 42, 16, "#2f9e8f26", TEAL, 4);
+      this.ellipse(0, 0, 35, 34, "#ffffff", "#ffffff", 0);
+    } else {
+      this.ellipse(0, 18, 34, 13, "#866d4b44", INK, 0);
+    }
+    // Six short, thick, dark-outlined legs instead of thin crossing strokes.
     for (const side of [-1, 1])
       for (let i = 0; i < 3; i++) {
-        const off = Math.sin(walk + i) * 4;
-        this.line(
-          [
-            { x: side * 17, y: 3 + i * 6 },
-            { x: side * (30 + off), y: 5 + i * 9 },
-            { x: side * 36, y: 13 + i * 9 },
-          ],
-          INK,
-          5,
-        );
-        this.line(
-          [
-            { x: side * 17, y: 3 + i * 6 },
-            { x: side * (30 + off), y: 5 + i * 9 },
-            { x: side * 36, y: 13 + i * 9 },
-          ],
-          ORANGE,
-          2.5,
-        );
+        const off = Math.sin(walk + i) * 3,
+          legs = [
+            { x: side * 16, y: 2 + i * 7 },
+            { x: side * (26 + off), y: 8 + i * 8 },
+            { x: side * 33, y: 16 + i * 8 },
+          ];
+        this.line(legs, legDark, player ? 8 : 5);
+        this.line(legs, legLight, player ? 3.5 : 2.5);
       }
-    this.ellipse(0, 0, 29, 28, "#5f867a");
-    this.ellipse(-3, -4, 23, 21, "#8eac86");
+    this.ellipse(0, 0, 29, 28, shellOuter);
+    this.ellipse(-3, -4, 23, 21, shellInner);
+    if (player) {
+      // Warm spiral shading so the ivory shell reads as a hermit-crab shell.
+      this.ellipse(5, 6, 19, 15, "#e6d6b133", "#0000", 0);
+      this.line(
+        [
+          { x: -17, y: -7 },
+          { x: -4, y: -14 },
+          { x: 10, y: -9 },
+        ],
+        "#d9c9a6",
+        3,
+      );
+      this.line(
+        [
+          { x: -19, y: 3 },
+          { x: -2, y: -3 },
+          { x: 15, y: 1 },
+        ],
+        "#e2d4b4",
+        3,
+      );
+      this.line(
+        [
+          { x: -15, y: 12 },
+          { x: 2, y: 8 },
+          { x: 15, y: 12 },
+        ],
+        "#cdbb96",
+        3,
+      );
+    }
     this.line(
       [
         { x: -14, y: 10 },
         { x: -12, y: -15 },
         { x: 7, y: -22 },
       ],
-      "#d8d9a1",
+      mark,
       4,
     );
     this.line(
@@ -182,7 +251,7 @@ export class Renderer {
         { x: 18, y: 3 },
         { x: 17, y: -12 },
       ],
-      "#365448",
+      crease,
       3,
     );
     this.round(-16, -22, 26, 12, 4, "#d9b465");
@@ -194,19 +263,19 @@ export class Renderer {
       "#6a6043",
       2,
     );
-    this.ellipse(0, 13, 22, 15, ORANGE);
+    this.ellipse(0, 13, 22, 15, limb);
     for (const side of [-1, 1]) {
       this.line(
         [
           { x: side * 11, y: 7 },
           { x: side * 13, y: -1 },
         ],
-        INK,
-        5,
+        player ? "#ffffff" : INK,
+        player ? 7 : 5,
       );
-      this.ellipse(side * 13, -2, 5.5, 7, CREAM);
+      this.ellipse(side * 13, -2, 5.5, 7, CREAM, INK, player ? 4 : 3);
       this.ellipse(side * 13, -1, 2.4, 3, INK, INK, 0);
-      this.ellipse(side * 33, 7, 10, 9, ORANGE);
+      this.ellipse(side * 33, 7, 10, 9, limb);
       this.line(
         [
           { x: side * 35, y: 0 },
@@ -234,6 +303,7 @@ export class Renderer {
     angle: number,
     recoil = 0,
     scale = 1,
+    plate = false,
   ) {
     const c = this.ctx;
     c.save();
@@ -241,8 +311,14 @@ export class Renderer {
     c.rotate(angle);
     c.scale(scale, scale);
     c.translate(-recoil * 5, 0);
+    // A colored backing block keeps each mounted weapon readable as a distinct
+    // piece of hardware instead of a thin dashed outline.
+    if (plate) {
+      this.round(-23, -16, 46, 32, 10, WEAPON_TINT[id], INK, 3);
+      this.round(-20, -13, 40, 26, 8, "#d9ddd4", INK, 2);
+    }
     if (id === "slinger") {
-      this.round(-12, -8, 27, 16, 5, "#80b5a0");
+      this.round(-12, -8, 27, 16, 5, "#c3ccc0");
       this.round(9, -5, 22, 10, 2, "#e2d1a1");
       this.line(
         [
@@ -321,6 +397,8 @@ export class Renderer {
       this.ellipse(0, 0, 15, 15, "#c4d0b4");
       this.ellipse(0, 0, 5, 5, "#edac54");
     }
+    // Identity color stays visible at the muzzle tip, above the weapon body.
+    if (plate) this.ellipse(25, 0, 4, 4, WEAPON_TINT[id], INK, 2);
     if (recoil > 0.5 && id !== "saw" && id !== "fist") {
       c.beginPath();
       c.moveTo(30, 0);
@@ -367,10 +445,12 @@ export class Renderer {
       );
     }
     if (w > 700) {
-      this.text("100% BEACH TRASH", x, y + 210, 11);
+      // Keep the caption and the little badge clear of both the crab and the
+      // DOM sticker so nothing is clipped or overlapped.
+      this.text("100% BEACH TRASH", x, y + 248, 11);
       c.save();
-      c.translate(x + 135, y - 145);
-      c.rotate(0.15);
+      c.translate(x - 128, y + 150);
+      c.rotate(-0.12);
       this.round(-45, -27, 90, 54, 4, "#a3cba3");
       this.text("6 把破烂", 0, -2, 14);
       this.text("一只小蟹", 0, 16, 11);
@@ -382,13 +462,15 @@ export class Renderer {
     const c = this.ctx,
       w = this.width,
       h = this.height;
-    this.scale = Math.min(w / (w < 700 ? 740 : 1260), h / 890);
+    const availH = Math.max(200, h - this.reserveTop - this.reserveBottom),
+      midY = this.reserveTop + availH / 2;
+    this.scale = Math.min(w / (w < 700 ? 740 : 1260), availH / 890);
     const vw = w / this.scale,
-      vh = h / this.scale,
+      vh = availH / this.scale,
       cx = vw < W ? Math.max(vw / 2, Math.min(W - vw / 2, g.player.x)) : W / 2,
       cy = vh < H ? Math.max(vh / 2, Math.min(H - vh / 2, g.player.y)) : H / 2;
     this.ox = w / 2 - cx * this.scale;
-    this.oy = h / 2 - cy * this.scale + 18;
+    this.oy = midY - cy * this.scale;
     const shake = this.reduced ? 0 : g.shake * 16;
     c.translate(
       this.ox + Math.sin(t * 83) * shake,
@@ -446,6 +528,30 @@ export class Renderer {
       c.restore();
     }
     for (const e of g.enemies) this.enemy(e);
+    for (const k of g.corpses) {
+      const life = k.life / k.max;
+      c.save();
+      c.globalAlpha = 0.25 + life * 0.45;
+      this.line(
+        [
+          { x: k.x - k.vx * 0.03, y: k.y - k.vy * 0.03 },
+          { x: k.x, y: k.y },
+        ],
+        "#3a3f42",
+        12,
+      );
+      this.round(
+        k.x - k.r - 1,
+        k.y - k.r,
+        (k.r + 1) * 2,
+        k.r * 2,
+        Math.min(10, k.r),
+        "#4a4f52",
+        "#20252a",
+        3,
+      );
+      c.restore();
+    }
     for (const b of g.bullets) {
       c.save();
       c.translate(b.x, b.y);
@@ -488,24 +594,26 @@ export class Renderer {
     this.crab(
       g.player.x,
       g.player.y,
-      1,
+      1.3,
       g.player.walk,
       g.player.invulnerable > 0 && g.damageTaken > 0 && Math.sin(t * 30) > 0,
+      true,
     );
     g.guns.forEach((gun, i) => {
       if (gun.id === "saw") {
         const a = g.time * 4 + (i * Math.PI) / 2;
         this.gun(
           gun.id,
-          g.player.x + Math.cos(a) * 83,
-          g.player.y + Math.sin(a) * 83,
+          g.player.x + Math.cos(a) * 92,
+          g.player.y + Math.sin(a) * 92,
           g.time * 9,
           0,
           1,
+          true,
         );
       } else {
         const p = g.mount(i);
-        this.gun(gun.id, p.x, p.y, gun.angle, gun.recoil, 0.8);
+        this.gun(gun.id, p.x, p.y, gun.angle, gun.recoil, 0.95, true);
       }
     });
     for (const f of g.fx) {
@@ -541,30 +649,33 @@ export class Renderer {
           2,
         );
       } else if (f.kind === "blast") {
+        // Saturated flash core, an expanding shock ring and flying debris so a
+        // chain reads as a real explosion instead of a soft coloured disc.
+        const r = f.size * (1.25 - a * 0.55);
+        this.ellipse(f.x, f.y, r, r, `${f.color}30`, f.color, 6 * a + 1);
+        const core = f.size * 0.62 * (0.4 + a * 0.6);
+        this.ellipse(f.x, f.y, core, core, "#fff6c0", "#0000", 0);
         this.ellipse(
           f.x,
           f.y,
-          f.size * (1 - a * 0.5),
-          f.size * (1 - a * 0.5),
-          `${f.color}44`,
-          f.color,
-          5 * a,
+          f.size * (1.9 - a * 0.9),
+          f.size * (1.9 - a * 0.9),
+          "#0000",
+          "#ffffff",
+          4 * a,
         );
-        for (let i = 0; i < 7; i++) {
-          const ang = (i * Math.PI * 2) / 7;
-          this.line(
-            [
-              {
-                x: f.x + Math.cos(ang) * f.size * 0.7,
-                y: f.y + Math.sin(ang) * f.size * 0.7,
-              },
-              {
-                x: f.x + Math.cos(ang) * f.size * (1.2 - a * 0.3),
-                y: f.y + Math.sin(ang) * f.size * (1.2 - a * 0.3),
-              },
-            ],
-            f.color,
-            3 * a,
+        for (let i = 0; i < 9; i++) {
+          const ang = (i * Math.PI * 2) / 9 + f.x * 0.1,
+            d = f.size * (0.7 + a * 0.9);
+          this.round(
+            f.x + Math.cos(ang) * d,
+            f.y + Math.sin(ang) * d,
+            9 * a + 2,
+            7 * a + 2,
+            2,
+            i % 2 ? f.color : "#ffd166",
+            INK,
+            1,
           );
         }
       } else if (f.kind === "pop") {
@@ -597,6 +708,16 @@ export class Renderer {
     }
     if (g.phase === "sweep") {
       this.text("退潮了！统统收回来", 600, 350, 36, CREAM, true);
+    }
+    // Real chain readout: N is the number of genuine secondary deaths in the
+    // strongest chain still alive, never a faked counter.
+    if (g.chainCount >= 2 && g.chainTimer > 0) {
+      const pop = 1 + Math.max(0, g.chainTimer - 0.55) * 2.4;
+      c.save();
+      c.translate(g.player.x, g.player.y - 66);
+      c.scale(pop, pop);
+      this.text(`×${g.chainCount}`, 0, 0, 30, "#ffb020", true);
+      c.restore();
     }
   }
   enemy(e: Enemy) {

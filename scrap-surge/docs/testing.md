@@ -1,34 +1,102 @@
 # Validation evidence and boundaries
 
 ## Automated rules
-19 tests cover automatic first kill, one-time death settlement, multigeneration
-explosions, budgeted queue retention, pickup uniqueness, pickup->kill->explosion->drop
-feedback, stacked mod validation, magnetic burst counting, shop transactions, isolated
-shop RNG, incoming-damage reservations, stale targets, pause, movement, loss/retry,
-end-of-wave sweep, victory/deadline and 20 seeded stress simulations with 180 enemies
-and 420 initial bullets. These are finite samples, not a proof of all builds/seeds.
-The stress test establishes bounds/finite state, not real-device frame-rate fitness.
 
-## Browser method and first observation
-Installed Google Chrome 155.0.8059.80, headless Playwright, macOS 26.6.2 / Apple M4,
-1440x960, DPR 1. Normal WASD movement, visible shop purchases, two visible mod choices.
-Only read-only metrics were inspected; no HP/timer/entity writes or invulnerability.
-Seed 0x2a: first kill at 1.23s, first pickup at 3.43s. Normal victory at simulation time
-57.02s (20+35 seconds and two 1-second sweeps), 266 kills, 709 spawned projectiles,
-4/10 health. Equipment: popper/rocket/coil/shotgun/saw; popcorn+domino mods.
+`npm test` runs 35 simulation tests (`tests/rules.test.ts`): automatic first kill,
+one-time death settlement, multigeneration explosions, budgeted queue retention,
+pickup uniqueness, pickup -> kill -> explosion -> drop feedback, stacked mod
+validation, shop transactions, isolated shop RNG, incoming-damage reservations,
+stale targets, pause, movement, loss/retry, end-of-wave sweep, victory/deadline and
+20 seeded stress simulations with 180 enemies and 420 initial bullets.
 
-Pause, resize, reset and a genuine emulated touch stream were exercised. A 390x844
-DPR2 Chrome mobile context moved and auto-fired, then cancelled a touch and resumed
-without ghost movement. This is not physical phone testing. Browser errors: none.
+Slice-specific tests added for S1/S1b:
 
-Frame intervals: final 1800 active samples, median 16.7ms, p95 16.7ms in this headless
-run. Measurements use raw rAF timestamps (not capped simulation delta). They include
-normal browser execution but are neither GPU profiling nor peak-load/mobile claims.
-No physical-device performance measurement yet. Target: 60fps desktop; midrange phone
-budget needs real-device evidence. "Capped arrays" is not a performance benchmark.
+- combat pickups advance the magnet charge while sweep pickups do not, and the
+  remainder carries (7 combat + 5 sweep + 1 combat fires the burst on the 8th
+  combat pickup);
+- wave-1 pockets spawn at the fixed 6s/14s times with 12 enemies each;
+- the wave-1 base spawn rate matches the fixed 3.1 per second;
+- the chain counter reports real secondary deaths, not the primary root kill;
+- a lone weapon kill never fabricates a chain;
+- primary radius damage does not count as a chain;
+- interleaved chains keep separate per-root counts;
+- the pending-blast peak is recorded and the queue drains fully;
+- a lethal spring-fist hit leaves a remnant that bowls another enemy for exactly 30;
+- the remnant never damages the player and is not a live enemy;
+- remnants are capped at 180 and cleared at the wave boundary;
+- remnant kills drop loot and count as secondary chain deaths;
+- overtime exposes a live countdown instead of a frozen zero;
+- `spawnCount` counts successful spawns, not cap-rejected attempts.
+- finished chain roots are reclaimed during sustained chain activity, so a long run
+  cannot accumulate completed roots while the display timer keeps refreshing;
+- a root with queued work survives until its queue drains.
 
-## Current test scope
-This is a two-wave loop and a user-feel checkpoint. The next most valuable test is
-whether the user can feel the second-wave feedback build taking over, not adding
-more waves before the core is accepted. Physical phone ergonomics, Safari, actual
-audible mix and user enjoyment remain unverified. No user acceptance of this version.
+These are finite samples, not a proof over all builds or seeds. The stress test
+establishes bounded, finite state, not real-device frame-rate fitness.
+
+## Browser method
+
+`npm run test:browser` (normal play) and `npm run test:browser:regression`
+(`tests/browser-regression.mjs`) drive real Chrome over the dev server or a static
+host. Both use ordinary keys, taps and buttons and read only `window.scrapMetrics`
+plus DOM geometry; no HP, timer or entity writes, and no invulnerability.
+`CHROME_PATH`, `TEST_URL`/`BASE_URL` and `DIST_DIR` are configurable.
+
+Environment: Google Chrome 155.0.8059.80, headless Playwright, macOS 26.6.2 /
+Apple M4, 1440x960, DPR 1, seed 0x2a.
+
+Normal-play run: automatic first kill at 1.45s, ordinary movement plus weapon
+purchases plus two stacked mods, then a boss victory. Repeated runs land around
+260-290 kills at 3-5/10 health with chain peak 18-21 and pending-blast peak 13-16;
+the exact numbers depend on rAF timing, so the assertions check the outcome, not the
+totals. No uncaught page errors. A 390x844 DPR2 touch context moved, auto-fired,
+cancelled a touch and resumed with no ghost movement.
+
+Author-run regression using separately authored checks
+(`tests/browser-regression.mjs`), 19/19 checks. The checks were drafted by a
+separate agent, but this execution was run by the implementer, so it is not
+independent review. The formal independent review runs after the freeze against
+the frozen commit.
+
+- A1-A2 idle play reaches the terminal state and specifically covers the defeat
+  path (lost at wave 1, 14.23s, 0 health). A win here would be reported as an
+  uncovered death path instead of passing.
+- A3-A6 the end panel offers retry, the record is written once, retry resets
+  immediately (10 health, 0 kills, 1 gun, 0 mods) and the record is not
+  double-counted.
+- B1-B3 a mid-fight refresh returns to the title without resuming, the record
+  survives, and there are no page errors.
+- C1-C2 the drawn arena starts below the edge bar and ends above the bottom HUD
+  band, i.e. the HUD is outside the play field, not merely restyled over it.
+- D1-D2 blur pauses and freezes simulation time, and after resume a released key
+  produces 0px of drift.
+- E1 the production `dist/` build runs from a `/sub/` subdirectory with relative
+  paths and no 4xx responses.
+- F1-F5 at 390x844 DPR2 with real touch: no HUD element overflows the viewport
+  width, the document has no horizontal scroll, the edge bar and bottom band are
+  fully visible, and the arena keeps a usable size (632x422) clear of both the
+  edge bar and the joystick.
+
+The phone checks exist because a read-only review found the arena squeezed to a
+small strip and the loadout/wallet overflowing: conflicting narrow-screen media
+rules enlarged the bottom bar, and `layout()` mixed `window.innerHeight` (1046 on
+that device) with the canvas CSS height (844). The fix uses the canvas rect as the
+single coordinate frame and clamps the narrow bottom bar to the viewport width.
+
+## Frame intervals
+
+The normal-play run reports median 16.7ms and p95 16.7ms over the final samples,
+from raw rAF timestamps. This is headless desktop execution, not GPU profiling and
+not a peak-load or midrange-phone claim.
+
+## Known unverified
+
+- No physical-device performance or Safari measurement. Midrange-phone frame rate
+  is unmeasured.
+- Headless cannot confirm a real window blur; the regression dispatches a synthetic
+  blur and records that boundary explicitly (`realBlurDeliveredHeadless: false`).
+- The 420 shared projectile cap is documented and instrumented but not yet observed
+  as actually reached in a normal wave-2 run.
+- Physical touch ergonomics, the audible mix and user enjoyment remain unverified.
+- This is a two-wave feel slice, not the finished 10-20 minute roguelike, and it has
+  no user acceptance yet.

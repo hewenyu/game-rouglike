@@ -256,3 +256,244 @@ test("stress caps and finite coordinates for 20 seeds with 180 hostiles", () => 
     assert(g.scraps.length <= 250);
   }
 });
+test("combat pickups advance magnet charge while sweep pickups do not", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["magnet"];
+  const scrap = (i: number) => ({
+    x: 600,
+    y: 450,
+    id: i,
+    value: 1,
+    vx: 0,
+    vy: 0,
+    age: 0,
+  });
+  for (let i = 0; i < 7; i++) g.collect(scrap(i));
+  assert.equal(g.combatPicked, 7);
+  assert.equal(g.bullets.length, 0);
+  g.phase = "sweep";
+  for (let i = 0; i < 5; i++) g.collect(scrap(100 + i));
+  assert.equal(g.picked, 12);
+  assert.equal(g.combatPicked, 7);
+  assert.equal(g.bullets.length, 0);
+  g.phase = "fight";
+  g.collect(scrap(200));
+  assert.equal(g.combatPicked, 8);
+  assert.equal(g.bullets.length, 10);
+});
+test("timed enemy pockets spawn at the fixed wave-1 times and count", () => {
+  const g = empty();
+  g.guns = [];
+  assert.deepEqual(g.pocketTimes, [6, 14]);
+  assert.equal(g.pocketSize, 12);
+  g.waveTime = 5;
+  step(g, 61);
+  assert.equal(g.pocketIndex, 1);
+  assert.equal(g.enemies.length, 12);
+  g.waveTime = 13;
+  step(g, 61);
+  assert.equal(g.pocketIndex, 2);
+  assert.equal(g.enemies.length, 24);
+});
+test("wave-1 base spawn rate matches the fixed 3.1 per second", () => {
+  const g = empty();
+  g.guns = [];
+  g.pocketTimes = [];
+  g.player.hp = 9999;
+  g.player.maxHp = 9999;
+  g.spawnTimer = 0;
+  step(g, 60 * 10);
+  assert(g.spawnCount >= 30 && g.spawnCount <= 32);
+});
+test("chain count reports real secondary deaths, not the primary root kill", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  enemy(g, 600, 200);
+  enemy(g, 640, 200);
+  enemy(g, 680, 200);
+  g.hit(g.enemies[0], 30, g.player);
+  step(g, 1);
+  assert.equal(g.kills, 3);
+  // One primary root plus two explosion deaths: only the two secondary deaths
+  // are counted, so the peak chain is 2 rather than a faked 3.
+  assert.equal(g.chainPeak, 2);
+  assert.equal(g.chainCount, 2);
+});
+test("a lone weapon kill never fabricates a chain", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  const e = enemy(g, 600, 300);
+  g.hit(e, 30, g.player);
+  step(g, 1);
+  assert.equal(g.kills, 1);
+  assert.equal(g.chainCount, 0);
+  assert.equal(g.chainPeak, 0);
+});
+test("primary radius damage does not count as a chain", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = [];
+  for (let i = 0; i < 5; i++) enemy(g, 600 + i * 10, 300);
+  g.explode({ x: 600, y: 300 }, 92, 30, true);
+  step(g, 1);
+  assert.equal(g.kills, 5);
+  assert.equal(g.chainCount, 0);
+  assert.equal(g.chainPeak, 0);
+});
+test("interleaved chains keep separate per-root counts", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  enemy(g, 200, 200);
+  enemy(g, 240, 200);
+  enemy(g, 280, 200);
+  enemy(g, 900, 600);
+  enemy(g, 940, 600);
+  enemy(g, 980, 600);
+  g.hit(g.enemies[0], 30, g.player);
+  g.hit(g.enemies[3], 30, g.player);
+  step(g, 1);
+  assert.equal(g.kills, 6);
+  // Two chains of two secondary deaths each; they must not sum into a fake 4.
+  assert.equal(g.chainPeak, 2);
+  // chainCounts is a working set of roots with queued work; here every blast
+  // drains inside one tick, so it must never hold more roots than existed.
+  assert(g.chainCounts.size <= 2);
+});
+test("finished chain roots are reclaimed during sustained chain activity", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = [];
+  const a1 = enemy(g, 600, 300, 10);
+  const a2 = enemy(g, 640, 300, 10);
+  g.hit(a1, 30, { x: 500, y: 300 }, "secondary", 0, 7);
+  g.hit(a2, 30, { x: 500, y: 300 }, "secondary", 0, 7);
+  assert.equal(g.chainCounts.get(7), 2);
+  // Keep a second chain busy for longer than the 0.8s decay window.
+  for (let i = 0; i < 80; i++) {
+    const e = enemy(g, 900, 300, 10);
+    g.hit(e, 30, { x: 800, y: 300 }, "secondary", 0, 9);
+    step(g, 1);
+  }
+  assert.equal(g.chainCounts.has(7), false);
+  // Chain 9 produced no queued work either, so it is reclaimed on the same tick
+  // and its counter restarts instead of accumulating across ticks. The xN readout
+  // is kept by the separate decaying scalar, which still holds chain 7's peak.
+  assert.equal(g.chainCounts.size, 0);
+  assert.equal(g.chainCount, 2);
+});
+test("a root with queued work survives until its queue drains", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  for (let i = 0; i < 40; i++)
+    enemy(g, 600 + (i % 8) * 8, 200 + Math.floor(i / 8) * 8, 10);
+  g.hit(g.enemies[0], 30, g.player);
+  step(g, 1);
+  assert(g.pendingBlasts.length > 0);
+  assert(g.chainCounts.size > 0);
+  let guard = 0;
+  while (g.pendingBlasts.length && guard++ < 600) step(g, 1);
+  assert.equal(g.pendingBlasts.length, 0);
+  assert.equal(g.chainCounts.size, 0);
+});
+test("pending blast peak is recorded and the queue drains fully", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  for (let i = 0; i < 40; i++)
+    enemy(g, 600 + (i % 8) * 8, 200 + Math.floor(i / 8) * 8);
+  g.hit(g.enemies[0], 30, g.player);
+  step(g, 1);
+  assert(g.pendingPeak > 12);
+  let guard = 0;
+  while (g.pendingBlasts.length && guard++ < 600) step(g, 1);
+  assert.equal(g.pendingBlasts.length, 0);
+  assert.equal(g.kills, 40);
+});
+test("lethal spring-fist hit leaves a remnant that bowls another enemy", () => {
+  const g = empty();
+  g.guns = [{ id: "fist", cooldown: 0, angle: 0, recoil: 0 }];
+  const victim = enemy(g, 700, 450, 17);
+  const neighbour = enemy(g, 740, 450, 500);
+  step(g, 1);
+  assert(victim.hp <= 0);
+  assert.equal(g.corpses.length, 1);
+  g.guns = [];
+  step(g, 60);
+  assert.equal(g.corpses.length, 0);
+  assert.equal(neighbour.hp, 470);
+});
+test("remnant never damages the player and is not a live enemy", () => {
+  const g = empty();
+  g.guns = [{ id: "fist", cooldown: 0, angle: 0, recoil: 0 }];
+  g.player.invulnerable = 0;
+  enemy(g, 700, 450, 17);
+  step(g, 1);
+  assert.equal(g.corpses.length, 1);
+  g.guns = [];
+  const k = g.corpses[0];
+  k.x = g.player.x;
+  k.y = g.player.y;
+  k.vx = 0;
+  k.vy = 0;
+  const hp0 = g.player.hp;
+  step(g, 30);
+  assert.equal(g.player.hp, hp0);
+  assert(!g.enemies.some((e) => e.id === k.id));
+});
+test("remnants are capped at 180 and cleared at the wave boundary", () => {
+  const g = empty();
+  g.guns = [];
+  for (let i = 0; i < 200; i++) {
+    const e = enemy(g, 100 + (i % 20) * 8, 100 + Math.floor(i / 20) * 8, 17);
+    g.spawnCorpse(e, { x: e.x - 10, y: e.y });
+  }
+  assert.equal(g.corpses.length, 180);
+  g.waveTime = 20 - DT;
+  step(g, 1);
+  assert.equal(g.phase, "sweep");
+  assert.equal(g.corpses.length, 0);
+});
+test("remnant kills drop loot and count as secondary chain deaths", () => {
+  const g = empty();
+  g.guns = [{ id: "fist", cooldown: 0, angle: 0, recoil: 0 }];
+  enemy(g, 700, 450, 17);
+  const other = enemy(g, 740, 450, 20);
+  step(g, 1);
+  g.guns = [];
+  step(g, 60);
+  assert(other.hp <= 0);
+  assert.equal(g.kills, 2);
+  const loot = g.earned + g.scraps.reduce((sum, s) => sum + s.value, 0);
+  assert(loot >= 4);
+  assert.equal(g.chainPeak, 1);
+});
+test("overtime exposes a live countdown instead of a frozen zero", () => {
+  const g = empty();
+  g.wave = 2;
+  g.waveTime = 34.9;
+  g.bossSpawned = true;
+  step(g, 30);
+  assert(g.overtime);
+  assert(g.displaySeconds > 0 && g.displaySeconds <= 15);
+  g.bossKilled = true;
+  assert(!g.overtime);
+});
+test("spawnCount counts successful spawns, not cap-rejected attempts", () => {
+  const g = empty();
+  g.guns = [];
+  g.player.hp = 9999;
+  g.player.maxHp = 9999;
+  for (let i = 0; i < 180; i++)
+    g.spawn("bag", { x: 40 + (i % 20) * 6, y: 40 + Math.floor(i / 20) * 6 });
+  assert.equal(g.enemies.length, 180);
+  const before = g.spawnCount;
+  g.spawnTimer = 0;
+  step(g, 120);
+  assert.equal(g.enemies.length, 180);
+  assert.equal(g.spawnCount, before);
+});

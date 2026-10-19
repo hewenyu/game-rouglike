@@ -41,7 +41,8 @@ try {
   report.checks.push("automatic first kill without attack input");
   let down = new Set(),
     shopDone = false,
-    shot = false;
+    shot = false,
+    chainShot = false;
   const wall = Date.now();
   async function keys(next) {
     for (const k of down)
@@ -106,6 +107,16 @@ try {
       await page.screenshot({
         animations: "disabled",
         path: "artifacts/battle-build.png",
+      });
+    }
+    // Capture one frame where a real chain is actually running. This only reads
+    // normal-play metrics; no game state is injected.
+    if (!chainShot && (s.chainCount >= 8 || s.pendingPeak >= 8)) {
+      chainShot = true;
+      report.chain = await m();
+      await page.screenshot({
+        animations: "disabled",
+        path: "artifacts/battle-chain.png",
       });
     }
   }

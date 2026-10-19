@@ -1,1 +1,22 @@
-{"name":"scrap-surge","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"tsc --noEmit && vite build","test":"tsx --test tests/*.test.ts","test:browser":"node tests/browser.mjs","format":"prettier --write src tests vite.config.ts"},"devDependencies":{"@playwright/test":"^1.56.1","@types/node":"^24.0.0","prettier":"^3.9.10","tsx":"^4.20.6","typescript":"^5.9.3","vite":"^7.1.10"}}
+{
+  "name": "scrap-surge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "test:browser": "node tests/browser.mjs",
+    "format": "prettier --write src tests vite.config.ts",
+    "test:browser:regression": "node tests/browser-regression.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.10"
+  }
+}

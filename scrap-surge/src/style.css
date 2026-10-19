@@ -310,45 +310,98 @@ h1 > i {
   transform: rotate(-1deg);
 }
 #hud {
+  --edge: 28px;
+  --band: 62px;
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.hud-row {
+/* Thin wave/time strip pinned to the top edge, outside the arena band. */
+.edge-timer {
   position: absolute;
-  top: 81px;
-  left: 4%;
-  right: 4%;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--edge);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #273b35f2;
+  color: var(--paper);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  overflow: hidden;
+}
+.edge-timer > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, #3fbfa6, #ffd166);
+  opacity: 0.5;
+  transition: width 0.2s linear;
+}
+.edge-timer > span,
+.edge-timer > strong,
+.edge-timer > small {
+  position: relative;
+}
+.edge-timer > strong {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.edge-timer > small {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+.edge-timer.overtime {
+  background: #7a2b1cf2;
+}
+.edge-timer.overtime > i {
+  background: linear-gradient(90deg, #ff8a3d, #ffd166);
+  opacity: 0.75;
+}
+/* Everything else sits in the bottom band, below the arena. */
+.hud-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--band) + env(safe-area-inset-bottom));
+  padding: 0 3% env(safe-area-inset-bottom);
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
+  gap: 10px;
+  background: linear-gradient(180deg, #e8c69600, #e8c696d9 40%, #e8c696f5);
 }
 .health {
   background: var(--paper);
   border: 2px solid var(--ink);
-  box-shadow: 3px 3px 0 #a88d64;
-  border-radius: 8px;
-  padding: 11px 14px;
+  box-shadow: 2px 2px 0 #a88d64;
+  border-radius: 7px;
+  padding: 5px 10px;
+  min-width: 126px;
 }
 .health > strong {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 900;
 }
 .health > small {
-  display: block;
-  font-size: 8px;
-  letter-spacing: 1px;
-  color: #6a7257;
-  margin-top: 6px;
+  display: none;
 }
 #hp {
   display: flex;
-  gap: 4px;
-  margin-top: 5px;
+  gap: 3px;
+  margin-top: 3px;
 }
 #hp i {
-  width: 10px;
-  height: 13px;
+  width: 8px;
+  height: 11px;
   border: 1.5px solid var(--ink);
   background: #d4c6a5;
   border-radius: 3px;
@@ -356,69 +409,37 @@ h1 > i {
 #hp i.full {
   background: #ef8d6e;
 }
-.wave {
-  text-align: center;
-  background: var(--ink);
-  color: var(--paper);
-  padding: 10px 26px 11px;
-  border-radius: 0 0 15px 15px;
-  min-width: 185px;
-  box-shadow: 3px 3px 0 #a88d64;
-}
-.wave > span {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 2px;
-}
-.wave > strong {
-  display: block;
-  font-size: 34px;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  margin: 3px 0;
-}
-.wave > small {
-  font-size: 8px;
-  letter-spacing: 0.5px;
-}
 .wallet {
   text-align: right;
   background: var(--paper);
   border: 2px solid var(--ink);
-  border-radius: 8px;
-  padding: 10px 15px;
-  min-width: 110px;
-  box-shadow: 3px 3px 0 #a88d64;
+  border-radius: 7px;
+  padding: 4px 12px;
+  min-width: 104px;
+  box-shadow: 2px 2px 0 #a88d64;
 }
 .wallet > span {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  display: none;
 }
 .wallet > strong {
   display: block;
-  font-size: 29px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 }
 .wallet > small {
-  font-size: 9px;
+  font-size: 8px;
   color: #6a7257;
 }
 .loadout {
-  position: absolute;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  gap: 7px;
+  gap: 5px;
 }
 .loadout > div {
-  width: 69px;
-  height: 69px;
+  width: 46px;
+  height: 46px;
   border: 2px solid var(--ink);
-  border-radius: 7px;
+  border-radius: 6px;
   background: #fff1cce8;
   box-shadow: 2px 2px 0 #ac946b;
   text-align: center;
@@ -428,38 +449,38 @@ h1 > i {
   justify-content: center;
 }
 .loadout svg {
-  width: 58px;
-  height: 44px;
+  width: 38px;
+  height: 28px;
 }
 .loadout small {
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 700;
   white-space: nowrap;
 }
 .loadout > .empty {
   border-style: dashed;
   opacity: 0.4;
-  font-size: 23px;
+  font-size: 18px;
   box-shadow: none;
 }
 .loadout > .empty small {
-  font-size: 8px;
+  font-size: 7px;
 }
 .hint {
   position: absolute;
-  bottom: 139px;
+  bottom: calc(var(--band) + 46px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--paper);
   border: 2px solid var(--ink);
-  padding: 9px 18px;
+  padding: 6px 14px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
   max-width: 80%;
   width: max-content;
-  box-shadow: 3px 3px 0 #b09973;
+  box-shadow: 2px 2px 0 #b09973;
 }
 .hint:after {
   content: "";
@@ -475,11 +496,11 @@ h1 > i {
 }
 #mod-strip {
   position: absolute;
-  bottom: 111px;
+  bottom: calc(var(--band) + 10px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 7px;
+  gap: 6px;
   white-space: nowrap;
 }
 #mod-strip > span {
@@ -488,14 +509,14 @@ h1 > i {
   background: #a8cfa4;
   border: 1.5px solid var(--ink);
   border-radius: 3px;
-  padding: 4px 8px;
+  padding: 3px 7px;
 }
 #boss {
   position: absolute;
-  top: 195px;
+  top: calc(var(--edge) + 12px);
   left: 50%;
   transform: translateX(-50%);
-  width: 330px;
+  width: 320px;
   text-align: center;
 }
 #boss > span {
@@ -520,7 +541,7 @@ h1 > i {
 }
 .kill-banner {
   position: absolute;
-  top: 27%;
+  top: calc(var(--edge) + 15%);
   left: 50%;
   transform: translateX(-50%) rotate(-5deg);
   font-size: 22px;
@@ -531,10 +552,10 @@ h1 > i {
 #joystick {
   display: none;
   position: absolute;
-  left: 7%;
-  bottom: 140px;
-  width: 110px;
-  height: 110px;
+  left: 5%;
+  bottom: calc(var(--band) + 14px);
+  width: 104px;
+  height: 104px;
   border: 2px solid #273b3566;
   background: #fff1cc55;
   border-radius: 50%;
@@ -544,8 +565,8 @@ h1 > i {
 }
 #joystick > i {
   position: absolute;
-  left: 33px;
-  top: 33px;
+  left: 30px;
+  top: 30px;
   width: 40px;
   height: 40px;
   border: 2px solid var(--ink);
@@ -748,9 +769,10 @@ h1 > i {
   align-items: center;
   gap: 12px;
   text-align: left;
-  border: 2px dashed #273b3588;
+  border: 2px solid var(--ink);
   border-radius: 7px;
   background: #f8eac5;
+  box-shadow: 2px 2px 0 #b09973;
   padding: 12px;
 }
 .mod-card > b {
@@ -767,9 +789,9 @@ h1 > i {
   color: #627057;
 }
 .mod-card.selected {
-  border-style: solid;
+  border-color: var(--ink);
   background: #bbd5a9;
-  box-shadow: 2px 2px 0 #526f4a;
+  box-shadow: 3px 3px 0 #526f4a;
 }
 .mod-card:disabled:not(.selected) {
   opacity: 0.4;
@@ -790,6 +812,52 @@ h1 > i {
 .combo-note.muted {
   color: #85784f;
   background: none;
+}
+/* High-contrast feedback-loop diagram: the real chain the mods create. */
+.loop-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  background: #2d453c;
+  color: #fff1d0;
+}
+.loop-diagram > i {
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffcf5c;
+}
+.loop-diagram > i.back {
+  color: #7fe0c2;
+}
+.loop-step {
+  min-width: 96px;
+  text-align: center;
+  border: 2px solid #ffffff55;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #ffffff12;
+  opacity: 0.55;
+}
+.loop-step.on {
+  opacity: 1;
+  border-color: #ffcf5c;
+  background: #ffcf5c26;
+  box-shadow: 0 0 0 2px #ffcf5c33;
+}
+.loop-step b {
+  display: block;
+  font-size: 13px;
+}
+.loop-step small {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.5px;
 }
 .shop-footer {
   display: flex;
@@ -1051,77 +1119,90 @@ h1 > i {
   .title-copy > small {
     font-size: 8px;
   }
-  .hud-row {
-    top: 72px;
-    left: 4%;
-    right: 4%;
+  #hud {
+    --edge: 26px;
+    --band: 54px;
+  }
+  .edge-timer {
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .edge-timer > strong {
+    font-size: 15px;
+  }
+  .edge-timer > small {
+    display: none;
   }
   .health {
-    padding: 8px 9px;
+    padding: 4px 8px;
+    min-width: 92px;
   }
   .health > strong {
-    font-size: 12px;
+    font-size: 11px;
   }
   #hp {
-    gap: 3px;
+    gap: 2px;
   }
   #hp i {
-    width: 7px;
-    height: 10px;
-  }
-  .wave {
-    min-width: 140px;
-    padding: 8px 12px;
-  }
-  .wave > strong {
-    font-size: 28px;
-  }
-  .wave > span {
-    font-size: 8px;
-  }
-  .wave > small {
-    font-size: 7px;
+    width: 6px;
+    height: 9px;
   }
   .wallet {
-    padding: 8px 10px;
-    min-width: 75px;
+    padding: 3px 8px;
+    min-width: 62px;
   }
   .wallet > strong {
-    font-size: 25px;
-  }
-  .wallet > small {
-    font-size: 8px;
-  }
-  #boss {
-    top: 168px;
-    width: 260px;
+    font-size: 17px;
   }
   .loadout {
-    bottom: 22px;
-    gap: 5px;
+    gap: 3px;
   }
   .loadout > div {
-    width: 52px;
-    height: 58px;
+    width: 34px;
+    height: 40px;
+    border-radius: 5px;
   }
   .loadout svg {
-    width: 47px;
-    height: 39px;
+    width: 28px;
+    height: 21px;
   }
   .loadout small {
-    font-size: 7px;
+    font-size: 6px;
+  }
+  .loadout > .empty {
+    font-size: 14px;
   }
   .hint {
-    bottom: 113px;
-    font-size: 10px;
-    padding: 8px 13px;
+    bottom: calc(var(--band) + 38px);
+    font-size: 9px;
+    padding: 5px 11px;
   }
   #mod-strip {
-    bottom: 88px;
+    bottom: calc(var(--band) + 6px);
+    gap: 4px;
+  }
+  #mod-strip > span {
+    font-size: 8px;
+    padding: 2px 6px;
+  }
+  #boss {
+    top: calc(var(--edge) + 10px);
+    width: 240px;
   }
   .kill-banner {
-    font-size: 19px;
-    top: 26%;
+    font-size: 18px;
+    top: calc(var(--edge) + 14%);
+  }
+  #joystick {
+    left: 4%;
+    bottom: calc(var(--band) + 10px);
+    width: 96px;
+    height: 96px;
+  }
+  #joystick > i {
+    left: 27px;
+    top: 27px;
   }
   .shop-panel {
     padding: 22px;
@@ -1159,6 +1240,21 @@ h1 > i {
   }
   .mod-card p {
     font-size: 8px;
+  }
+  .loop-diagram {
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 9px 10px;
+  }
+  .loop-step {
+    min-width: 68px;
+    padding: 4px 6px;
+  }
+  .loop-step b {
+    font-size: 11px;
+  }
+  .loop-diagram > i {
+    font-size: 14px;
   }
   .shop-heading h2 {
     font-size: 29px;
@@ -1238,74 +1334,82 @@ h1 > i {
     font-size: 7px;
     letter-spacing: 2px;
   }
-  .wave {
-    min-width: 105px;
-  }
-  .wave > small {
-    display: none;
-  }
-  .wave > strong {
-    font-size: 26px;
+  /* Narrow phones: keep the whole bottom band inside the viewport width. */
+  .hud-bottom {
+    padding: 0 2% env(safe-area-inset-bottom);
+    gap: 5px;
   }
   .health {
-    padding: 7px 8px;
+    min-width: 0;
+    padding: 3px 6px;
+  }
+  .health > strong {
+    font-size: 10px;
+  }
+  .health > small {
+    display: none;
   }
   #hp {
     gap: 2px;
   }
   #hp i {
-    width: 6px;
-    height: 9px;
-  }
-  .health > small {
-    font-size: 7px;
-  }
-  .wallet > strong {
-    font-size: 22px;
+    width: 5px;
+    height: 8px;
   }
   .wallet {
-    min-width: 70px;
+    min-width: 50px;
+    padding: 2px 6px;
   }
-  #joystick {
-    bottom: 146px;
-    left: 8%;
-    width: 104px;
-    height: 104px;
+  .wallet > strong {
+    font-size: 15px;
   }
-  #joystick > i {
-    left: 30px;
-    top: 30px;
-  }
-  .hint {
-    bottom: 275px;
-    max-width: 86%;
-    font-size: 9px;
-    padding: 7px 10px;
-  }
-  #boss {
-    top: 157px;
-    width: 220px;
-  }
-  .loadout > div {
-    width: 49px;
-    height: 53px;
+  .wallet > small {
+    font-size: 7px;
   }
   .loadout {
-    gap: 5px;
-    bottom: 22px;
+    gap: 2px;
+  }
+  .loadout > div {
+    width: 30px;
+    height: 34px;
+    border-radius: 4px;
+    overflow: hidden;
   }
   .loadout svg {
-    height: 34px;
-    width: 44px;
+    width: 24px;
+    height: 18px;
+  }
+  .loadout small {
+    font-size: 5px;
+  }
+  #joystick {
+    bottom: calc(var(--band) + 10px);
+    left: 4%;
+    width: 96px;
+    height: 96px;
+  }
+  #joystick > i {
+    left: 27px;
+    top: 27px;
+  }
+  .hint {
+    bottom: calc(var(--band) + 38px);
+    max-width: 86%;
+    font-size: 9px;
+    padding: 5px 10px;
+  }
+  #boss {
+    top: calc(var(--edge) + 10px);
+    width: 220px;
   }
   #mod-strip {
-    bottom: 84px;
+    bottom: calc(var(--band) + 6px);
   }
   #mod-strip > span {
     font-size: 8px;
   }
   .kill-banner {
-    top: 25%;
+    top: calc(var(--edge) + 14%);
     font-size: 17px;
   }
   #overlay {
@@ -1558,22 +1662,11 @@ h1 > i {
     line-height: 21px;
     font-size: 7px;
   }
-  .hud-row {
-    top: 58px;
+  #hud {
+    --edge: 24px;
+    --band: 54px;
   }
   .health > small {
-    display: none;
-  }
-  .wave {
-    min-width: 130px;
-    padding: 4px 14px;
-  }
-  .wave > strong {
-    font-size: 23px;
-    display: inline;
-    margin-left: 10px;
-  }
-  .wave > small {
     display: none;
   }
   .wallet > strong {
@@ -1583,7 +1676,7 @@ h1 > i {
     display: none;
   }
   .loadout {
-    bottom: 15px;
+    gap: 4px;
   }
   .loadout > div {
     height: 45px;
@@ -1596,14 +1689,14 @@ h1 > i {
     font-size: 6px;
   }
   #mod-strip {
-    bottom: 69px;
+    bottom: calc(var(--band) + 6px);
   }
   .hint {
-    bottom: 97px;
+    bottom: calc(var(--band) + 32px);
     font-size: 9px;
   }
   #joystick {
-    bottom: 55px;
+    bottom: calc(var(--band) + 8px);
     left: 6%;
     width: 85px;
     height: 85px;
@@ -1615,7 +1708,7 @@ h1 > i {
     height: 35px;
   }
   #boss {
-    top: 111px;
+    top: calc(var(--edge) + 10px);
     width: 220px;
   }
   .shop-panel {

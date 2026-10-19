@@ -7,7 +7,7 @@ import { DT, WEAPONS, MODS, type WeaponId, type ModId } from "./data";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `<canvas id="arena" aria-label="废潮自动战斗场地；WASD 或方向键移动，武器自动攻击"></canvas><header><a class="brand" href="#" id="brand">SCRAP<span>SURGE</span><b>废潮</b></a><div class="header-tools"><span class="version">FEEL TEST / 01</span><button id="sound" class="small-button" aria-label="关闭声音">声音 ON</button><button id="pause" class="small-button" hidden aria-label="暂停">Ⅱ</button></div></header>
 <section id="title" class="title"><div class="title-copy"><div class="kicker"><span></span> 一只小蟹。六把破烂。一整片怪潮。</div><h1>废<span>潮</span><i>!</i></h1><h2>捡的是垃圾。<br>打出来的是<span>火力。</span></h2><p>只管走位，让壳上的家伙自动开火。<br>捡废料、挂武器，把一场混战滚成连锁反应。</p><div class="start-row"><button class="primary" id="start">下海，开火 <b>↗</b></button><button id="how" class="outline">怎么玩？</button></div><small>两波战斗 + 一次改装商店 · 约 1 分钟战斗体验</small></div><div class="sticker">不用瞄准<br><strong>自动开火！</strong><span>JUST KEEP MOVING</span></div><div class="title-bottom"><div><b>01</b><p>走位活下来<small>WASD / 方向键 · 触屏摇杆</small></p></div><div><b>02</b><p>往壳上挂火力<small>六个槽位，同时开火</small></p></div><div><b>03</b><p>让连锁自己滚起来<small>击杀 → 掉落 → 火力 → 更多击杀</small></p></div></div><div class="bottom-tape">TRASH INTO TREASURE · TREASURE INTO TROUBLE · TRASH INTO TREASURE · TREASURE INTO TROUBLE</div></section>
-<section id="hud" hidden><div class="hud-row"><div class="health"><strong id="hp-label">10 / 10</strong><div id="hp"></div><small>壳还很硬</small></div><div class="wave"><span id="wave-label">第一波</span><strong id="timer">20</strong><small id="wave-note">自动开火，别被围住</small></div><div class="wallet"><span>废料</span><strong id="money">0</strong><small id="kill-count">0 击败</small></div></div><div id="boss" hidden><span>罐头大王 / DON'T GET CANNED</span><div><i></i></div></div><div class="kill-banner" id="kill-banner"></div><div id="loadout" class="loadout"></div><div id="mod-strip"></div><p id="hint" class="hint">只需要移动，武器会自动找目标。</p><div id="joystick" role="group" aria-label="触屏移动摇杆"><i></i><span>移动</span></div></section><div id="overlay" hidden></div><div id="toast" role="status"></div>`;
+<section id="hud" hidden><div class="edge-timer" id="edge"><i id="edge-fill"></i><span id="wave-label">第一波 / 02</span><strong id="timer">20</strong><small id="wave-note">自动开火，别被围住</small></div><div class="hud-bottom" id="hud-bottom"><div class="health"><strong id="hp-label">10 / 10</strong><div id="hp"></div><small>壳还很硬</small></div><div id="loadout" class="loadout"></div><div class="wallet"><span>废料</span><strong id="money">0</strong><small id="kill-count">0 击败</small></div></div><div id="boss" hidden><span>罐头大王 / DON'T GET CANNED</span><div><i></i></div></div><div class="kill-banner" id="kill-banner"></div><div id="mod-strip"></div><p id="hint" class="hint">只需要移动，武器会自动找目标。</p><div id="joystick" role="group" aria-label="触屏移动摇杆"><i></i><span>移动</span></div></section><div id="overlay" hidden></div><div id="toast" role="status"></div>`;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const renderer = new Renderer($<HTMLCanvasElement>("arena")),
@@ -89,6 +89,7 @@ function start(seed?: number) {
   close();
   sync();
   updateHud();
+  layout();
   (document.activeElement as HTMLElement)?.blur();
 }
 function home() {
@@ -96,6 +97,8 @@ function home() {
   game = null;
   title = true;
   phase = "";
+  renderer.reserveTop = 0;
+  renderer.reserveBottom = 0;
   $("title").hidden = false;
   $("hud").hidden = true;
   $("pause").hidden = true;
@@ -121,7 +124,7 @@ function shop() {
       })
       .join(
         "",
-      )}</div><div class="shop-tools"><span>当前壳上：${g.guns.map((v) => WEAPONS[v.id].name).join(" / ")}</span><button id="reroll" class="text-button">换一批 ↻ ${g.freeRerolls ? "首次免费" : "6 ◈"}</button></div><div class="mod-heading"><h3>让它们互相喂养</h3><span>免费选 2 种改装 · 已选 ${g.mods.length} / 2</span></div><div class="mod-cards">${(Object.entries(MODS) as [ModId, (typeof MODS)[ModId]][]).map(([id, m]) => `<button class="mod-card ${g.has(id) ? "selected" : ""}" data-mod="${id}" ${g.has(id) || g.mods.length === 2 ? "disabled" : ""}><b>${m.icon}</b><div><strong>${m.name} ${g.has(id) ? "✓" : ""}</strong><p>${m.desc}</p></div></button>`).join("")}</div>${g.has("popcorn") && g.has("domino") ? '<div class="combo-note">连锁已接通：捡废料 → 喷子弹 → 击杀爆炸 → 更多废料。下一波，看看能滚多大。</div>' : g.mods.length === 2 ? '<div class="combo-note">连锁已接通。下一波，让掉落物也替你开火。</div>' : '<div class="combo-note muted">不是三选一。任选两种，把反馈回路接起来。</div>'}<div class="shop-footer"><small>下一波回复 3 格生命 · 商店不会流逝战斗时间</small><button id="next" class="primary" ${g.mods.length < 2 ? "disabled" : ""}>${g.mods.length < 2 ? "再选 " + (2 - g.mods.length) + " 种改装" : "让它们见识一下"} <b>→</b></button></div></section>`,
+      )}</div><div class="shop-tools"><span>当前壳上：${g.guns.map((v) => WEAPONS[v.id].name).join(" / ")}</span><button id="reroll" class="text-button">换一批 ↻ ${g.freeRerolls ? "首次免费" : "6 ◈"}</button></div><div class="mod-heading"><h3>让它们互相喂养</h3><span>免费选 2 种改装 · 已选 ${g.mods.length} / 2</span></div><div class="mod-cards">${(Object.entries(MODS) as [ModId, (typeof MODS)[ModId]][]).map(([id, m]) => `<button class="mod-card ${g.has(id) ? "selected" : ""}" data-mod="${id}" ${g.has(id) || g.mods.length === 2 ? "disabled" : ""}><b>${m.icon}</b><div><strong>${m.name} ${g.has(id) ? "✓" : ""}</strong><p>${m.desc}</p></div></button>`).join("")}</div><div class="loop-diagram"><div class="loop-step on"><b>击杀</b><small>敌人倒下</small></div><i>→</i><div class="loop-step on"><b>废料</b><small>掉落一地</small></div><i>→</i><div class="loop-step ${g.has("popcorn") ? "on" : ""}"><b>开火</b><small>废料爆米花</small></div><i>→</i><div class="loop-step ${g.has("domino") ? "on" : ""}"><b>连爆</b><small>易爆垃圾</small></div><i class="back">↺</i></div>${g.has("popcorn") && g.has("domino") ? '<div class="combo-note">连锁已接通：捡废料 → 喷子弹 → 击杀爆炸 → 更多废料。下一波，看看能滚多大。</div>' : g.mods.length === 2 ? '<div class="combo-note">连锁已接通。下一波，让掉落物也替你开火。</div>' : '<div class="combo-note muted">不是三选一。任选两种，把反馈回路接起来。</div>'}<div class="shop-footer"><small>下一波回复 3 格生命 · 商店不会流逝战斗时间</small><button id="next" class="primary" ${g.mods.length < 2 ? "disabled" : ""}>${g.mods.length < 2 ? "再选 " + (2 - g.mods.length) + " 种改装" : "让它们见识一下"} <b>→</b></button></div></section>`,
   );
   $("overlay")
     .querySelectorAll<HTMLButtonElement>("[data-buy]")
@@ -191,11 +194,20 @@ function updateHud() {
   ).join("");
   $("hp").setAttribute("aria-label", `生命 ${g.player.hp} / 10`);
   $("wave-label").textContent = `${g.wave === 1 ? "第一波" : "第二波"} / 02`;
-  $("timer").textContent = String(
-    Math.max(0, Math.ceil(g.duration - g.waveTime)),
-  ).padStart(2, "0");
-  $("wave-note").textContent =
-    g.wave === 1
+  // Past the wave deadline the run continues until the boss dies (or 50s).
+  // Surface that overtime explicitly instead of leaving a frozen 00 timer.
+  const overtime = g.overtime;
+  $("edge").classList.toggle("overtime", overtime);
+  $("timer").textContent = String(g.displaySeconds).padStart(2, "0");
+  $("edge-fill").style.width = `${
+    Math.max(
+      0,
+      Math.min(1, overtime ? (50 - g.waveTime) / 15 : g.waveTime / g.duration),
+    ) * 100
+  }%`;
+  $("wave-note").textContent = overtime
+    ? "加时 · 击败首领"
+    : g.wave === 1
       ? "只管走位，自动开火"
       : g.bossSpawned && !g.bossKilled
         ? "罐头大王来了！"
@@ -233,6 +245,33 @@ function updateHud() {
       : g.wave === 2 && g.bullets.filter((b) => b.kind === "bonus").length > 15
         ? "废料正在替你开火！"
         : "";
+}
+// Measure the real HUD chrome and hand the free band to the renderer, so the
+// arena is laid out beside the HUD instead of underneath it.
+function layout() {
+  if (!game || $("hud").hidden) {
+    renderer.reserveTop = 0;
+    renderer.reserveBottom = 0;
+    return;
+  }
+  // The canvas and the HUD both live in the #app box. Use that box as the single
+  // reference frame: window.innerHeight can differ from the canvas CSS height on
+  // mobile (visual viewport vs layout viewport), which previously over-reserved
+  // space and squeezed the arena.
+  const host = $<HTMLCanvasElement>("arena").getBoundingClientRect();
+  let bottomTop = $("hud-bottom").getBoundingClientRect().top;
+  const stick = $("joystick");
+  if (getComputedStyle(stick).display !== "none")
+    bottomTop = Math.min(bottomTop, stick.getBoundingClientRect().top);
+  const mods = $("mod-strip").getBoundingClientRect();
+  if (mods.height) bottomTop = Math.min(bottomTop, mods.top);
+  if (!$("hint").hidden)
+    bottomTop = Math.min(bottomTop, $("hint").getBoundingClientRect().top);
+  renderer.reserveTop = Math.max(
+    0,
+    $("edge").getBoundingClientRect().bottom - host.top,
+  );
+  renderer.reserveBottom = Math.max(0, host.bottom - bottomTop);
 }
 $("start").onclick = () => {
   const s = new URLSearchParams(location.search).get("seed");
@@ -306,6 +345,13 @@ Object.defineProperty(window, "scrapMetrics", {
     bullets: game?.bullets.length,
     scraps: game?.scraps.length,
     pending: game?.pendingBlasts.length,
+    pendingPeak: game?.pendingPeak,
+    corpses: game?.corpses.length,
+    chainCount: game?.chainCount,
+    chainPeak: game?.chainPeak,
+    combatPicked: game?.combatPicked,
+    spawnCount: game?.spawnCount,
+    arena: game ? renderer.arenaRect() : null,
     bossKilled: game?.bossKilled,
     frames,
     samples: frameTimes.length,
@@ -327,6 +373,7 @@ function frame(now: number) {
     renderer.render(game, now / 1000);
     if (now - uiAt > 100) {
       updateHud();
+      layout();
       uiAt = now;
     }
     if (game.phase === "fight" && raw > 0) {
