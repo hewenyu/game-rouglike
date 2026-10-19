@@ -1,0 +1,1660 @@
+:root {
+  font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #273b35;
+  background: #e8c696;
+  font-synthesis: none;
+  --ink: #273b35;
+  --paper: #fff1d0;
+  --green: #a4d5ab;
+  --orange: #ec7953;
+  --sand: #e8c696;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#app {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  overscroll-behavior: none;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #e16c43;
+  outline-offset: 5px;
+}
+[hidden] {
+  display: none !important;
+}
+#arena {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+header {
+  position: absolute;
+  z-index: 20;
+  left: 4%;
+  right: 4%;
+  top: max(24px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  font-size: 16px;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+  font-weight: 900;
+  text-decoration: none;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.brand > span {
+  font-style: italic;
+}
+.brand > b {
+  font-size: 12px;
+  letter-spacing: 2px;
+  border-left: 2px solid var(--ink);
+  padding-left: 12px;
+  margin-left: 10px;
+}
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.version {
+  font:
+    9px "Courier New",
+    monospace;
+  letter-spacing: 1.5px;
+}
+.small-button {
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.small-button:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.title {
+  position: absolute;
+  inset: 0;
+}
+.title-copy {
+  position: absolute;
+  left: 9%;
+  top: 20%;
+  max-width: 600px;
+  animation: arrive 0.5s both;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kicker > span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--orange);
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+}
+h1 {
+  font-size: clamp(100px, 12vw, 175px);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  margin: 27px 0 23px;
+  transform: rotate(-4deg);
+  transform-origin: left bottom;
+  text-shadow: 5px 6px 0 #fff0bc;
+}
+h1 > span {
+  color: #547e65;
+}
+h1 > i {
+  font-style: normal;
+  color: var(--orange);
+  font-size: 0.8em;
+  margin-left: 9px;
+  -webkit-text-stroke: 2px var(--ink);
+}
+.title-copy h2 {
+  font-size: 29px;
+  line-height: 1.45;
+  letter-spacing: 1px;
+  margin: 14px 0 17px;
+  font-weight: 800;
+}
+.title-copy h2 span {
+  background: var(--green);
+  padding: 1px 7px;
+  box-shadow: 3px 3px 0 var(--ink);
+  border: 2px solid var(--ink);
+  display: inline-block;
+  transform: rotate(2deg);
+}
+.title-copy p {
+  font-size: 13px;
+  line-height: 1.9;
+  font-weight: 500;
+  color: #5f634d;
+  margin: 0 0 28px;
+}
+.start-row {
+  display: flex;
+  gap: 15px;
+  align-items: stretch;
+}
+.primary {
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 #83976c;
+  border-radius: 6px;
+  padding: 17px 23px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  display: inline-flex;
+  gap: 45px;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 210px;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.primary b {
+  font-size: 23px;
+  line-height: 1;
+}
+.primary:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #83976c;
+}
+.primary:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #83976c;
+}
+.primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+.outline {
+  background: #fff1d088;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  padding: 13px 21px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 3px 3px 0 #b3996f;
+}
+.outline:hover {
+  background: var(--paper);
+}
+.title-copy > small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  color: #676a51;
+  margin-top: 18px;
+}
+.sticker {
+  position: absolute;
+  right: 7%;
+  top: 21%;
+  background: #fff0c5;
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  padding: 18px 24px;
+  transform: rotate(9deg);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+}
+.sticker > strong {
+  font-size: 22px;
+  display: block;
+  margin: 4px 0 8px;
+}
+.sticker > span {
+  font:
+    8px "Courier New",
+    monospace;
+  letter-spacing: 1px;
+}
+.title-bottom {
+  position: absolute;
+  bottom: 10%;
+  left: 9%;
+  right: 9%;
+  display: flex;
+  gap: 6%;
+  padding-top: 23px;
+  border-top: 2px solid #6b705344;
+}
+.title-bottom > div {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex: 1;
+}
+.title-bottom b {
+  font-size: 27px;
+  color: #8f9875;
+  font-style: italic;
+}
+.title-bottom p {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0;
+}
+.title-bottom small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  color: #65674f;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.bottom-tape {
+  position: absolute;
+  bottom: 0;
+  left: -5%;
+  width: 110%;
+  height: 29px;
+  line-height: 29px;
+  background: var(--ink);
+  color: #d7c69c;
+  font:
+    9px/29px "Courier New",
+    monospace;
+  letter-spacing: 3px;
+  white-space: nowrap;
+  text-align: center;
+  transform: rotate(-1deg);
+}
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hud-row {
+  position: absolute;
+  top: 81px;
+  left: 4%;
+  right: 4%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.health {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 #a88d64;
+  border-radius: 8px;
+  padding: 11px 14px;
+}
+.health > strong {
+  font-size: 15px;
+  font-weight: 900;
+}
+.health > small {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #6a7257;
+  margin-top: 6px;
+}
+#hp {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+#hp i {
+  width: 10px;
+  height: 13px;
+  border: 1.5px solid var(--ink);
+  background: #d4c6a5;
+  border-radius: 3px;
+}
+#hp i.full {
+  background: #ef8d6e;
+}
+.wave {
+  text-align: center;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 26px 11px;
+  border-radius: 0 0 15px 15px;
+  min-width: 185px;
+  box-shadow: 3px 3px 0 #a88d64;
+}
+.wave > span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.wave > strong {
+  display: block;
+  font-size: 34px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin: 3px 0;
+}
+.wave > small {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+}
+.wallet {
+  text-align: right;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 10px 15px;
+  min-width: 110px;
+  box-shadow: 3px 3px 0 #a88d64;
+}
+.wallet > span {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.wallet > strong {
+  display: block;
+  font-size: 29px;
+  font-variant-numeric: tabular-nums;
+}
+.wallet > small {
+  font-size: 9px;
+  color: #6a7257;
+}
+.loadout {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+}
+.loadout > div {
+  width: 69px;
+  height: 69px;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  background: #fff1cce8;
+  box-shadow: 2px 2px 0 #ac946b;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.loadout svg {
+  width: 58px;
+  height: 44px;
+}
+.loadout small {
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.loadout > .empty {
+  border-style: dashed;
+  opacity: 0.4;
+  font-size: 23px;
+  box-shadow: none;
+}
+.loadout > .empty small {
+  font-size: 8px;
+}
+.hint {
+  position: absolute;
+  bottom: 139px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  padding: 9px 18px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  max-width: 80%;
+  width: max-content;
+  box-shadow: 3px 3px 0 #b09973;
+}
+.hint:after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--paper);
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  left: 48%;
+  bottom: -7px;
+  transform: rotate(45deg);
+}
+#mod-strip {
+  position: absolute;
+  bottom: 111px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  white-space: nowrap;
+}
+#mod-strip > span {
+  font-size: 9px;
+  font-weight: 700;
+  background: #a8cfa4;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 4px 8px;
+}
+#boss {
+  position: absolute;
+  top: 195px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 330px;
+  text-align: center;
+}
+#boss > span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: #f2d3a2;
+  padding: 3px 9px;
+}
+#boss > div {
+  height: 9px;
+  border: 2px solid var(--ink);
+  background: #d4aa7a;
+  margin-top: 7px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+#boss i {
+  height: 100%;
+  display: block;
+  background: #e97c54;
+}
+.kill-banner {
+  position: absolute;
+  top: 27%;
+  left: 50%;
+  transform: translateX(-50%) rotate(-5deg);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 var(--paper);
+}
+#joystick {
+  display: none;
+  position: absolute;
+  left: 7%;
+  bottom: 140px;
+  width: 110px;
+  height: 110px;
+  border: 2px solid #273b3566;
+  background: #fff1cc55;
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+#joystick > i {
+  position: absolute;
+  left: 33px;
+  top: 33px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--ink);
+  background: #a4c69e88;
+  border-radius: 50%;
+  transform: translate(var(--jx, 0), var(--jy, 0));
+}
+#joystick > span {
+  position: absolute;
+  bottom: -23px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+#overlay {
+  position: absolute;
+  inset: 0;
+  background: #26392fcc;
+  backdrop-filter: blur(7px);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 25px;
+  overflow: auto;
+}
+#overlay > section {
+  animation: arrive 0.25s both;
+}
+.shop-panel {
+  width: 1020px;
+  max-width: 100%;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 15px;
+  box-shadow: 8px 8px 0 #172b27;
+  padding: 28px 32px;
+}
+.shop-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.eyebrow {
+  font:
+    9px "Courier New",
+    monospace;
+  font-weight: 700;
+  letter-spacing: 1.7px;
+  color: #5c7c5d;
+}
+.shop-heading h2 {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin: 10px 0 8px;
+}
+.shop-heading h2 span {
+  color: #567d61;
+  margin-left: 10px;
+}
+.shop-heading p {
+  font-size: 11px;
+  color: #6a7058;
+  margin: 0;
+}
+.shop-wallet {
+  text-align: right;
+}
+.shop-wallet > span {
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.shop-wallet > strong {
+  display: block;
+  font-size: 37px;
+  font-variant-numeric: tabular-nums;
+}
+.shop-wallet > strong small {
+  font-size: 22px;
+  color: #bb8e31;
+}
+.shop-wallet > small {
+  font-size: 9px;
+}
+.weapon-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+  margin-top: 23px;
+}
+.weapon-card {
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  box-shadow: 3px 3px 0 #ad9d72;
+  background: #eddfb6;
+  text-align: left;
+  overflow: hidden;
+  padding: 12px 15px 0;
+  transition:
+    transform 0.15s,
+    background 0.15s;
+}
+.weapon-card:hover:not(:disabled) {
+  background: #d4e1ae;
+  transform: translateY(-4px);
+}
+.weapon-card:disabled {
+  opacity: 0.48;
+}
+.weapon-card.sold {
+  opacity: 0.7;
+  background: #b9d1a7;
+}
+.card-tag {
+  font:
+    7px "Courier New",
+    monospace;
+  letter-spacing: 1.1px;
+  font-weight: 700;
+}
+.weapon-card svg {
+  width: 100%;
+  height: 100px;
+  margin: 7px 0;
+}
+.weapon-card h3 {
+  font-size: 17px;
+  font-weight: 900;
+  margin: 0 0 8px;
+  letter-spacing: 0.4px;
+}
+.weapon-card p {
+  font-size: 10px;
+  line-height: 1.7;
+  height: 36px;
+  margin: 0 0 15px;
+  color: #57644d;
+}
+.card-price {
+  border-top: 1.5px solid #273b3544;
+  padding: 11px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-price > b {
+  font-size: 17px;
+}
+.card-price > span {
+  font-size: 9px;
+}
+.shop-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 14px;
+}
+.shop-tools > span {
+  font-size: 9px;
+  color: #667055;
+  line-height: 1.8;
+}
+.text-button {
+  background: none;
+  border: 0;
+  padding: 9px 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.mod-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 10px;
+  border-top: 1.5px solid #273b3533;
+  padding-top: 16px;
+}
+.mod-heading > h3 {
+  font-size: 15px;
+  margin: 0;
+}
+.mod-heading > span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #637b5c;
+}
+.mod-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.mod-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 2px dashed #273b3588;
+  border-radius: 7px;
+  background: #f8eac5;
+  padding: 12px;
+}
+.mod-card > b {
+  font-size: 31px;
+  color: #6c8e6d;
+}
+.mod-card strong {
+  font-size: 12px;
+}
+.mod-card p {
+  font-size: 9px;
+  line-height: 1.7;
+  margin: 5px 0 0;
+  color: #627057;
+}
+.mod-card.selected {
+  border-style: solid;
+  background: #bbd5a9;
+  box-shadow: 2px 2px 0 #526f4a;
+}
+.mod-card:disabled:not(.selected) {
+  opacity: 0.4;
+}
+.mod-card:hover:not(:disabled) {
+  background: #cddcaf;
+}
+.combo-note {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #487054;
+  background: #accb9b55;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 12px;
+  font-weight: 700;
+}
+.combo-note.muted {
+  color: #85784f;
+  background: none;
+}
+.shop-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 17px;
+  gap: 15px;
+}
+.shop-footer > small {
+  font-size: 9px;
+  color: #6c7055;
+}
+.shop-footer > .primary {
+  font-size: 12px;
+  min-width: 220px;
+  padding: 13px 18px;
+}
+.pause-panel,
+.end-panel {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 15px;
+  box-shadow: 7px 7px 0 #142b26;
+  padding: 38px 44px;
+  text-align: center;
+  max-width: 760px;
+  width: 100%;
+}
+.pause-panel {
+  max-width: 520px;
+}
+.pause-panel h2,
+.end-panel h2 {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.4;
+  margin: 16px 0;
+}
+.pause-panel p,
+.end-panel p {
+  font-size: 12px;
+  color: #637058;
+  line-height: 1.9;
+}
+.pause-panel > .primary {
+  margin: 22px auto 12px;
+  display: flex;
+}
+.pause-panel > .text-button {
+  display: block;
+  margin: auto;
+}
+.end-burst {
+  font-size: 66px;
+  color: #e08d45;
+  line-height: 1;
+  margin: 20px 0 10px;
+}
+.end-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-block: 2px solid #273b3533;
+  margin: 22px 0;
+  padding: 22px 0;
+  gap: 10px;
+}
+.end-stats b {
+  display: block;
+  font-size: 31px;
+  font-weight: 900;
+}
+.end-stats small {
+  font-size: 9px;
+  color: #6c745d;
+}
+.end-build {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+.end-build > span {
+  font-size: 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+.end-build > .mod {
+  background: #bbd5a9;
+}
+.end-actions {
+  display: flex;
+  justify-content: center;
+  gap: 13px;
+  margin: 26px 0 18px;
+}
+.fine {
+  font-size: 9px !important;
+  color: #6e785d;
+  line-height: 1.9;
+}
+.guide {
+  text-align: left;
+}
+.guide > .primary {
+  width: 100%;
+}
+#toast {
+  position: absolute;
+  z-index: 50;
+  bottom: 25px;
+  left: 50%;
+  transform: translate(-50%, 15px);
+  opacity: 0;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: none;
+  transition: 0.2s;
+}
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (pointer: coarse) {
+  #joystick {
+    display: block;
+  }
+}
+@media (max-height: 800px) and (min-width: 800px) {
+  .title-copy {
+    top: 18%;
+  }
+  h1 {
+    font-size: 115px;
+    margin: 16px 0;
+  }
+  .title-copy h2 {
+    font-size: 24px;
+    margin: 12px 0;
+  }
+  .title-copy p {
+    font-size: 12px;
+    margin-bottom: 21px;
+  }
+  .title-copy > small {
+    font-size: 9px;
+  }
+  .title-bottom {
+    bottom: 9%;
+    padding-top: 17px;
+  }
+  .sticker {
+    top: 19%;
+    right: 6%;
+    padding: 13px 19px;
+  }
+  .shop-panel {
+    padding: 20px 26px;
+  }
+  .shop-heading h2 {
+    font-size: 29px;
+  }
+  .weapon-cards {
+    margin-top: 17px;
+  }
+  .weapon-card svg {
+    height: 75px;
+    margin: 4px 0;
+  }
+  .weapon-card p {
+    font-size: 9px;
+    margin-bottom: 10px;
+  }
+  .mod-heading {
+    margin-top: 8px;
+    padding-top: 10px;
+  }
+  .mod-card {
+    padding: 9px;
+  }
+  .shop-footer {
+    margin-top: 12px;
+  }
+  .shop-heading p {
+    font-size: 10px;
+  }
+}
+@media (max-width: 800px) {
+  .version {
+    display: none;
+  }
+  header {
+    left: 5%;
+    right: 5%;
+    top: max(20px, env(safe-area-inset-top));
+  }
+  .title-copy {
+    left: 8%;
+    top: 17%;
+  }
+  .title-copy .kicker {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+  h1 {
+    font-size: 115px;
+  }
+  .title-copy h2 {
+    font-size: 25px;
+  }
+  .title-copy p {
+    font-size: 12px;
+  }
+  .sticker {
+    right: 6%;
+    top: 59%;
+    padding: 10px 13px;
+    transform: rotate(8deg);
+    font-size: 10px;
+  }
+  .sticker > strong {
+    font-size: 15px;
+  }
+  .sticker > span {
+    font-size: 6px;
+  }
+  .title-bottom {
+    left: 8%;
+    right: 8%;
+    bottom: 8%;
+    gap: 10px;
+  }
+  .title-bottom > div {
+    gap: 7px;
+  }
+  .title-bottom b {
+    font-size: 19px;
+  }
+  .title-bottom p {
+    font-size: 10px;
+  }
+  .title-bottom small {
+    font-size: 7px;
+    white-space: normal;
+  }
+  .title-copy > small {
+    font-size: 8px;
+  }
+  .hud-row {
+    top: 72px;
+    left: 4%;
+    right: 4%;
+  }
+  .health {
+    padding: 8px 9px;
+  }
+  .health > strong {
+    font-size: 12px;
+  }
+  #hp {
+    gap: 3px;
+  }
+  #hp i {
+    width: 7px;
+    height: 10px;
+  }
+  .wave {
+    min-width: 140px;
+    padding: 8px 12px;
+  }
+  .wave > strong {
+    font-size: 28px;
+  }
+  .wave > span {
+    font-size: 8px;
+  }
+  .wave > small {
+    font-size: 7px;
+  }
+  .wallet {
+    padding: 8px 10px;
+    min-width: 75px;
+  }
+  .wallet > strong {
+    font-size: 25px;
+  }
+  .wallet > small {
+    font-size: 8px;
+  }
+  #boss {
+    top: 168px;
+    width: 260px;
+  }
+  .loadout {
+    bottom: 22px;
+    gap: 5px;
+  }
+  .loadout > div {
+    width: 52px;
+    height: 58px;
+  }
+  .loadout svg {
+    width: 47px;
+    height: 39px;
+  }
+  .loadout small {
+    font-size: 7px;
+  }
+  .hint {
+    bottom: 113px;
+    font-size: 10px;
+    padding: 8px 13px;
+  }
+  #mod-strip {
+    bottom: 88px;
+  }
+  .kill-banner {
+    font-size: 19px;
+    top: 26%;
+  }
+  .shop-panel {
+    padding: 22px;
+  }
+  .weapon-cards {
+    gap: 9px;
+  }
+  .weapon-card {
+    padding: 10px 11px 0;
+  }
+  .weapon-card svg {
+    height: 79px;
+  }
+  .weapon-card h3 {
+    font-size: 14px;
+  }
+  .weapon-card p {
+    font-size: 9px;
+  }
+  .card-price > b {
+    font-size: 14px;
+  }
+  .mod-cards {
+    gap: 8px;
+  }
+  .mod-card {
+    padding: 10px;
+    gap: 8px;
+  }
+  .mod-card > b {
+    font-size: 23px;
+  }
+  .mod-card strong {
+    font-size: 11px;
+  }
+  .mod-card p {
+    font-size: 8px;
+  }
+  .shop-heading h2 {
+    font-size: 29px;
+  }
+}
+@media (max-width: 520px) {
+  .brand {
+    font-size: 13px;
+  }
+  .brand > b {
+    font-size: 10px;
+    padding-left: 9px;
+    margin-left: 5px;
+  }
+  .header-tools {
+    gap: 8px;
+  }
+  .small-button {
+    font-size: 9px;
+    padding: 0 8px;
+    height: 29px;
+  }
+  .title-copy {
+    top: 14%;
+    left: 8%;
+    right: 8%;
+  }
+  h1 {
+    font-size: 110px;
+    margin: 23px 0 22px;
+  }
+  .title-copy h2 {
+    font-size: 25px;
+  }
+  .title-copy p {
+    font-size: 11px;
+    margin-bottom: 24px;
+  }
+  .primary {
+    min-width: 180px;
+    font-size: 13px;
+    padding: 15px 19px;
+    gap: 25px;
+  }
+  .outline {
+    font-size: 11px;
+    padding: 12px 16px;
+  }
+  .title-copy > small {
+    font-size: 8px;
+  }
+  .sticker {
+    top: 65%;
+    right: 9%;
+  }
+  .title-bottom {
+    bottom: 7%;
+    padding-top: 14px;
+  }
+  .title-bottom b {
+    font-size: 14px;
+  }
+  .title-bottom p {
+    font-size: 9px;
+  }
+  .title-bottom small {
+    font-size: 7px;
+    line-height: 1.6;
+  }
+  .title-bottom > div {
+    gap: 5px;
+    align-items: flex-start;
+  }
+  .bottom-tape {
+    height: 23px;
+    line-height: 23px;
+    font-size: 7px;
+    letter-spacing: 2px;
+  }
+  .wave {
+    min-width: 105px;
+  }
+  .wave > small {
+    display: none;
+  }
+  .wave > strong {
+    font-size: 26px;
+  }
+  .health {
+    padding: 7px 8px;
+  }
+  #hp {
+    gap: 2px;
+  }
+  #hp i {
+    width: 6px;
+    height: 9px;
+  }
+  .health > small {
+    font-size: 7px;
+  }
+  .wallet > strong {
+    font-size: 22px;
+  }
+  .wallet {
+    min-width: 70px;
+  }
+  #joystick {
+    bottom: 146px;
+    left: 8%;
+    width: 104px;
+    height: 104px;
+  }
+  #joystick > i {
+    left: 30px;
+    top: 30px;
+  }
+  .hint {
+    bottom: 275px;
+    max-width: 86%;
+    font-size: 9px;
+    padding: 7px 10px;
+  }
+  #boss {
+    top: 157px;
+    width: 220px;
+  }
+  .loadout > div {
+    width: 49px;
+    height: 53px;
+  }
+  .loadout {
+    gap: 5px;
+    bottom: 22px;
+  }
+  .loadout svg {
+    height: 34px;
+    width: 44px;
+  }
+  #mod-strip {
+    bottom: 84px;
+  }
+  #mod-strip > span {
+    font-size: 8px;
+  }
+  .kill-banner {
+    top: 25%;
+    font-size: 17px;
+  }
+  #overlay {
+    padding: 20px 12px;
+    align-items: flex-start;
+  }
+  #overlay > section {
+    margin: auto 0;
+  }
+  .shop-panel {
+    border-radius: 10px;
+    padding: 20px 16px;
+  }
+  .shop-heading h2 {
+    font-size: 27px;
+    letter-spacing: -1px;
+  }
+  .shop-heading h2 span {
+    display: block;
+    margin-left: 0;
+  }
+  .shop-heading .eyebrow {
+    font-size: 7px;
+    letter-spacing: 0.7px;
+  }
+  .shop-heading p {
+    font-size: 9px;
+    line-height: 1.7;
+    max-width: 220px;
+  }
+  .shop-wallet > strong {
+    font-size: 29px;
+  }
+  .shop-wallet > span,
+  .shop-wallet > small {
+    font-size: 8px;
+  }
+  .weapon-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .weapon-card {
+    padding: 10px 12px 0;
+  }
+  .weapon-card svg {
+    height: 72px;
+    margin: 2px 0;
+  }
+  .weapon-card h3 {
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+  .weapon-card p {
+    font-size: 9px;
+    height: 32px;
+    margin-bottom: 10px;
+  }
+  .card-tag {
+    font-size: 6px;
+  }
+  .card-price {
+    padding: 9px 0;
+  }
+  .card-price > b {
+    font-size: 14px;
+  }
+  .card-price > span {
+    font-size: 8px;
+  }
+  .shop-tools > span {
+    font-size: 8px;
+  }
+  .shop-tools > .text-button {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .mod-heading {
+    align-items: baseline;
+    gap: 8px;
+  }
+  .mod-heading > h3 {
+    font-size: 13px;
+  }
+  .mod-heading > span {
+    font-size: 8px;
+  }
+  .mod-cards {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .mod-card {
+    padding: 11px 12px;
+    gap: 13px;
+  }
+  .mod-card strong {
+    font-size: 12px;
+  }
+  .mod-card p {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+  .mod-card > b {
+    font-size: 29px;
+    min-width: 30px;
+    text-align: center;
+  }
+  .combo-note {
+    font-size: 9px;
+    padding: 8px;
+    line-height: 1.8;
+  }
+  .shop-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 14px;
+    margin-top: 15px;
+  }
+  .shop-footer > .primary {
+    width: 100%;
+    font-size: 12px;
+  }
+  .shop-footer > small {
+    text-align: center;
+    font-size: 8px;
+  }
+  .end-panel,
+  .pause-panel {
+    padding: 27px 21px;
+    border-radius: 11px;
+  }
+  .end-panel h2,
+  .pause-panel h2 {
+    font-size: 25px;
+  }
+  .end-panel p,
+  .pause-panel p {
+    font-size: 11px;
+  }
+  .end-stats {
+    gap: 7px;
+    margin: 20px 0;
+    padding: 16px 0;
+  }
+  .end-stats b {
+    font-size: 26px;
+  }
+  .end-stats small {
+    font-size: 8px;
+  }
+  .end-actions {
+    gap: 10px;
+  }
+  .end-actions > .primary {
+    min-width: 170px;
+  }
+  .end-build > span {
+    font-size: 8px;
+  }
+  .end-burst {
+    font-size: 51px;
+  }
+  .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+}
+@media (max-height: 700px) and (max-width: 520px) {
+  .title-copy {
+    top: 15%;
+  }
+  h1 {
+    font-size: 88px;
+    margin: 15px 0;
+  }
+  .title-copy h2 {
+    font-size: 22px;
+    margin: 10px 0;
+  }
+  .title-copy p {
+    font-size: 10px;
+    margin-bottom: 18px;
+  }
+  .title-copy > .kicker {
+    font-size: 8px;
+  }
+  .sticker {
+    display: none;
+  }
+  .title-copy > small {
+    margin-top: 14px;
+    font-size: 7px;
+  }
+  .title-bottom {
+    bottom: 7%;
+    padding-top: 11px;
+  }
+  .primary {
+    padding: 12px 17px;
+  }
+  .title-copy .outline {
+    padding: 10px 14px;
+  }
+}
+@media (max-height: 500px) and (min-width: 521px) {
+  header {
+    top: 12px;
+  }
+  .title-copy {
+    top: 19%;
+    left: 8%;
+  }
+  h1 {
+    font-size: 70px;
+    margin: 12px 0;
+  }
+  .title-copy h2 {
+    font-size: 21px;
+    margin: 10px 0;
+  }
+  .title-copy h2 br {
+    display: none;
+  }
+  .title-copy p {
+    font-size: 10px;
+    margin-bottom: 14px;
+  }
+  .title-copy > .kicker {
+    font-size: 8px;
+  }
+  .title-copy > small {
+    font-size: 7px;
+    margin-top: 11px;
+  }
+  .start-row .primary {
+    padding: 10px 15px;
+    font-size: 11px;
+    min-width: 175px;
+  }
+  .start-row .outline {
+    padding: 10px 14px;
+    font-size: 10px;
+  }
+  .sticker,
+  .title-bottom {
+    display: none;
+  }
+  .bottom-tape {
+    height: 21px;
+    line-height: 21px;
+    font-size: 7px;
+  }
+  .hud-row {
+    top: 58px;
+  }
+  .health > small {
+    display: none;
+  }
+  .wave {
+    min-width: 130px;
+    padding: 4px 14px;
+  }
+  .wave > strong {
+    font-size: 23px;
+    display: inline;
+    margin-left: 10px;
+  }
+  .wave > small {
+    display: none;
+  }
+  .wallet > strong {
+    font-size: 20px;
+  }
+  .wallet > span {
+    display: none;
+  }
+  .loadout {
+    bottom: 15px;
+  }
+  .loadout > div {
+    height: 45px;
+    width: 49px;
+  }
+  .loadout svg {
+    height: 30px;
+  }
+  .loadout small {
+    font-size: 6px;
+  }
+  #mod-strip {
+    bottom: 69px;
+  }
+  .hint {
+    bottom: 97px;
+    font-size: 9px;
+  }
+  #joystick {
+    bottom: 55px;
+    left: 6%;
+    width: 85px;
+    height: 85px;
+  }
+  #joystick > i {
+    left: 23px;
+    top: 23px;
+    width: 35px;
+    height: 35px;
+  }
+  #boss {
+    top: 111px;
+    width: 220px;
+  }
+  .shop-panel {
+    margin: 0 !important;
+  }
+  .end-burst {
+    display: none;
+  }
+  .end-panel h2 {
+    font-size: 25px;
+    margin: 8px;
+  }
+  .end-stats {
+    padding: 10px;
+    margin: 12px 0;
+  }
+  .end-actions {
+    margin: 15px 0;
+  }
+  .end-panel {
+    padding: 20px 30px;
+  }
+  .end-panel p {
+    font-size: 10px;
+  }
+  .kill-banner {
+    top: 29%;
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+#overlay > .shop-panel {
+  animation: none;
+}
