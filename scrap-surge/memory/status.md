@@ -49,3 +49,34 @@ unchanged by it, so the frozen source SHA stays 21a18fd.
 
 Scope is exactly S1 + S1b + S1c. No new product scope is authorized and no further
 non-blocking item is pending from the implementer.
+
+## Recovery of the unapproved expansion (2026-10-19)
+
+The previous implementer was interrupted while `src/data.ts`, `src/sim.ts` and
+`src/render.ts` carried unapproved, uncommitted edits on `codex/scrap-surge` on top
+of source `ee53cf8`. Astra, Opus and an independent DeepSeek review context each
+performed a full review and all three explicitly agreed to isolate the extension as
+a draft branch, return the working branch to the committed slice, and review the
+extension in phases later. The extension is neither merged as-is nor discarded.
+
+Disposition carried out:
+
+- The three files were committed unchanged to branch
+  `codex/scrap-surge-expansion-draft` as an explicitly unapproved, unintegrated WIP
+  draft. **Draft SHA: 8e1542ebd8f8568bcdc9f2301050cd3f85acb6e0.**
+- `codex/scrap-surge` is back on committed source `ee53cf8` with a clean working
+  tree. The draft commit reproduces the exact pre-recovery contents, so the original
+  file hashes remain recoverable:
+  data.ts `501bc2e0…dd688ef3`, sim.ts `4bcd7bdb…8cb75c498`, render.ts `75426d4d…08ca488913`.
+- `/tmp/scrap-audit-ofrJ1o` (extension patch + snapshot server) is auxiliary only;
+  project reproduction must use the draft SHA, never `/tmp`.
+
+Blockers and open items are recorded in docs/reviews.md: B1 (main shop `chooseMod`,
+two-wave UI and missing anchor icon still make the first shop error and block the
+next wave), B2 (snapshot `npm test` 32/36 and a TypeScript build failure from a stale
+Gun-level fixture), B3 (`wave2.hp` 1.35 really moves runner 19->26 / can 75->101 and
+bossborn 0.65->1.2), the barrel/saw/echo new-mechanism issues, the valuable wave
+table / weapon merging / new enemies that need a separate sign-off package, the
+`qaStart` non-cheat note, the `refine` economy review, and the still-unimplemented
+three-party-agreed S1d fast gun 18->20. `ee53cf8` is the post-palette-restore slice
+pending review; the old `21a18fd` review does not apply to this SHA.

@@ -89,3 +89,65 @@ slice, with regression tests:
 Frozen slice review is pending against the commit recorded in memory/status.md.
 Model review and an automated victory cannot establish whether this version feels
 satisfying to the user. No user acceptance of this version yet.
+
+## Full review and disposition of the unapproved expansion (2026-10-19)
+
+After the previous implementer was interrupted, the working tree on
+`codex/scrap-surge` carried unapproved edits to `src/data.ts`, `src/sim.ts` and
+`src/render.ts` on top of source commit `ee53cf8`. Astra, Opus and an independent
+DeepSeek review context each ran a full review of that extension. All three
+explicitly agreed to the same disposition: **fully isolate the extension as a
+draft branch, return the working branch to the committed slice, and review the
+extension in phases later.** This is not a delete and not a merge. No party
+approved shipping the extension as-is, and no party approved discarding it
+wholesale.
+
+Recovery performed under this agreement:
+
+- The three files were committed, without change, to a new branch
+  `codex/scrap-surge-expansion-draft` as an explicitly unapproved, unintegrated
+  WIP draft. Draft SHA: **8e1542ebd8f8568bcdc9f2301050cd3f85acb6e0**.
+- `codex/scrap-surge` was switched back to committed source `ee53cf8`; the
+  working tree is clean. The draft commit reproduces the exact pre-recovery file
+  contents, so the original hashes stay recoverable.
+
+The audit snapshot at `/tmp/scrap-audit-ofrJ1o` (a patch of the extension plus a
+snapshot server) is an auxiliary path only. Any project reproduction must use the
+draft branch SHA above; nothing in the project may depend on `/tmp`.
+
+### Blockers recorded (must be resolved before any reuse)
+
+- **B1.** On main the shop still calls `chooseMod`, the UI still has two waves and
+  the anchor icon is missing, so the first shop actually errors and cannot advance
+  to the next wave. The extension does not fix this; it must not be presented as
+  runnable on that path.
+- **B2.** In the snapshot `npm test` was 32/36 and `npm run build` failed the
+  TypeScript check (a stale Gun-level fixture). That fixture failure does not mean
+  every mechanic is broken; it means the extension was never green.
+- **B3.** `wave2.hp` of `1.35` moves runner `19 -> 26` and can `75 -> 101`, and
+  bossborn `0.65 -> 1.2`. The claim that old numbers are unchanged is false; any
+  reuse must restate the real numbers.
+
+### New-mechanism issues recorded
+
+- The barrel `bool` loses multiple volleys.
+- The saw's free volley resets the cooldown.
+- The echo persistent-cutting text describes more than the single hit it applies.
+
+### Items of value that must be signed off in a separate package
+
+The wave table, weapon merging and the new enemies/feedback mechanisms are worth
+keeping, but they are new product scope. They require a fresh, explicit three-party
+sign-off before any implementation.
+
+### Other recorded findings
+
+- `qaStart` is not exposed on main, so it is not a cheat backdoor in the shipped
+  path.
+- The infinite `refine` does not directly require a hard cap; it needs an economy
+  review.
+- S1d (fast gun `18 -> 20`) is already agreed by all three but is **not yet
+  implemented**; the recovery task forbade implementation changes, so it stays
+  pending.
+- `ee53cf8` is the post-palette-restore slice and is still pending review. The
+  older `21a18fd` review must not be reused for this new SHA.
