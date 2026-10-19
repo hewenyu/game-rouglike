@@ -6,6 +6,7 @@ export class Sound {
   voices = 0;
   pickup = 0;
   lastFire = 0;
+  lastTierFire = 0;
   init() {
     if (!this.context) {
       this.context = new AudioContext();
@@ -118,6 +119,9 @@ export class Sound {
       else this.tone(390, 560, 0.2, 0.09, "sine");
     }
     if (e.type === "tier-fire") {
+      const t = this.context?.currentTime ?? 0;
+      if (t - this.lastTierFire < 0.04) return;
+      this.lastTierFire = t;
       const up = e.kind === "coil" || e.kind === "rocket";
       this.tone(
         up ? 620 : 360,

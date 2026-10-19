@@ -874,9 +874,81 @@ test("expedition mod tiers reach audio events and tier-II bonus bullets carry th
         b.mod === "magnet" &&
         b.tier === 2 &&
         b.target === target.id &&
-        !!b.hitIds,
+        b.hitIds === undefined,
     ),
   );
+});
+
+test("expedition magnet metadata starts at newly spawned bullets and preserves hitIds", () => {
+  const g = empty();
+  g.mods = ["magnet"];
+  g.modTiers.set("magnet", 2);
+  g.guns = [];
+  const target = enemy(g, 800, 450, 100);
+  const old = g.bullets.length;
+  g.bullets.push({
+    x: 100,
+    y: 100,
+    id: 999,
+    vx: 1,
+    vy: 0,
+    damage: 1,
+    life: 1,
+    kind: "bonus",
+    target: 0,
+    r: 5,
+    homing: false,
+  });
+  const oldBullet = g.bullets[old];
+  for (let i = 0; i < 8; i++) g.collect(scrap(10 + i));
+  const fresh = g.bullets.slice(old + 1);
+  assert.equal(fresh.length, 10);
+  assert(
+    fresh.every(
+      (b) =>
+        b.mod === "magnet" &&
+        b.tier === 2 &&
+        b.target === target.id &&
+        b.hitIds === undefined,
+    ),
+  );
+  assert.equal(oldBullet.mod, undefined);
+  assert.equal(oldBullet.hitIds, undefined);
+
+  const capped = empty();
+  capped.mods = ["magnet"];
+  capped.modTiers.set("magnet", 2);
+  capped.guns = [];
+  enemy(capped, 800, 450, 100);
+  capped.combatPicked = 7;
+  for (let i = 0; i < 415; i++)
+    capped.bullets.push({
+      x: 100 + (i % 10),
+      y: 100,
+      id: 1000 + i,
+      vx: 1,
+      vy: 0,
+      damage: 1,
+      life: 1,
+      kind: "bonus",
+      target: 0,
+      r: 5,
+      homing: false,
+    });
+  capped.collect(scrap(20));
+  assert.equal(capped.bullets.length, 420);
+  assert(
+    capped.bullets
+      .slice(415)
+      .every(
+        (b) =>
+          b.mod === "magnet" &&
+          b.tier === 2 &&
+          b.target !== 0 &&
+          b.hitIds === undefined,
+      ),
+  );
+  assert(capped.bullets.slice(0, 415).every((b) => !b.mod));
 });
 
 test("expedition domino tiers inspect every fourth and eighth secondary kill per root", () => {
@@ -890,6 +962,38 @@ test("expedition domino tiers inspect every fourth and eighth secondary kill per
     g.hit(victims[i], 5, g.player, "secondary", 0, 12);
   assert.equal(g.dominoRadius.get(12), 20);
   assert(g.pendingBlasts.some((b) => b.radius === 160 && b.damage === 80));
+  step(g, 1);
+  assert(
+    g.fx.some(
+      (f) => f.kind === "domino-blast" && f.life === 0.48 && f.size === 160,
+    ),
+  );
+  assert(
+    g.fx.some(
+      (f) => f.kind === "domino-ring" && f.life === 0.45 && f.size === 160,
+    ),
+  );
+});
+
+test("expedition magnet tier III presents a full-arena warm sweep", () => {
+  const g = empty();
+  g.mods = ["magnet"];
+  g.modTiers.set("magnet", 3);
+  g.guns = [];
+  g.combatPicked = 7;
+  enemy(g, 800, 450, 100);
+  g.collect(scrap(1));
+  assert.equal(g.magnetPulse, 0.6);
+  const sweep = g.fx.find((f) => f.kind === "magnet-sweep");
+  assert(sweep);
+  assert.equal(sweep.life, 0.6);
+  assert.equal(sweep.size, 300);
+  assert.equal(sweep.color, "#f0b45f");
+  assert(
+    g.bullets.every(
+      (b) => b.mod === "magnet" && b.tier === 3 && b.hitIds === undefined,
+    ),
+  );
 });
 
 test("expedition tier-II saw orbits a second blade and tier-II fist keeps one doubled hit", () => {

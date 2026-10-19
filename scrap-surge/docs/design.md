@@ -19,9 +19,11 @@ experiment only. The 10-20 minute run target still stands and is reconciled with
 waves plus shop pacing in a later three-party review, not silently stretched to 30
 minutes. This feedback covers only wave count and build pacing - it is not an
 aesthetic or feel acceptance of the slice. The 20-wave requirement is the user's
-explicit goal, not a pending proposal; the concrete implementation plan is what awaits
-three-party review, and no unilateral expansion is authorized. The current page is
-still the two-wave slice.
+explicit goal, not a pending proposal. The implemented candidate follows approved spec
+`058951fc84994abb8ee24a2c587bb9232c1c1ccd`; the normal page defaults to `expedition20`,
+while `?mode=slice` preserves the approved two-wave slice. This is implementation
+approval, not user acceptance or validation victory. Any later tuning or rule change
+needs three-party agreement rather than unilateral expansion.
 
 Weapons change attack geometry and rhythm. Free shop modifications alter drops or
 kill chains. Weapons are visible on the shell. Left-hand movement is the only
@@ -34,6 +36,7 @@ step. That authorization is permission to proceed, not user acceptance: it must 
 be written up as the user approving the concept, the feel or the visuals.
 
 ## User clarification: positive-feedback builds
+
 The user explicitly requires "左脚踩右脚上天": build synergies should break through
 the baseline, not be balanced into near-equivalence. Strong completed builds may
 clear mobs with little movement; that is not automatically a QA failure.

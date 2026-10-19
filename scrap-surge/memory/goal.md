@@ -34,11 +34,13 @@ This playtest feedback is only about wave count and build-formation pacing. It i
 recorded as user acceptance of the visuals or of any other part of the build.
 
 Scope stays gated: no one may unilaterally implement a 20-wave expansion. The
-20-wave requirement itself is the user's explicit goal, not a pending proposal; what
-still needs three-party approval is the concrete implementation plan. Opus's 20-wave
-timetable is a proposal, not approved. The current page is still the two-wave slice.
-Keeping two mod slots and the build-differentiation design are also still undecided; do
-not add a third mod slot without three-party agreement.
+20-wave requirement itself is the user's explicit goal, not a pending proposal. The
+approved implementation spec is `058951fc84994abb8ee24a2c587bb9232c1c1ccd`, and a
+runnable `expedition20` candidate now exists. The normal page defaults to that mode;
+`?mode=slice` preserves the approved two-wave slice. This is implementation approval
+only, not user acceptance or validation victory. Any later tuning or rule change needs
+three-party agreement. The approved spec keeps two mod slots; do not add a third mod
+slot without that agreement.
 
 ## Collaboration and ownership
 

@@ -127,11 +127,15 @@ function modIcon(id: ModId, tier = 1) {
       : tier >= 2
         ? '<path d="M66 18l7 7M73 18l-7 7" stroke="#273b35" stroke-width="3"/>'
         : "";
-  return `<svg viewBox="0 0 92 72" aria-hidden="true">${MODS[id].icon}<text x="18" y="59" font-size="24" font-weight="900" fill="#273b35">${modTierLabel(tier)}</text>${extra}</svg>`;
+  return `<svg viewBox="0 0 92 72" aria-hidden="true"><text x="30" y="32" text-anchor="middle" font-size="28" font-weight="900" fill="#273b35">${MODS[id].icon}</text><text x="18" y="59" font-size="24" font-weight="900" fill="#273b35">${modTierLabel(tier)}</text>${extra}</svg>`;
 }
+let quickPickedId: ModId | null = null;
+let quickPickedTier = 0;
 function start(seed?: number) {
   sound.init();
   input.clear();
+  quickPickedId = null;
+  quickPickedTier = 0;
   game = new Game(
     seed ?? crypto.getRandomValues(new Uint32Array(1))[0],
     gameMode,
@@ -331,14 +335,19 @@ function quick(g: Game) {
           .join("")
       : (g.quickOptions as ModId[])
           .map((id) => {
-            const tier = kind === "mod-upgrade" ? g.modTier(id) + 1 : 1;
+            const currentTier = g.modTier(id);
+            const nextTier = kind === "mod-upgrade" ? currentTier + 1 : 1;
             const selected =
               kind === "mod-upgrade"
-                ? g.quickPicked && Math.abs(g.modTier(id) - tier) < 0.01
+                ? g.quickPicked && quickPickedId === id
                 : g.has(id);
+            const shownTier =
+              kind === "mod-upgrade" && quickPickedId === id
+                ? g.modTier(id)
+                : nextTier;
             return `<button class="mod-card quick-card ${selected ? "selected" : ""}" data-quick="${id}" ${g.quickPicked ? "disabled" : ""} aria-pressed="${selected}">
-              <b>${modIcon(id, tier)}</b><div><span class="tier-label">${kind === "mod-upgrade" ? `${modTierLabel(tier - 1)} → ${modTierLabel(tier)}` : `TIER ${modTierLabel(tier)}`}</span><strong>${MODS[id].name}</strong><p>${nextModDescription(id, tier)}</p></div>
-              <small>${selected ? "已选 ✓" : "免费"}</small>
+              <b>${modIcon(id, shownTier)}</b><div><span class="tier-label">${kind === "mod-upgrade" ? `${modTierLabel(quickPickedId === id ? quickPickedTier : currentTier)} → ${modTierLabel(shownTier)}` : `TIER ${modTierLabel(shownTier)}`}</span><strong>${MODS[id].name}</strong><p>${nextModDescription(id, shownTier)}</p></div>
+              <small>${selected ? "已选 ✓" : g.quickPicked ? "本次未选" : "免费"}</small>
             </button>`;
           })
           .join("");
@@ -359,11 +368,20 @@ function quick(g: Game) {
           const raw = b.dataset.quick!;
           const value =
             kind === "branch" ? (raw as ExpeditionBranch) : (raw as ModId);
-          if (g.chooseQuick(value)) quick(g);
+          if (kind !== "branch") {
+            const id = value as ModId;
+            quickPickedTier = g.modTier(id);
+            if (g.chooseQuick(value)) {
+              quickPickedId = id;
+              quick(g);
+            }
+          } else if (g.chooseQuick(value)) quick(g);
         }),
     );
   $("next").onclick = () => {
     if (!canContinue && !g.quickPicked) return;
+    quickPickedId = null;
+    quickPickedTier = 0;
     g.nextWave();
     input.clear();
     sync();

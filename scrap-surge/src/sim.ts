@@ -103,8 +103,9 @@ export type Fx = {
     | "ember"
     | "split"
     | "tell"
-    | "mod"
-    | "tier-shot"
+    | "domino-ring"
+    | "domino-blast"
+    | "magnet-sweep"
     | "ring";
   x: number;
   y: number;
@@ -187,6 +188,7 @@ export class Game {
     radius: number;
     damage: number;
     chain: number;
+    tier3?: boolean;
   }[] = [];
   wave = 1;
   waveTime = 0;
@@ -1078,6 +1080,7 @@ export class Game {
             radius: 160,
             damage: 80,
             chain,
+            tier3: true,
           });
         }
       }
@@ -1191,10 +1194,23 @@ export class Game {
       hitIds: new Set<number>(),
     });
   }
-  explode(p: Vec, radius: number, damage: number, primary = true, chain = 0) {
+  explode(
+    p: Vec,
+    radius: number,
+    damage: number,
+    primary = true,
+    chain = 0,
+    slow = false,
+  ) {
     // Primary and chain blasts share the approved orange-yellow explosion
     // palette. They are told apart by size and lifetime, not by a new hue.
-    this.effect("blast", p, primary ? 0.32 : 0.3, BLAST.ring, radius);
+    this.effect(
+      primary ? "blast" : slow ? "domino-blast" : "blast",
+      p,
+      slow ? 0.48 : primary ? 0.32 : 0.3,
+      BLAST.ring,
+      radius,
+    );
     this.shake = Math.max(this.shake, 0.2);
     this.event("explode");
     for (const e of this.enemies)
@@ -1312,6 +1328,7 @@ export class Game {
     if (this.has("magnet") && this.combatPicked % 8 === 0) {
       const tier = this.modTier("magnet");
       const target = this.enemies.find((e) => e.hp > 0 && e.born <= 0);
+      const startLen = this.bullets.length;
       for (let i = 0; i < 10; i++)
         this.shoot(
           this.player,
@@ -1323,13 +1340,11 @@ export class Game {
           tier >= 2 && !!target,
         );
       if (tier >= 2) {
-        const hitIds = target ? new Set<number>() : undefined;
-        for (let i = this.bullets.length - 10; i < this.bullets.length; i++) {
+        for (let i = startLen; i < this.bullets.length; i++) {
           const bullet = this.bullets[i];
           if (!bullet?.homing) continue;
           bullet.mod = "magnet";
           bullet.tier = tier;
-          bullet.hitIds = hitIds;
         }
       }
       if (
@@ -1340,6 +1355,7 @@ export class Game {
         this.magnetPulse = 0.6;
         this.magnetPulseCooldown = 0.6;
         this.event("mod-cue", undefined, 3, "magnet");
+        this.effect("magnet-sweep", this.player, 0.6, "#f0b45f", 300);
       }
       this.effect("blast", this.player, 0.3, BLAST.ring, 70);
     }
@@ -1896,7 +1912,17 @@ export class Game {
       }
       for (let i = 0; i < 12 && this.pendingBlasts.length; i++) {
         const blast = this.pendingBlasts.shift()!;
-        this.explode(blast.p, blast.radius, blast.damage, false, blast.chain);
+        if (blast.tier3) {
+          this.effect("domino-ring", blast.p, 0.45, "#f6c35c", 160);
+        }
+        this.explode(
+          blast.p,
+          blast.radius,
+          blast.damage,
+          false,
+          blast.chain,
+          !!blast.tier3,
+        );
       }
       // Reclaim chain roots with no queued work and no live remnant. Without
       // this, sustained secondary kills keep refreshing chainTimer and finished

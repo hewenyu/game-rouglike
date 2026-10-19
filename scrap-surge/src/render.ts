@@ -679,7 +679,7 @@ export class Renderer {
             { x: 0, y: 0 },
           ],
           isMagnet
-            ? "#86e1c2"
+            ? "#efb45f"
             : isTierIIIPopcorn
               ? "#ff9b2f"
               : isTierIIPopcorn
@@ -697,7 +697,7 @@ export class Renderer {
           b.kind === "enemy"
             ? "#e9695b"
             : isMagnet
-              ? "#8fe3c5"
+              ? "#f2c76f"
               : isTierIIIPopcorn
                 ? "#ffd76a"
                 : b.kind === "bonus"
@@ -737,7 +737,7 @@ export class Renderer {
               { x: -14, y: -1 },
               { x: -8, y: 7 },
             ],
-            "#d7fff0",
+            "#fff0c4",
             1.6,
           );
         }
@@ -928,6 +928,42 @@ export class Renderer {
             ],
             i % 2 ? "#fff0a0" : f.color,
             3,
+          );
+        }
+      } else if (f.kind === "domino-blast") {
+        const r = f.size * (1.18 - a * 0.4);
+        this.ellipse(f.x, f.y, r, r, "#0000", f.color, 4 + a * 3);
+        this.ellipse(
+          f.x,
+          f.y,
+          f.size * (1.42 - a * 0.42),
+          f.size * (1.42 - a * 0.42),
+          "#f6c35c18",
+          "#f6c35c",
+          2 + a * 2,
+        );
+      } else if (f.kind === "domino-ring") {
+        for (let i = 0; i < 2; i++) {
+          const r = f.size * (0.35 + (1 - a) * 0.65 - i * 0.12);
+          this.ellipse(f.x, f.y, r, r, "#0000", f.color, 3 - i);
+        }
+      } else if (f.kind === "magnet-sweep") {
+        const radius = f.size * (0.82 + (1 - a) * 0.18);
+        for (let i = 0; i < 4; i++) {
+          const start = i * Math.PI * 0.5 + t * 0.55;
+          this.line(
+            [
+              {
+                x: f.x + Math.cos(start) * radius,
+                y: f.y + Math.sin(start) * radius,
+              },
+              {
+                x: f.x + Math.cos(start + Math.PI * 0.42) * radius,
+                y: f.y + Math.sin(start + Math.PI * 0.42) * radius,
+              },
+            ],
+            i % 2 ? "#fff0c4" : f.color,
+            4 + a * 2,
           );
         }
       } else {

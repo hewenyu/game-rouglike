@@ -146,15 +146,7 @@ try {
       const before = state;
       if (state.phase === "quick") {
         const pick =
-          state.wave === 1
-            ? "popcorn"
-            : state.wave === 3
-              ? "domino"
-              : state.wave === 5
-                ? "wake"
-                : state.wave === 17
-                  ? "domino"
-                  : "popcorn";
+          state.wave === 5 ? "wake" : state.wave === 17 ? "domino" : "popcorn";
         await page.locator(`[data-quick="${pick}"]`).click();
         const after = await metrics();
         assert(await page.locator("#next").isEnabled());
@@ -164,6 +156,14 @@ try {
         if (box)
           await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         assert.deepEqual((await metrics()).modTiers, after.modTiers);
+        assert.equal(
+          await page.locator("[data-quick][aria-pressed=true]").count(),
+          1,
+        );
+        assert.match(
+          await page.locator("[data-quick][aria-pressed=true]").innerText(),
+          /已选/,
+        );
         const count = await page.locator("[data-quick]").count();
         for (let i = 0; i < count; i++)
           assert(await page.locator("[data-quick]").nth(i).isDisabled());

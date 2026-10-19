@@ -1,24 +1,47 @@
 # Status
-## Review candidate: expedition20 implemented, unverified (2026-10-19)
 
-The working tree contains a runnable `expedition20` implementation for three-party
+## Review candidate: expedition20 implemented, not validation-complete (2026-10-19)
+
+The source contains a runnable `expedition20` implementation for three-party
 code/visual/failure review. It is **not user-accepted and not validation-complete**.
 The normal page defaults to `expedition20`; `?mode=slice` keeps the approved two-wave
 slice. No balance tuning was made to force a green result.
 
-The candidate now has 84/84 non-browser assertions (the historical 47 slice assertions
-unchanged, plus 37 expedition assertions), a clean build, and a preserved review-only
-20-wave keyboard harness at `tests/browser-expedition-review.mjs`. That harness has
-**not been run** and is not a victory. The browser regression gained two checks, so its
-new denominator is **25**, not the historical 23; no 25/25 claim exists until a fresh
-run is recorded.
+The candidate now has 86/86 non-browser assertions (the historical 47 slice assertions
+unchanged, plus 39 expedition assertions), a clean build, and a preserved review-only
+20-wave keyboard harness at `tests/browser-expedition-review.mjs`. The harness has been
+run but has not produced a victory. The browser regression gained two checks, so its new
+denominator is **25**, not the historical 23; no 25/25 claim exists until a fresh run is
+recorded.
+
+Latest ordinary-input browser evidence on baseline
+**3140ddf2851e735334112050bfd5de46d10b4555** is a real failure, not a victory. Astra's
+run ended lost at wave 15 with 0 hp, 3569 kills, 111 bullet peak and no page errors;
+the stage-III boss had been killed (`bossKilled=true`), and the player died about 3.5s
+later under ordinary enemy pressure. The result was 474.1s simulated / 478.3s wall,
+and retry worked. This is a finite observation, not proof that the game is unwinnable.
+
+An independent DeepSeek fixed-orbit, ordinary-input simulation diagnostic (seed 42)
+recorded terminal failure in all six mod-pair/branch cells:
+
+| pair             | branch | terminal                           |
+| ---------------- | ------ | ---------------------------------- |
+| popcorn + domino | wake   | lost W15, 0 hp, 3347 kills, 463.4s |
+| popcorn + domino | ember  | lost W15, 0 hp, 3416 kills, 463.2s |
+| popcorn + magnet | wake   | lost W14, 0 hp, 2999 kills, 424.1s |
+| popcorn + magnet | ember  | lost W15, 0 hp, 3308 kills, 463.3s |
+| domino + magnet  | wake   | lost W10, 0 hp, 1813 kills, 282.8s |
+| domino + magnet  | ember  | lost W13, 0 hp, 2591 kills, 382.1s |
+
+These six cells are a diagnostic strategy on one seed, not a proof of impossibility
+and not a 20-wave victory. A different strategy or tuning could change the result.
 
 Unverified at this review freeze: no ordinary-input 20-wave victory; no real
-ordinary-input `ember` run; post-mode-pin regression/mobile expedition interaction
-coverage; simulation-CPU fixed-step measurement; physical touch/audio/user feel.
-Three development attempts failed before/at wave 10/13: wave 13 death at 0 hp and two
-wave-10 boss deadlines. They are development evidence only; their old `spawnCount`
-field used timer-only accounting.
+ordinary-input `ember` browser run; post-mode-pin regression/mobile expedition
+interaction coverage; simulation-CPU fixed-step measurement; physical
+touch/audio/user feel. Three earlier development attempts failed before/at wave 10/13:
+wave 13 death at 0 hp and two wave-10 boss deadlines. They are development evidence
+only; their old `spawnCount` field used timer-only accounting.
 
 Immutable development attempt directories remain under
 `artifacts/expedition-attempts/`, but are intentionally excluded from Git because
@@ -32,8 +55,9 @@ Astra, Opus, author DeepSeek and independent DeepSeek explicitly approved this s
 text for full `expedition20` implementation. This is approval of the plan, not user
 acceptance. The runnable expedition candidate was frozen at
 **018f66ed18963870e55578edf97f9c3812a16ad2** for three-party implementation review;
-the current working tree adds the presentation/UI fixes and tests described below and
-is not yet validation-complete.
+it was then frozen at **3140ddf2851e735334112050bfd5de46d10b4555**, and the follow-up
+freeze containing this section adds the presentation/UI fixes and tests described
+below. None of these freezes is user acceptance or validation completion.
 
 User played and rejected Nightfold: not satisfying, wants a Brotato-like roguelike.
 The rejected prototype has been deleted under the user's direct authorization.
@@ -52,10 +76,10 @@ brought under control (see memory/goal.md). The full 10-20 minute goal is **not*
 complete; there is **no user acceptance** of the visuals or feel yet - the new
 feedback only covers wave count and build-formation pacing. The 20-wave requirement is
 the user's explicit goal, not a pending proposal; what still needs three-party approval
-is the concrete implementation plan. The current page is still the two-wave slice.
-F0 + T2 were approved by all three parties at `2746a01`. The concrete 20-wave plan is
-now the draft `docs/expedition20-proposal.md` (**unapproved, unimplemented**; no source,
-test or UI change), awaiting same-text three-party sign-off.
+is any later tuning or rule change. F0 + T2 were approved by all three parties at
+`2746a01`. The approved 20-wave implementation text is frozen in
+`docs/expedition20-proposal.md` at `058951f`; the candidate is implemented and remains
+under review, not user-accepted or validation-complete.
 
 An F0 repair package (boss slot reservation, honest boss-spawn flag, read-only
 instruments) is implemented on top of the slice. The F0 code checkpoint is commit
@@ -66,6 +90,7 @@ SHA. F0 leaves ordinary combat, the waves, the weapons and the popcorn mechanic
 untouched.
 
 ## Roles
+
 Astra coordinates, owns architecture boundaries and integration review; Opus reviews
 gameplay/aesthetics/feel; DeepSeek is the sole writer here (implementation, tests,
 fixes). All three have equal standing and must explicitly agree before a decision is
@@ -73,6 +98,7 @@ implemented. Silence is not approval. Author self-check is not independent revie
 the independent DeepSeek review runs in a separate context against a frozen commit.
 
 ## Slice S1 (approved by Astra, Opus and DeepSeek)
+
 Feel-validation slice: 20-second wave 1, shop, 35-second wave 2 with boss, real touch
 movement. Approved revision package: player ivory+teal color separation at 1.3x with
 white outline and teal ground ring; visible weapon blocks; fixed wave spawn rates
