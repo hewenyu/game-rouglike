@@ -17,6 +17,9 @@ complete; there is **no user acceptance** of the visuals or feel yet - the new
 feedback only covers wave count and build-formation pacing. The 20-wave requirement is
 the user's explicit goal, not a pending proposal; what still needs three-party approval
 is the concrete implementation plan. The current page is still the two-wave slice.
+That concrete plan now exists as a draft for same-text review:
+`docs/expedition20-proposal.md` - **unapproved and unimplemented**, with no source,
+test or UI change accompanying it.
 
 An F0 repair package (boss slot reservation, honest boss-spawn flag, read-only
 instruments) is implemented on top of the slice. The F0 code checkpoint is commit
