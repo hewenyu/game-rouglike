@@ -35,7 +35,11 @@ not change source behavior.
 
 Per-party evidence, not merged:
 
-- **Opus:** independently ran the 89 tests, build and browser screens.
+- **Opus:** independently extracted `f9999fe`, ran 89 tests and the build
+  (production output identical to `db74a8c`), checked the `db74a8c` docs-only
+  design, the independent DeepSeek artifact hash and the slice log, and viewed
+  the root screenshots from the `851cd13` batch (title-ready and touch). Opus
+  makes no independent `db74a8c` browser-run claim.
 - **Independent DeepSeek:** previously ran its short browser check and tests;
   this was not a full final acceptance pass.
 - **Astra:** reviewed integration and independently ran 89/89 unit tests this
@@ -48,11 +52,12 @@ The fixed-seed paired diagnostic is `/tmp/astra-db74a8c-hurt-diagnostic/`:
 hits. It reused the previously registered input and panel strategy without
 changing or re-evaluating it. Report SHA-256:
 `a341e3d79675d0a5dc5258712291b56af6226b13ce022103d2a5f76a85183797`.
-The method, limits, W20 timeline and complete artifact hashes are in
+The method, limits, W20 timeline and selected artifact hashes are in
 `docs/testing.md`.
 
 Controls and observed used the same seed 42, ordinary panels and fixed input
-policy; this one body does not dodge bullets or represent a human sample.
+policy; the script avoids enemy bodies but does not actively dodge bullets.
+This one body does not represent a human sample.
 Classification is by source line only, so shooter identity, entity identity,
 all W20 causes and boss balance remain unknown.
 

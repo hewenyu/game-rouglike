@@ -245,7 +245,7 @@ difficulty sample, FPS result or win-rate estimate. It reused the previously
 registered `expedition20` input and panel strategy; that strategy was not
 changed or re-evaluated here. It used seed 42, `dt = 1/60`, and a 90,000-tick
 cap. Held input was polled at steps 0, 5, 10, ... The script is a single fixed
-body and does not perform scripted bullet dodging.
+body that avoids enemy bodies but does not actively dodge bullets.
 
 Control and observed instances ran the same panels, input policy and steps.
 Every step compared complete nonfunction state hashes, drained-event hashes,
@@ -277,7 +277,7 @@ This differs from the browser run on `851cd13`, which died at W20 wave time
 methods and are separate samples. This diagnostic does not propose a gameplay
 change and does not call the earlier strategy stale.
 
-Artifacts:
+Selected artifacts:
 
 | Artifact | SHA-256 |
 | --- | --- |
@@ -291,4 +291,7 @@ Artifacts:
 The authorized harness was executed once. It completed with a pass report and
 all 40,860 step records; the surrounding zsh wrapper then failed while assigning
 the read-only shell variable `status`, so no shell exit status was captured.
-The harness and artifacts were not rerun or altered after that wrapper error.
+After `execution.stderr.txt` was closed, the wrapper made no changes to
+`harness.ts`, `paired-full/report.json`, `paired-full/steps.jsonl`,
+`execution.stdout.txt` or `execution.stderr.txt`. `execution.summary.json` and
+`execution.post-hashes.txt` were produced later by read-only inspection.
