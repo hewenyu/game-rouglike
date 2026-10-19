@@ -10,6 +10,7 @@
     "test:browser": "node tests/browser.mjs",
     "test:browser:expedition": "node tests/browser-expedition.mjs",
     "test:browser:first-shop": "node tests/browser-first-shop.mjs",
+    "test:browser:lifecycle": "node tests/browser-input-lifecycle.mjs",
     "format": "prettier --write src tests vite.config.ts",
     "test:browser:regression": "node tests/browser-regression.mjs"
   },

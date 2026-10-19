@@ -74,7 +74,10 @@ if (recordKey === legacyKey) record.muted = legacy.muted === true;
 sound.muted = legacy.muted === true;
 const input = new Input(
   $("joystick"),
-  () => game?.phase === "fight",
+  () =>
+    game?.phase === "fight" ||
+    game?.phase === "sweep" ||
+    game?.phase === "interlude",
   () => sound.init(),
   () => pause(),
 );

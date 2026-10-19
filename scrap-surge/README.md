@@ -55,6 +55,7 @@ npm test
 npm run build
 npm run test:browser    # 先启动 dev server；默认本机 macOS Google Chrome
 npm run test:browser:regression   # 独立正常输入回归，同样先启动 dev server
+npm run test:browser:lifecycle    # W7 自动接波的键盘/触屏输入生命周期回归
 npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
 npm run test:browser:expedition    # expedition 普通输入全程；每次独立 attempt 留证
 npm run format
@@ -63,6 +64,8 @@ npm run format
 浏览器测试可用 `CHROME_PATH` 指定 Chromium 可执行文件、`TEST_URL` 指定站点。
 回归脚本另支持 `BASE_URL` 与 `DIST_DIR`（默认使用仓库内 `dist/`）。
 它使用普通键鼠、实际触屏事件和只读观察数据；没有修改战斗状态或开启无敌。
+自动接波回归单独运行键盘与触屏两局：在 W7 过渡中新按方向并保持到 W8，
+同时验证商店、快速选择和暂停期间不会收集移动输入。它不计入 24 项回归分母。
 失败路径由普通键盘朝最近敌人冲的独立 fixture 覆盖（固定 seed 2a/17/91，各一局）；
 `window.scrapMetrics.enemyPositions` 每次返回全新的 `{x,y}` 副本，不泄漏敌人引用。
 `tests/browser-expedition-review.mjs` 是独立的 20 波普通输入审查脚本，必须显式提供

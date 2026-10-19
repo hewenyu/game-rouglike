@@ -73,6 +73,13 @@ host. Both use ordinary keys, taps and buttons and read only `window.scrapMetric
 plus DOM geometry; no HP, timer or entity writes, and no invulnerability.
 `CHROME_PATH`, `TEST_URL`/`BASE_URL` and `DIST_DIR` are configurable.
 
+`npm run test:browser:lifecycle` (`tests/browser-input-lifecycle.mjs`) is a separate
+ordinary-input lifecycle check and does not change the 24-check regression
+denominator. Independent keyboard and real-CDP-touch runs progress normally to the
+W7 interlude, release the old direction, press a new one during the interlude, and
+require immediate movement in W8. The keyboard run also checks that quick, shop and
+paused phases reject movement and that pause/resume leaves no ghost key.
+
 The review-only `tests/browser-expedition-review.mjs` is a separate full-run harness
 adapted from Astra's review script. It requires an explicit `REVIEW_SHA` and a fresh
 `OUTPUT_DIR`, defaults to `http://127.0.0.1:4190`, and preserves each attempt's JSON,
@@ -113,11 +120,11 @@ slice-era fixture; the T2 revision of G is documented further down.
     "not covered", never counted as a death.
   - `won` - normal victory.
   - `timeout` - still fighting at 100s; a real failure, never retried.
-  Only runs that actually reach the shop assert the exact mods and gun contract
-  (`mods === [magnet, popcorn]`, `gunsAtShop === 1`, `gunsAtWave2 === 1`); no page
-  errors applies to all runs. The group must still contain at least one real 0 hp loss.
-  This fixture remains probabilistic and timing-sensitive; a green run is evidence for
-  these three fixed seeds only, not a stability or difficulty claim.
+    Only runs that actually reach the shop assert the exact mods and gun contract
+    (`mods === [magnet, popcorn]`, `gunsAtShop === 1`, `gunsAtWave2 === 1`); no page
+    errors applies to all runs. The group must still contain at least one real 0 hp loss.
+    This fixture remains probabilistic and timing-sensitive; a green run is evidence for
+    these three fixed seeds only, not a stability or difficulty claim.
 - H the read-only metrics API: `enemyPositions` returns a fresh array of fresh
   `{x,y}` copies, and mutating a returned snapshot does not change the next read.
 - A3-A6 the end panel offers retry, the record is written once, retry resets
