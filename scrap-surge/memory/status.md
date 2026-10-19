@@ -8,10 +8,19 @@ browser auto-combat roguelike targeting a 10-20 minute normal run with genuine
 positive-feedback builds. The user's latest goal supersedes the older "stop before
 demonstrating" note; the two-wave build is now the first slice toward that goal.
 
-Current state: the two-wave feel-validation slice has passed the three-party slice
-gate at frozen candidate **8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (see the
-sign-off below). The full 10-20 minute goal is **not** complete, there is **no user
-acceptance** yet, and **expansion beyond the slice is not authorized**.
+Current state: the two-wave feel-validation slice passed the three-party slice gate at
+frozen candidate **8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (see the sign-off
+below). The user then played it and set a new highest-priority target: **at least 20
+waves**, with the build forming gradually and the over-fast / over-slow build pace
+brought under control (see memory/goal.md). The full 10-20 minute goal is **not**
+complete; there is **no user acceptance** of the visuals or feel yet - the new
+feedback only covers wave count and build-formation pacing - and **expansion beyond
+the slice is not authorized**.
+
+An F0 repair package (boss slot reservation, honest boss-spawn flag, read-only
+instruments) is implemented on top of the slice at the checkpoint recorded below. It
+leaves ordinary combat, the waves, the weapons and the popcorn mechanic untouched and
+awaits independent review against that exact commit.
 
 ## Roles
 Astra coordinates, owns architecture boundaries and integration review; Opus reviews
@@ -52,7 +61,8 @@ and T1 (read-only `enemyPositions` metrics plus a forced-defeat browser fixture)
 candidate reviewed and approved by all three parties is
 **8cb0e8f104d4150ceca8f8660ae6a6c62972e208**; the prior freezes are
 **d6ba6fef5e117d342f1ac594d7d9ff2858b6bfd1** (S1d) and
-**03ff521d8da70584751b3fc1192425e12f82ccc7** (S1e).
+**03ff521d8da70584751b3fc1192425e12f82ccc7** (S1e). The F0 repair package sits on top
+of that approved candidate at the checkpoint recorded below.
 
 The earlier frozen slice **21a18fd66f782c8239ec6511897c66da9c58fe5a**
 ("scrap-surge: freeze S1/S1b/S1c feel slice", parent c502295) is historical. The
@@ -95,6 +105,33 @@ that instability is recorded, not hidden.
 Slice gate outcome: **passed** for the two-wave feel-validation slice. This is not the
 full 10-20 minute goal, which is **not** complete. There is **no user acceptance** of
 this or any version yet, and **no expansion beyond the slice is authorized**.
+
+## F0 repair package (2026-10-19)
+
+F0 is the three-party-approved repair + instrument package (full scope and approval in
+docs/reviews.md). It changes no ordinary combat rule: the waves, the weapons, the
+popcorn mechanic, the camera and the visuals are untouched, and the expansion draft
+`8e1542e` is not merged.
+
+- Boss slot honesty: `bossSpawned` and the `wave` event are set only when the boss
+  really spawns. While wave 2 is past the 18s trigger and the boss is pending,
+  `spawn()` holds one slot for it on both the timer and pocket paths (the three RNG
+  draws keep their old order). A full arena waits for a real death instead of deleting
+  an enemy or raising the 180 cap, and a rejected attempt retries on the next step.
+- Read-only instruments, all per run (reset on a new `Game`, never advancing while
+  paused): `shootAcceptedPlayer`, `shootAcceptedEnemy`, `shootRejectedPlayer`,
+  `shootRejectedEnemy`, `bulletPeak`, `popcornBudgetSkippedPickups`. `shots` keeps its
+  success-only meaning. The popcorn skip counter fires only for a real target pickup
+  whose per-step 8-bullet budget is already spent; it draws no RNG, does not sort and
+  does not change target choice. `scrapMetrics` exports these as scalars only.
+- Author evidence at the F0 checkpoint: `npm test` 47/47 (40 original + 7 new F0
+  tests), `npm run build` clean, `npm run test:browser:first-shop` keyboard 3/3 +
+  touch 3/3, `npm run test:browser:regression` 23/23 (incl. the H `enemyPositions`
+  copy check and the G death-path group). Raw logs (auxiliary) in
+  `/tmp/f0-logs-final-20261019T072230/`; the commands themselves are reproducible from
+  this repository.
+- These are author runs, not independent review. Independent review of the F0
+  checkpoint is pending, and none of this is user acceptance.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 

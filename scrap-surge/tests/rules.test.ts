@@ -596,3 +596,178 @@ test("S1e: multi-slot mounts keep every direction covered", () => {
   step(g, 240);
   assert.equal(g.kills, 8);
 });
+test("F0: a full arena never fakes bossSpawned, and a lethal hit lets the boss spawn next step", () => {
+  const g = empty();
+  g.guns = [];
+  g.pocketTimes = [];
+  g.wave = 2;
+  g.waveTime = 0;
+  for (let i = 0; i < 180; i++)
+    g.spawn("bag", { x: 40 + (i % 20) * 6, y: 40 + Math.floor(i / 20) * 6 });
+  assert.equal(g.enemies.length, 180);
+  g.waveTime = 18;
+  step(g, 1);
+  // The boss could not spawn: neither the flag nor the wave event may be faked.
+  assert.equal(g.bossSpawned, false);
+  assert.equal(g.events.filter((e) => e.type === "wave").length, 0);
+  assert.equal(g.enemies.filter((e) => e.kind === "boss").length, 0);
+  // Settle one death through the real damage path: clear the born warning, then
+  // land a lethal hit so the kill counter and the corpse cleanup are genuine.
+  const victim = g.enemies[0];
+  victim.born = 0;
+  g.hit(victim, 9999, g.player);
+  assert(victim.hp <= 0);
+  assert.equal(g.kills, 1);
+  step(g, 1); // the corpse is filtered out at the end of the step
+  assert.equal(g.enemies.length, 179);
+  assert.equal(g.bossSpawned, false);
+  // The freed slot lets the boss take the reserved last place on the next step.
+  step(g, 1);
+  assert.equal(g.bossSpawned, true);
+  assert.equal(g.events.filter((e) => e.type === "wave").length, 1);
+  assert.equal(g.enemies.filter((e) => e.kind === "boss").length, 1);
+  // Only ever one boss, and the live-enemy cap is never exceeded.
+  step(g, 120);
+  assert.equal(g.enemies.filter((e) => e.kind === "boss").length, 1);
+  assert(g.enemies.length <= 180);
+});
+test("F0: the pending boss holds its slot against the timer and pocket paths, then takes it", () => {
+  const g = empty();
+  g.guns = [];
+  g.wave = 2;
+  g.waveTime = 18;
+  g.spawnTimer = 0;
+  for (let i = 0; i < 179; i++)
+    g.spawn("bag", { x: 40 + (i % 20) * 6, y: 40 + Math.floor(i / 20) * 6 });
+  assert.equal(g.enemies.length, 179);
+  g.pocketTimes = [18];
+  g.pocketSize = 12;
+  g.pocketIndex = 0;
+  step(g, 1);
+  // The timer spawn and the whole 12-strong pocket are both held at the reserve
+  // edge (spawnCount proves the timer path was rejected), and the boss then
+  // takes the reserved last slot.
+  assert.equal(g.spawnCount, 0);
+  assert.equal(g.enemies.length, 180);
+  assert.equal(g.bossSpawned, true);
+  assert.equal(g.enemies.filter((e) => e.kind === "boss").length, 1);
+});
+test("F0: a full arena that never frees a slot still loses at the 50s deadline", () => {
+  const g = empty();
+  g.guns = [];
+  g.pocketTimes = [];
+  g.wave = 2;
+  g.waveTime = 0;
+  for (let i = 0; i < 180; i++)
+    g.spawn("bag", { x: 40 + (i % 20) * 6, y: 40 + Math.floor(i / 20) * 6 });
+  g.waveTime = 49.99;
+  step(g, 2);
+  assert.equal(g.bossSpawned, false);
+  assert.equal(g.phase, "lost");
+});
+test("F0: a real boss volley counts accepted enemy bullets while shots stays success-only", () => {
+  const g = empty();
+  g.guns = [];
+  g.pocketTimes = [];
+  g.wave = 2;
+  g.waveTime = 17.9;
+  g.player.hp = 9999;
+  g.player.maxHp = 9999;
+  let guard = 0;
+  while (g.shootAcceptedEnemy === 0 && guard++ < 900) step(g, 1);
+  assert.equal(g.bossSpawned, true);
+  assert.equal(g.shootAcceptedEnemy, 8);
+  assert.equal(g.shootRejectedEnemy, 0);
+  assert.equal(g.shootAcceptedPlayer, 0);
+  assert.equal(g.shots, 8);
+});
+test("F0: the popcorn skip counter is RNG-neutral and every instrument resets on a new run", () => {
+  const scrap = (i: number) => ({
+    x: 600,
+    y: 450,
+    id: i,
+    value: 1,
+    vx: 0,
+    vy: 0,
+    age: 0,
+  });
+  const base = empty();
+  base.guns = [];
+  base.mods = ["popcorn"];
+  enemy(base, 600, 300);
+  const probe = empty();
+  probe.guns = [];
+  probe.mods = ["popcorn"];
+  enemy(probe, 600, 300);
+  for (let i = 0; i < 4; i++) base.collect(scrap(i));
+  for (let i = 0; i < 4; i++) probe.collect(scrap(i));
+  assert.equal(base.popcornBudgetSkippedPickups, 0);
+  // The fifth pickup hits the spent-budget branch and must not draw any RNG, so
+  // the two identical seeds still agree after it runs.
+  probe.collect(scrap(5));
+  assert.equal(probe.popcornBudgetSkippedPickups, 1);
+  assert.deepEqual(
+    [base.random(), base.random(), base.random()],
+    [probe.random(), probe.random(), probe.random()],
+  );
+  // A new run starts every instrument at zero.
+  const fresh = new Game(7);
+  assert.equal(fresh.shootAcceptedPlayer, 0);
+  assert.equal(fresh.shootAcceptedEnemy, 0);
+  assert.equal(fresh.shootRejectedPlayer, 0);
+  assert.equal(fresh.shootRejectedEnemy, 0);
+  assert.equal(fresh.bulletPeak, 0);
+  assert.equal(fresh.popcornBudgetSkippedPickups, 0);
+});
+test("F0: shoot counters split player and enemy bullets, keep shots success-only and track the peak", () => {
+  const g = empty();
+  g.guns = [];
+  for (let i = 0; i < 420; i++) g.shoot(g.player, i, 18);
+  assert.equal(g.bullets.length, 420);
+  assert.equal(g.shootAcceptedPlayer, 420);
+  assert.equal(g.shootRejectedPlayer, 0);
+  assert.equal(g.bulletPeak, 420);
+  assert.equal(g.shots, 420);
+  // The 421st shot is rejected by the cap and never touches `shots`.
+  g.shoot(g.player, 0, 18);
+  assert.equal(g.shootRejectedPlayer, 1);
+  assert.equal(g.shootAcceptedPlayer, 420);
+  assert.equal(g.shots, 420);
+  assert.equal(g.bulletPeak, 420);
+  // Enemy bullets are attributed to their own side.
+  g.shoot({ x: 0, y: 0 }, 0, 1, "enemy", 0, 120);
+  assert.equal(g.shootRejectedEnemy, 1);
+  assert.equal(g.shootAcceptedEnemy, 0);
+});
+test("F0: popcorn skips count only real target pickups past the per-step 8-bullet budget", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["popcorn"];
+  enemy(g, 600, 300);
+  const scrap = (i: number) => ({
+    x: 600,
+    y: 450,
+    id: i,
+    value: 1,
+    vx: 0,
+    vy: 0,
+    age: 0,
+  });
+  // Four pickups spend the whole 8-bullet per-step budget (2 bullets each).
+  for (let i = 0; i < 4; i++) g.collect(scrap(i));
+  assert.equal(g.bullets.length, 8);
+  assert.equal(g.bonusBudget, 8);
+  assert.equal(g.popcornBudgetSkippedPickups, 0);
+  // The fifth pickup has a target but the budget is spent: one skip, no shot.
+  g.collect(scrap(5));
+  assert.equal(g.bullets.length, 8);
+  assert.equal(g.popcornBudgetSkippedPickups, 1);
+  // A pickup with no targetable enemy is not counted at all.
+  g.enemies = [];
+  g.collect(scrap(6));
+  assert.equal(g.popcornBudgetSkippedPickups, 1);
+  // Sweep pickups are not combat pickups and never count.
+  g.phase = "sweep";
+  g.collect(scrap(7));
+  assert.equal(g.popcornBudgetSkippedPickups, 1);
+});

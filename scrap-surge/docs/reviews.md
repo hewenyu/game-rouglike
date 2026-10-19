@@ -246,3 +246,49 @@ that instability is recorded, not hidden.
 Outcome: the two-wave feel-validation slice **passes** the three-party slice gate. This
 is not the full 10-20 minute goal, which is **not** complete. There is **no user
 acceptance** yet, and **no expansion beyond the slice is authorized**.
+
+## F0 approval and scope: repair + minimal-build feasibility (2026-10-19)
+
+After a full read-only review, **all three parties rejected the original whole-package
+E1** (12 waves + 3-star upgrades + 3 mods delivered together). The rejection and the
+standing constraints are:
+
+- **R1** the frozen slice stays frozen at `6780128`; its two-wave behaviour must not drift.
+- **R2** the full 10-20 minute goal is unchanged and is **not** user-accepted.
+- **R3** the next step is only a necessary-repair package plus a minimal build-difference
+  feasibility check; implementation stays unauthorized until the three parties agree.
+- **R4** once agreed, DeepSeek is the only writer and an independent reviewer checks it in
+  a separate context.
+
+**F0 was then agreed by Astra, Opus and DeepSeek** (this entry registers DeepSeek's
+explicit agreement). F0 is a repair + instrument package only:
+
+1. Docs converge the current facts and history, register the E1 rejection and R1-R4, and
+   remove the stale "pending" / "the user must play before anything moves" wording. The
+   user's own text allows autonomous, reversible progress while the three parties agree;
+   that permission must never be written up as user acceptance.
+2. `bossSpawned` is set, and the `wave` event is fired, only when the boss really spawns.
+   While wave 2 is past the 18s boss trigger and the boss is still pending, ordinary
+   spawns stop one short of the 180 live-enemy cap so a slot is always reserved for the
+   boss. The check sits in `spawn()`, so it covers both the timer and the pocket paths,
+   and the three RNG draws keep their old order. If the arena is already full the boss
+   waits for a real death; the cap is unchanged and nothing is deleted to make room. A
+   failed attempt is retried on the next step.
+3. Read-only instruments, all per run (a new `Game` starts them at zero, and a paused
+   phase never steps): `shootAcceptedPlayer` / `shootAcceptedEnemy`,
+   `shootRejectedPlayer` / `shootRejectedEnemy`, `bulletPeak`, and
+   `popcornBudgetSkippedPickups`. They are exposed as scalars on `scrapMetrics` and never
+   change combat, RNG, target choice or the bullet budget, and they do not claim the
+   budget is fixed or that enemy bullets are starved.
+4. Unit tests for the boss reject / release-then-spawn / uniqueness path and for the
+   reject-bullet and popcorn-budget counters, while the 40 simulation tests and the slice
+   browser gates stay green.
+
+Opus's four final conditions are part of the spec: `shots` keeps its success-only
+meaning and is pinned by a test; a full arena still loses at the 50s deadline and the HUD
+boss prompt only appears after a real spawn; the fifth same-step pickup with a target is
+8 bullets + 1 skip while a target-less or sweep pickup adds nothing and no RNG or budget
+changes; `scrapMetrics` exports scalars only.
+
+F0 does **not** change the popcorn mechanic, the camera, the visuals, the weapons or the
+waves, and it does not merge the expansion draft `8e1542e`.

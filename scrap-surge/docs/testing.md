@@ -5,9 +5,12 @@ Frozen candidate reviewed by all three parties:
 sign-off). All reproduction commands below run from this repository; nothing depends on
 a `/tmp` path.
 
+The F0 repair package sits on top of that candidate (scope and approval in
+docs/reviews.md). It adds no gameplay rule, so the S1 numbers below still hold.
+
 ## Automated rules
 
-`npm test` runs 40 simulation tests (`tests/rules.test.ts`): automatic first kill,
+`npm test` runs 47 simulation tests (`tests/rules.test.ts`): automatic first kill,
 one-time death settlement, multigeneration explosions, budgeted queue retention,
 pickup uniqueness, pickup -> kill -> explosion -> drop feedback, stacked mod
 validation, shop transactions, isolated shop RNG, incoming-damage reservations,
@@ -35,6 +38,24 @@ Slice-specific tests added for S1/S1b:
 - finished chain roots are reclaimed during sustained chain activity, so a long run
   cannot accumulate completed roots while the display timer keeps refreshing;
 - a root with queued work survives until its queue drains.
+
+Repair-package (F0) tests added on top:
+
+- a full arena never fakes `bossSpawned` or the `wave` event, and a lethal hit
+  (`born` cleared, real `hit()` settlement) frees a slot so the boss spawns on the
+  next step, with never more than one boss;
+- the pending boss holds its slot against the timer and the whole 12-strong pocket
+  path (`spawnCount` proves the timer spawn was rejected) and then takes the last
+  slot;
+- a full arena that never frees a slot still loses at the 50s deadline;
+- a real boss volley counts 8 accepted enemy bullets while `shots` stays
+  success-only;
+- the popcorn skip counter is RNG-neutral (two identical seeds still agree after the
+  skip branch runs) and every instrument resets on a new `Game`;
+- shoot counters split player and enemy bullets, keep `shots` success-only and track
+  the projectile peak;
+- popcorn skips count only real target pickups past the per-step 8-bullet budget
+  (no target and sweep pickups add nothing).
 
 These are finite samples, not a proof over all builds or seeds. The stress test
 establishes bounded, finite state, not real-device frame-rate fitness.

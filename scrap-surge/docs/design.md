@@ -11,6 +11,16 @@ auto-targeting, and recursive kill effects. Astra selects this direction and, wi
 Opus and DeepSeek agreeing, limits the first delivery to two waves and one shop,
 about 55 seconds of combat, as a slice toward the 10-20 minute goal.
 
+Current target (user playtest, 2026-10-19): the slice's wave count is too low. The
+base flow is now planned around **at least 20 waves**, with the build forming
+gradually and the over-fast / over-slow build-formation pace brought under control.
+The earlier 12-wave idea is void; the 4-wave build-difference check is an internal
+experiment only. The 10-20 minute run target still stands and is reconciled with 20
+waves plus shop pacing in a later three-party review, not silently stretched to 30
+minutes. This feedback covers only wave count and build pacing - it is not an
+aesthetic or feel acceptance of the slice. The concrete 20-wave plan is a proposal
+pending three-party review; no unilateral expansion is authorized.
+
 Weapons change attack geometry and rhythm. Free shop modifications alter drops or
 kill chains. Weapons are visible on the shell. Left-hand movement is the only
 required control; auto-aim and auto-fire are part of the contract, not upgrades.

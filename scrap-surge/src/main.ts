@@ -335,6 +335,13 @@ Object.defineProperty(window, "scrapMetrics", {
     money: game?.money,
     shots: game?.shots,
     hits: game?.hits,
+    // F0 read-only instruments: plain per-run scalars, no live references.
+    shootAcceptedPlayer: game?.shootAcceptedPlayer,
+    shootAcceptedEnemy: game?.shootAcceptedEnemy,
+    shootRejectedPlayer: game?.shootRejectedPlayer,
+    shootRejectedEnemy: game?.shootRejectedEnemy,
+    bulletPeak: game?.bulletPeak,
+    popcornBudgetSkippedPickups: game?.popcornBudgetSkippedPickups,
     firstKill: game?.firstKill,
     firstPickup: game?.firstPickup,
     hp: game?.player.hp,

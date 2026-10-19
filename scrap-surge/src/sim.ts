@@ -108,6 +108,16 @@ export class Game {
   shots = 0;
   hits = 0;
   combatPicked = 0;
+  // F0 read-only instruments. Per run: a new Game starts them at zero and the
+  // paused phase never steps, so they only advance during real combat. They are
+  // counts of what already happened - they never change combat, RNG, target
+  // choice or the bullet budget.
+  shootAcceptedPlayer = 0;
+  shootAcceptedEnemy = 0;
+  shootRejectedPlayer = 0;
+  shootRejectedEnemy = 0;
+  bulletPeak = 0;
+  popcornBudgetSkippedPickups = 0;
   firstKill: number | null = null;
   firstPickup: number | null = null;
   id = 0;
@@ -228,6 +238,19 @@ export class Game {
       r = 340 + this.random() * 100,
       variant = this.random();
     if (this.enemies.length >= 180) return false;
+    // F0: once wave 2 is past the boss trigger and the boss is still pending,
+    // ordinary spawns stop one short of the 180 cap so a slot is always held
+    // for the boss. The three RNG draws above keep their old order; only this
+    // reject condition is added. The cap itself is unchanged and nothing is
+    // ever deleted to free room - a full arena simply waits for a real death.
+    if (
+      kind !== "boss" &&
+      this.wave === 2 &&
+      this.waveTime >= 18 &&
+      !this.bossSpawned &&
+      this.enemies.length >= 179
+    )
+      return false;
     if (!p) {
       p = {
         x: clamp(this.player.x + Math.cos(a) * r, 28, W - 28),
@@ -505,7 +528,14 @@ export class Game {
     speed = 600,
     homing = false,
   ) {
-    if (this.bullets.length >= 420) return;
+    // F0: the 420-bullet cap is the only rejection reason, so a rejected shot is
+    // attributed to its side and never reaches `shots` (which stays success-only).
+    const isEnemy = kind === "enemy";
+    if (this.bullets.length >= 420) {
+      if (isEnemy) this.shootRejectedEnemy++;
+      else this.shootRejectedPlayer++;
+      return;
+    }
     this.shots++;
     this.bullets.push({
       ...from,
@@ -519,6 +549,10 @@ export class Game {
       homing,
       life: kind === "enemy" ? 5 : 1.3,
     });
+    if (isEnemy) this.shootAcceptedEnemy++;
+    else this.shootAcceptedPlayer++;
+    if (this.bullets.length > this.bulletPeak)
+      this.bulletPeak = this.bullets.length;
   }
   collect(s: Scrap) {
     if (s.value <= 0) return;
@@ -531,15 +565,22 @@ export class Game {
     s.value = 0;
     if (this.phase !== "fight") return;
     this.combatPicked++;
-    if (this.has("popcorn") && this.bonusBudget < 8) {
-      const t = this.enemies
-        .filter((e) => e.hp > 0 && e.born <= 0)
-        .sort((a, b) => dist(a, this.player) - dist(b, this.player))[0];
-      if (t) {
-        const a = Math.atan2(t.y - this.player.y, t.x - this.player.x);
-        for (const offset of [-0.3, 0.3])
-          this.shoot(this.player, a + offset, 18, "bonus", t.id, 500, true);
-        this.bonusBudget += 2;
+    if (this.has("popcorn")) {
+      if (this.bonusBudget < 8) {
+        const t = this.enemies
+          .filter((e) => e.hp > 0 && e.born <= 0)
+          .sort((a, b) => dist(a, this.player) - dist(b, this.player))[0];
+        if (t) {
+          const a = Math.atan2(t.y - this.player.y, t.x - this.player.x);
+          for (const offset of [-0.3, 0.3])
+            this.shoot(this.player, a + offset, 18, "bonus", t.id, 500, true);
+          this.bonusBudget += 2;
+        }
+      } else if (this.enemies.some((e) => e.hp > 0 && e.born <= 0)) {
+        // F0 read-only counter: this pickup had a target but the per-step
+        // 8-bullet popcorn budget was already spent. Plain `some`, no sort and
+        // no RNG, and the accepted path above is untouched.
+        this.popcornBudgetSkippedPickups++;
       }
     }
     if (this.has("magnet") && this.combatPicked % 8 === 0) {
@@ -722,9 +763,16 @@ export class Game {
         this.spawnPocket(this.pocketSize);
       }
       if (this.wave === 2 && this.waveTime >= 18 && !this.bossSpawned) {
-        this.bossSpawned = true;
-        this.spawn("boss", { x: this.player.x < 600 ? 900 : 300, y: 220 });
-        this.event("wave");
+        // F0: only a real spawn flips the flag and fires the event, so a
+        // cap-rejected attempt cannot fake "the boss is here" (or the HUD
+        // prompt). If the cap is full this step the boss retries next step,
+        // once the dead enemy is cleaned up at the end of a step.
+        if (
+          this.spawn("boss", { x: this.player.x < 600 ? 900 : 300, y: 220 })
+        ) {
+          this.bossSpawned = true;
+          this.event("wave");
+        }
       }
       this.weapons(dt);
       for (const e of this.enemies) {
