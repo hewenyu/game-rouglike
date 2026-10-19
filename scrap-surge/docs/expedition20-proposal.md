@@ -27,6 +27,7 @@ overhaul, external/paid assets, production debug entry, bot lab, 3-star weapons.
   byte-identical.
 - The UI defaults to `expedition20` for a normal player; slice stays reachable by an
   explicit mode selector (URL parameter or title toggle) for teaching and regression.
+- With no mode selector, the UI explicitly constructs `new Game(seed, "expedition20")`.
 - **Records:** the slice keeps its existing `scrap-surge.v1` key unchanged, so existing
   local records survive. Expedition20 uses a **new** key
   (`scrap-surge.expedition20.v1`). Mute preference is read from the old key and written
@@ -182,8 +183,7 @@ direction.
 
 The concern was that income runs far ahead of a full tier-II build, so the later shops
 go idle. The starting slinger costs 0. This legal route buys five new guns, makes one
-tier-II upgrade in each of W8/10/12/14/16/18, and keeps W6 as a no-purchase full shop
-(the W4+6+8 route totals six distinct gun types):
+tier-II upgrade in each of W8/10/12/14/16/18, and keeps W6 as a no-purchase full shop:
 
 `income` is cumulative collection through the wave immediately before the shop;
 `balance` is that income after the listed purchases.
@@ -221,9 +221,9 @@ Pocket safety and geometry:
 
 - A pocket centre is chosen at least **310** units from the player. Individual
   enemies remain at least **235** units away.
-- Every enemy, including a splitter chip, keeps the **0.65s `born` warning**. The chip
-  offset is the one exception to centre placement, so its 0.65s warning is the
-  guarantee that makes the ±60 offset dodgeable.
+- Every enemy, including a splitter chip, keeps the **0.65s `born` warning**, except
+  the spitter at **0.8s** per §5.2. The chip offset is the one exception to centre
+  placement, so its 0.65s warning is the guarantee that makes the ±60 offset dodgeable.
 - Placement makes at most **8 seeded attempts**, then uses a deterministic fallback;
   there is no unbounded retry loop. The single-centre fallback is the arena edge
   opposite the player's horizontal half at `x=70` or `x=W-70`,
@@ -320,11 +320,11 @@ still appearing in more than half the run.
 ### 4.4 Bosses (one model, four stages)
 
 A single CAN KING model with four visibly distinct stages. All stages use the same
-silhouette and remain stationary; the player may stand still when the build is formed,
-so no boss forces permanent movement.
+silhouette and inherit the slice boss movement at **32 units/s**; the player may stand
+still when the build is formed, so boss motion does not force permanent movement.
 
 | W | Stage | HP | Armor / core colours | Attack pattern |
-|---|---|---|---|
+|---|---|---|---|---|
 | 5 | CAN KING I | 560 | rust-grey armor with an orange core | 8-way radial every 2.4s |
 | 10 | CAN KING II | 1600 | dark steel armor with an amber core | 10-way radial every 2.1s; every 3rd volley is a **3-bullet aimed spread** |
 | 15 | CAN KING III | 3200 | slate armor with a yellow-white core; visible side pods | 12-way radial every 1.9s; every 3rd volley spawns **3 runners** |
@@ -411,6 +411,11 @@ Tier III ring:
 - At the wave boundary `ringPending` is cancelled and counted.
 - Both budgets spend from the **same shared 420 player slots**; the ring's 8 and the
   normal pairs' 8 are separate allowances, but neither bypasses the cap.
+- Within one step, process any ready popcorn tier-III ring first (8 free slots, atomic,
+  0.5s cooldown), then normal popcorn pairs (max 4 credits), and then the ordinary guns
+  in their existing order; all consume the same shared 420 slots. If fewer than 8 free
+  slots remain, the ring stays pending without blocking that step's normal pairs, which
+  still need their own 2 free slots.
 
 Honesty requirements:
 
