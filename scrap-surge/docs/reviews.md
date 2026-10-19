@@ -38,7 +38,8 @@ Per-party evidence, not merged:
 - **Opus:** independently extracted `f9999fe`, ran 89 tests and the build
   (production output identical to `db74a8c`), checked the `db74a8c` docs-only
   design, the independent DeepSeek artifact hash and the slice log, and viewed
-  the root screenshots from the `851cd13` batch (title-ready and touch). Opus
+  root screenshots: the `851cd13` ranged run batch, plus
+  `f9999fe` title-ready and touch (`/tmp/astra-final-f9999fe/ui/`). Opus
   makes no independent `db74a8c` browser-run claim.
 - **Independent DeepSeek:** previously ran its short browser check and tests;
   this was not a full final acceptance pass.
