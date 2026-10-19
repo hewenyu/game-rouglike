@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
     "test:browser": "node tests/browser.mjs",
+    "test:browser:first-shop": "node tests/browser-first-shop.mjs",
     "format": "prettier --write src tests vite.config.ts",
     "test:browser:regression": "node tests/browser-regression.mjs"
   },

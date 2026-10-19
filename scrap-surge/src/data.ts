@@ -22,7 +22,7 @@ export const WEAPONS: Record<
     color: "#68bba8",
     interval: 0.25,
     range: 450,
-    damage: 18,
+    damage: 20,
   },
   shotgun: {
     name: "瓶盖散弹",

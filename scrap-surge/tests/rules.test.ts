@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../src/sim";
-import { DT, W, H, BLAST } from "../src/data";
+import { DT, W, H, BLAST, WEAPONS } from "../src/data";
 function step(g: Game, n: number, x = 0, y = 0) {
   for (let i = 0; i < n; i++) g.step(DT, { x, y });
 }
@@ -521,4 +521,37 @@ test("explosions use the approved orange-yellow palette, primary and chain alike
   const burst = magnet.fx.filter((f) => f.kind === "blast");
   assert.equal(burst.length, 1);
   assert.equal(burst[0].color, BLAST.ring);
+});
+test("S1d: slinger damage is 20, one-shotting a wave-1 runner and four-shotting a 75 hp can", () => {
+  // S1d (agreed by Astra, Opus and DeepSeek): the initial can-popper damage is
+  // 18 -> 20. Pin the constant so it cannot drift, and pin the real combat
+  // effect: a 19 hp runner dies to a single hit, and a 75 hp can dies in four
+  // hits instead of five.
+  assert.equal(WEAPONS.slinger.damage, 20);
+
+  // Real weapon path: one slinger, one wave-1 runner straight ahead of the
+  // muzzle so the shot is head-on. The runner must die to exactly one hit.
+  const g = empty();
+  g.spawn("runner", { x: 600, y: 300 });
+  const runner = g.enemies.at(-1)!;
+  runner.born = 0;
+  assert.equal(runner.hp, 19);
+  assert.equal(runner.maxHp, 19);
+  let guard = 0;
+  while (g.kills === 0 && guard++ < 120) step(g, 1);
+  assert.equal(g.kills, 1);
+  assert.equal(g.hits, 1);
+
+  // Can: 75 hp / 20 = 4 hits (was 5 at 18 damage). Three hits leave it alive.
+  const c = empty();
+  c.spawn("can", { x: 700, y: 450 });
+  const can = c.enemies.at(-1)!;
+  can.born = 0;
+  assert.equal(can.hp, 75);
+  for (let i = 0; i < 3; i++) c.hit(can, WEAPONS.slinger.damage, c.player);
+  assert(can.hp > 0);
+  assert.equal(c.kills, 0);
+  c.hit(can, WEAPONS.slinger.damage, c.player);
+  assert(can.hp <= 0);
+  assert.equal(c.kills, 1);
 });

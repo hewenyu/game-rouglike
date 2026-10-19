@@ -27,7 +27,8 @@ success-only spawn counting) and S1c (presentation-only readability fixes). The
 explicit per-agent sign-off text lives in docs/reviews.md.
 
 S1 + S1b + S1c are implemented and frozen on branch codex/scrap-surge at the commit
-recorded below. Evidence: `npm test` 35/35, `npm run build` clean,
+recorded below. Evidence at that freeze: `npm test` 35/35 (the suite has since grown
+to 37 with S1d, below), `npm run build` clean,
 `npm run test:browser` victory (283 kills, hp 1, chain peak 19, pending peak 14, no
 page errors) and an author-run `npm run test:browser:regression` 19/19 including the
 idle-play defeat path and the arena-vs-HUD geometry checks. The checks were drafted by a
@@ -38,17 +39,19 @@ reviewer is pending and must run against the frozen source commit.
 This is a feel-validation slice, not a claim of a finished 10-20-minute game.
 User acceptance of this version is still pending.
 
-## Frozen slice commit
+## Current source under review
 
-Source commit under review: **21a18fd66f782c8239ec6511897c66da9c58fe5a**
-("scrap-surge: freeze S1/S1b/S1c feel slice"), parent c502295.
+The current source on branch codex/scrap-surge is baseline **ee53cf8** (the
+post-palette-restore slice) plus the S1d damage change, frozen by the commit whose
+subject begins "S1d:" (the freeze commit for that package).
 
-Astra, Opus and an isolated DeepSeek reviewer should review that exact SHA. This
-status paragraph is a docs-only follow-up commit; the source at the reviewed SHA is
-unchanged by it, so the frozen source SHA stays 21a18fd.
+The earlier frozen slice **21a18fd66f782c8239ec6511897c66da9c58fe5a**
+("scrap-surge: freeze S1/S1b/S1c feel slice", parent c502295) is historical. The
+21a18fd review does **not** apply to ee53cf8 or to the S1d commit: the explosion
+palette changed at ee53cf8 and the slinger damage changed at S1d. Astra, Opus and an
+isolated DeepSeek reviewer must review the current S1d source commit.
 
-Scope is exactly S1 + S1b + S1c. No new product scope is authorized and no further
-non-blocking item is pending from the implementer.
+Scope is exactly S1 + S1b + S1c + S1d. No other product scope is authorized.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 
@@ -77,6 +80,29 @@ next wave), B2 (snapshot `npm test` 32/36 and a TypeScript build failure from a 
 Gun-level fixture), B3 (`wave2.hp` 1.35 really moves runner 19->26 / can 75->101 and
 bossborn 0.65->1.2), the barrel/saw/echo new-mechanism issues, the valuable wave
 table / weapon merging / new enemies that need a separate sign-off package, the
-`qaStart` non-cheat note, the `refine` economy review, and the still-unimplemented
-three-party-agreed S1d fast gun 18->20. `ee53cf8` is the post-palette-restore slice
-pending review; the old `21a18fd` review does not apply to this SHA.
+`qaStart` non-cheat note, the `refine` economy review, and the three-party-agreed S1d
+fast gun 18->20 (now implemented; see below). `ee53cf8` is the post-palette-restore
+slice; the old `21a18fd` review does not apply to this SHA.
+
+## Slice S1d (approved by Astra, Opus and DeepSeek) - implemented 2026-10-19
+
+S1d changes exactly one number: the initial can-popper (`slinger`) damage 18 -> 20 in
+`src/data.ts`. No other value, mechanic, UI or draft code changed.
+
+Numeric impact on the current two-wave build:
+
+- A wave-1 runner has 19 hp, so one slinger hit now kills it (20 >= 19). At 18 damage
+  it needed two hits. Wave-2 runners also have 19 hp, so the same one-hit kill holds
+  there.
+- A can has 75 hp, so it now dies in four slinger hits instead of five
+  (`ceil(75/20) = 4` vs `ceil(75/18) = 5`).
+
+Evidence: `npm test` 37/37. A new test pins `WEAPONS.slinger.damage === 20`, the
+one-hit runner kill (exactly one hit, one kill) and the can's three-hits-alive /
+four-hits-dead boundary. `npm run build` is clean. Astra's first-shop browser review
+is saved into the repo as `tests/browser-first-shop.mjs`
+(`npm run test:browser:first-shop`) for reproducibility; the browser matrix and the
+independent review run after this freeze, not here.
+
+This is still a two-wave feel-validation slice. There is **no user playtest
+acceptance** of this or any version yet.
