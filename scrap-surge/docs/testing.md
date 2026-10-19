@@ -2,7 +2,7 @@
 
 ## Automated rules
 
-`npm test` runs 35 simulation tests (`tests/rules.test.ts`): automatic first kill,
+`npm test` runs 40 simulation tests (`tests/rules.test.ts`): automatic first kill,
 one-time death settlement, multigeneration explosions, budgeted queue retention,
 pickup uniqueness, pickup -> kill -> explosion -> drop feedback, stacked mod
 validation, shop transactions, isolated shop RNG, incoming-damage reservations,
@@ -47,20 +47,30 @@ Apple M4, 1440x960, DPR 1, seed 0x2a.
 
 Normal-play run: automatic first kill at 1.45s, ordinary movement plus weapon
 purchases plus two stacked mods, then a boss victory. Repeated runs land around
-260-290 kills at 1-5/10 health with chain peak 18-21 and pending-blast peak 13-16;
+280-310 kills at 4-9/10 health with chain peak 18-21 and pending-blast peak 13-16;
 the exact numbers depend on rAF timing, so the assertions check the outcome, not the
 totals. No uncaught page errors. A 390x844 DPR2 touch context moved, auto-fired,
 cancelled a touch and resumed with no ghost movement.
 
 Author-run regression using separately authored checks
-(`tests/browser-regression.mjs`), 19/19 checks. The checks were drafted by a
-separate agent, but this execution was run by the implementer, so it is not
-independent review. The formal independent review runs after the freeze against
-the frozen commit.
+(`tests/browser-regression.mjs`). The checks were drafted by a separate agent, but
+this execution was run by the implementer, so it is not independent review. The
+formal independent review runs after the freeze against the frozen commit. The
+current check set:
 
-- A1-A2 idle play reaches the terminal state and specifically covers the defeat
-  path (lost at wave 1, 14.23s, 0 health). A win here would be reported as an
-  uncovered death path instead of passing.
+- A1 an ordinary-input run reaches a terminal state (win or loss). The A-run no
+  longer requires idle play to die or to win: after S1e an ordinary run can
+  legitimately win, so requiring a loss here would be wrong.
+- G the forced defeat path: an ordinary keyboard charge toward the nearest enemy
+  (read only from the read-only `enemyPositions`) for fixed seeds 2a/17/91, one run
+  each. Each run ends at a loss or at the wave-1 shop; a shop end means the death
+  path was not covered, never a death, and a run still fighting at 40s is a real
+  timeout that fails. The group must contain at least one real loss at 0 hp with the
+  failure UI visible and a working retry (back to fight / 10 hp / 0 kills / 1 gun /
+  0 mods). At least one loss proves the defeat path is reachable; it does not prove
+  every seed loses and it is not a difficulty judgement.
+- H the read-only metrics API: `enemyPositions` returns a fresh array of fresh
+  `{x,y}` copies, and mutating a returned snapshot does not change the next read.
 - A3-A6 the end panel offers retry, the record is written once, retry resets
   immediately (10 health, 0 kills, 1 gun, 0 mods) and the record is not
   double-counted.

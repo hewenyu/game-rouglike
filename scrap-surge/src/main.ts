@@ -342,6 +342,13 @@ Object.defineProperty(window, "scrapMetrics", {
     guns: game?.guns.map((g) => g.id),
     mods: game?.mods.slice(),
     enemies: game?.enemies.length,
+    // A fresh array of fresh {x, y} copies on every read: no live enemy
+    // references leave this getter, so a caller cannot mutate game state
+    // through it. Includes the warning-outline enemies that are already drawn
+    // on screen (born > 0), not just the fully spawned ones.
+    enemyPositions:
+      game?.enemies.filter((e) => e.hp > 0).map((e) => ({ x: e.x, y: e.y })) ??
+      [],
     bullets: game?.bullets.length,
     scraps: game?.scraps.length,
     pending: game?.pendingBlasts.length,

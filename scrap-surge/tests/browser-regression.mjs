@@ -94,19 +94,9 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
       shops,
     },
   );
-  // The death path is only covered when idle play actually dies. A win here is
-  // reported as an uncovered path, never silently counted as passing.
-  check(
-    "A2 idle play covers the defeat path",
-    s.phase === "lost",
-    s.phase === "lost"
-      ? { hp: s.hp, wave: s.wave }
-      : {
-          uncovered: true,
-          note: "idle play won; death path not exercised",
-          phase: s.phase,
-        },
-  );
+  // A2 (idle death coverage) is intentionally gone. After S1e an ordinary run
+  // can legitimately win, so the A-run only requires a terminal state (A1). The
+  // forced defeat path moved to the G charge fixture below.
   check("A3 end panel offers retry", retryVisible);
   check(
     "A4 record written once",
@@ -443,6 +433,173 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
   );
   check("F5 no page errors on phone", errors.length === 0, { errors });
   await ctx.close();
+}
+
+// ---------- G. forced defeat: ordinary keyboard charge into the nearest enemy ----------
+{
+  // Approved gate (Astra / Opus / independent DeepSeek): fixed seeds 2a/17/91 and
+  // a fixed strategy - 70ms poll, +-6px deadzone, charge the nearest enemy read
+  // from the read-only enemyPositions (which includes the visible warning
+  // outlines). Each seed runs exactly once; nothing here is retried to force a
+  // result. A run ends at "lost" or at "shop" (it survived wave 1); a shop end
+  // means the death path was not covered, never a death. A run still fighting at
+  // 40s is a real timeout and fails.
+  let deaths = 0;
+  const group = [];
+  for (const seed of ["2a", "17", "91"]) {
+    const page = await browser.newPage({
+      viewport: { width: 1440, height: 960 },
+      deviceScaleFactor: 1,
+    });
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(`${BASE_URL}/?seed=${seed}`);
+    await page.locator("#start").click();
+    let held = new Set();
+    const release = async () => {
+      for (const k of held) await page.keyboard.up(k);
+      held = new Set();
+    };
+    const t0 = Date.now();
+    let s = await metrics(page);
+    while (Date.now() - t0 < 40000) {
+      s = await metrics(page);
+      if (s.phase === "lost" || s.phase === "won" || s.phase === "shop") break;
+      if (s.phase === "paused") {
+        await release();
+        const r = page.locator("#resume");
+        if (await r.isVisible()) await r.click();
+        continue;
+      }
+      let nx = 0,
+        ny = 0,
+        bd = Infinity;
+      for (const e of s.enemyPositions || []) {
+        const d = Math.hypot(e.x - s.position.x, e.y - s.position.y);
+        if (d < bd) {
+          bd = d;
+          nx = e.x - s.position.x;
+          ny = e.y - s.position.y;
+        }
+      }
+      const next = new Set();
+      if (nx > 6) next.add("KeyD");
+      if (nx < -6) next.add("KeyA");
+      if (ny > 6) next.add("KeyS");
+      if (ny < -6) next.add("KeyW");
+      for (const k of held) if (!next.has(k)) await page.keyboard.up(k);
+      for (const k of next) if (!held.has(k)) await page.keyboard.down(k);
+      held = next;
+      await page.waitForTimeout(70);
+    }
+    await release();
+    const timedOut =
+      s.phase !== "lost" && s.phase !== "won" && s.phase !== "shop";
+    const retryVisible = await page
+      .locator("#retry")
+      .isVisible()
+      .catch(() => false);
+    const detail = {
+      seed,
+      phase: s.phase,
+      hp: s.hp,
+      wave: s.wave,
+      kills: s.kills,
+      retryVisible,
+      wallSeconds: +((Date.now() - t0) / 1000).toFixed(1),
+      errors,
+    };
+    let ok = errors.length === 0 && !timedOut;
+    if (s.phase === "lost") {
+      deaths++;
+      let retryReset = false;
+      if (s.hp === 0 && retryVisible) {
+        await page.locator("#retry").click();
+        await page.waitForFunction(() => window.scrapMetrics.phase === "fight");
+        const a = await metrics(page);
+        retryReset =
+          a.phase === "fight" &&
+          a.hp === 10 &&
+          a.kills === 0 &&
+          a.guns.length === 1 &&
+          a.mods.length === 0;
+        detail.afterRetry = {
+          phase: a.phase,
+          hp: a.hp,
+          kills: a.kills,
+          guns: a.guns.length,
+          mods: a.mods.length,
+        };
+      }
+      detail.retryReset = retryReset;
+      ok = ok && s.hp === 0 && retryVisible && retryReset;
+    } else if (s.phase === "shop") {
+      detail.note = "survived wave 1; death path not covered (not a death)";
+    }
+    group.push(detail);
+    check(`G charge seed ${seed}`, ok, detail);
+    await page.close();
+  }
+  check("G group covers the death path (>= 1 real lost at 0 hp)", deaths >= 1, {
+    deaths,
+    runs: group.map((g) => ({ seed: g.seed, phase: g.phase, hp: g.hp })),
+  });
+}
+
+// ---------- H. the metrics API exposes a read-only XY copy ----------
+{
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 960 },
+  });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(`${BASE_URL}/?seed=2a`);
+  await page.locator("#start").click();
+  let ready = false;
+  for (let i = 0; i < 40 && !ready; i++) {
+    ready = await page.evaluate(
+      () => (window.scrapMetrics.enemyPositions || []).length > 0,
+    );
+    if (!ready) await page.waitForTimeout(100);
+  }
+  // Read a snapshot, mutate the copies we were handed, then read again. The
+  // fresh read must be untouched: that is what proves no live enemy reference
+  // escapes the getter. This is a read-only API isolation test, not a player path.
+  const iso = await page.evaluate(() => {
+    const a = window.scrapMetrics.enemyPositions;
+    const ref = a[0];
+    const before = a.map((p) => [p.x, p.y]);
+    for (const p of a) {
+      p.x = 1e9;
+      p.y = -1e9;
+    }
+    a.push({ x: 1e9, y: -1e9 });
+    const b = window.scrapMetrics.enemyPositions;
+    const after = b.map((p) => [p.x, p.y]);
+    return {
+      count: before.length,
+      freshArray: b !== a,
+      freshObjects: b[0] !== ref,
+      unchanged:
+        after.length === before.length &&
+        after.every((v, i) => v[0] === before[i][0] && v[1] === before[i][1]),
+      inBounds: after.every(
+        ([x, y]) => x >= 0 && x <= 1200 && y >= 0 && y <= 800,
+      ),
+    };
+  });
+  check(
+    "H enemyPositions is a fresh read-only XY copy that cannot mutate game state",
+    ready &&
+      iso.count > 0 &&
+      iso.freshArray &&
+      iso.freshObjects &&
+      iso.unchanged &&
+      iso.inBounds &&
+      errors.length === 0,
+    { ready, ...iso, errors },
+  );
+  await page.close();
 }
 
 await browser.close();

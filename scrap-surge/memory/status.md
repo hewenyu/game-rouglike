@@ -42,18 +42,21 @@ User acceptance of this version is still pending.
 ## Current source under review
 
 The current source on branch codex/scrap-surge is baseline **ee53cf8** (the
-post-palette-restore slice) plus S1d (slinger damage 18 -> 20) and S1e (weapon aim
-fix), frozen by the commit whose subject begins "S1e:". The S1d freeze is
-**d6ba6fef5e117d342f1ac594d7d9ff2858b6bfd1**; S1e is the commit whose subject begins
-"S1e:" (see the S1e section below).
+post-palette-restore slice) plus S1d (slinger damage 18 -> 20), S1e (weapon aim fix)
+and T1 (read-only `enemyPositions` metrics plus a forced-defeat browser fixture). The
+prior freezes are **d6ba6fef5e117d342f1ac594d7d9ff2858b6bfd1** (S1d) and
+**03ff521d8da70584751b3fc1192425e12f82ccc7** (S1e); T1 is the commit whose subject
+begins "T1:" (see the T1 section below).
 
 The earlier frozen slice **21a18fd66f782c8239ec6511897c66da9c58fe5a**
 ("scrap-surge: freeze S1/S1b/S1c feel slice", parent c502295) is historical. The
 21a18fd review does **not** apply to ee53cf8 or later: the explosion palette changed
-at ee53cf8, the slinger damage at d6ba6fe and the aim geometry at S1e. Astra, Opus and
-an isolated DeepSeek reviewer must review the current S1e source commit.
+at ee53cf8, the slinger damage at d6ba6fe, the aim geometry at 03ff521 and the metrics
+API at T1. Astra, Opus and an isolated DeepSeek reviewer must review the current T1
+source commit.
 
-Scope is exactly S1 + S1b + S1c + S1d + S1e. No other product scope is authorized.
+Scope is exactly S1 + S1b + S1c + S1d + S1e + T1. No other product scope is
+authorized.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 
@@ -133,9 +136,44 @@ S1e evidence on the current source: `npm test` 40/40 (left/right 140px same-row
 enemies hit and killed within two seconds through the real weapon path, a single gun
 reaching all eight fixed directions, and multi-slot mounts covering every direction),
 `npm run build` clean, the first-shop review now passing (keyboard 3/3, touch 3/3, no
-page errors), a normal-play browser victory at 287 kills and the browser regression
-19/19.
+page errors) and a normal-play browser victory at 287 kills.
+
+Correction: the S1e author first reported "browser regression 19/19", but that number
+came from a stale `artifacts/browser-regression-results.json` (a pre-S1e run), not a
+fresh run. The fresh regression on `03ff521` was 18/19: A2 required idle play to die,
+and after S1e an idle/ordinary run can win, so the death path was no longer covered.
+That stale claim is retracted; T1 replaces the idle-death assertion with an explicit
+forced-defeat fixture.
 
 The first-shop gate runs three seeds per input mode. n = 3 is only a smoke test, not a
 statistical claim; a passing run does not prove every seed works. No user playtest
 acceptance of any version yet.
+
+## Package T1 (approved by Astra, Opus and DeepSeek) - implemented 2026-10-19
+
+T1 adds one read-only observability field and one browser fixture. It changes no
+simulation, rendering, numbers or shop logic.
+
+- `src/main.ts`: `scrapMetrics.enemyPositions` returns a fresh array of fresh `{x, y}`
+  copies of every enemy with `hp > 0`, including the warning-outline enemies that are
+  already drawn on screen. No live enemy reference escapes the getter and there is no
+  setter, so a caller cannot mutate game state through it. The existing `enemies`
+  count is unchanged.
+- `tests/browser-regression.mjs`: the A-run keeps the ordinary idle terminal state,
+  record and retry checks but no longer requires idle play to die or to win (the old
+  A2 is removed). The forced defeat path moved to a new G fixture: an ordinary
+  keyboard charge toward the nearest enemy read from `enemyPositions` for fixed seeds
+  2a/17/91, one run each. A run ends at a loss or at the wave-1 shop; a shop end means
+  the death path was not covered (never a death) and a run still fighting at 40s is a
+  real timeout that fails. The group must contain at least one real loss at 0 hp with
+  the failure UI visible and a working retry. A new H check proves the returned
+  `enemyPositions` snapshot is a copy that cannot mutate live state.
+
+At least one loss proves the defeat path is reachable. It does not prove every seed
+loses, and it is not a difficulty or acceptance judgement.
+
+T1 evidence (fresh runs on the T1 commit, no reused artifacts): `npm test` 40/40,
+`npm run build` clean, `npm run test:browser:regression` 23/23 - the G charge fixture
+lost all three fixed seeds 2a/17/91 at 0 hp with the failure UI and a working retry,
+while the ordinary A-run won normally (305 kills, hp 7) - and
+`npm run test:browser:first-shop` keyboard 3/3 plus touch 3/3.

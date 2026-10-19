@@ -178,8 +178,38 @@ S1e result on `codex/scrap-surge`: `npm test` 40/40 (three new tests: left/right
 same-row enemies are hit and killed within two seconds through the real weapon path, a
 single gun reaches all eight fixed directions, and multi-slot mounts keep every
 direction covered), `npm run build` clean, the first-shop review now passes (keyboard
-3/3, touch 3/3, no page errors), a normal-play browser victory at 287 kills, and the
-browser regression 19/19.
+3/3, touch 3/3, no page errors) and a normal-play browser victory at 287 kills.
+
+Retraction: the S1e author first wrote "browser regression 19/19", but that number
+came from a stale `artifacts/browser-regression-results.json` (a pre-S1e run), not a
+fresh run. The fresh regression on `03ff521` was 18/19: A2 required idle play to die,
+and after S1e an idle/ordinary run can win, so the death path was no longer covered.
+That claim is withdrawn; T1 replaces the idle-death assertion with an explicit
+forced-defeat fixture (below).
 
 The first-shop gate counts three seeds per input mode. n = 3 is only a smoke test, not
 a statistical claim; a passing run does not prove every seed works.
+
+## Package T1: read-only metrics and a forced-defeat fixture (2026-10-19)
+
+T1 was approved by all three parties and changes no simulation, rendering, numbers or
+shop logic.
+
+- `src/main.ts` exposes `scrapMetrics.enemyPositions`: a fresh array of fresh `{x, y}`
+  copies for every enemy with `hp > 0`, including the warning-outline enemies already
+  drawn on screen. No live enemy reference leaves the getter and there is no setter.
+- `tests/browser-regression.mjs` keeps the ordinary idle terminal/record/retry checks
+  but no longer requires idle play to die or to win. The defeat path is now an explicit
+  G fixture: an ordinary keyboard charge toward the nearest enemy from
+  `enemyPositions`, fixed seeds 2a/17/91, one run each. A run ends at a loss or at the
+  wave-1 shop; a shop end is not a death and a 40s timeout fails. The group must
+  contain at least one real loss at 0 hp with the failure UI and a working retry. An H
+  check proves the `enemyPositions` snapshot cannot mutate live state.
+
+At least one loss proves the defeat path is reachable; it is not a claim that every
+seed loses, and it is not a difficulty or acceptance judgement. The T1 evidence on the
+T1 commit: `npm test` 40/40, `npm run build` clean,
+`npm run test:browser:regression` 23/23 (the charge fixture lost all three fixed seeds
+2a/17/91 at 0 hp; the ordinary A-run won normally at 305 kills) and
+`npm run test:browser:first-shop` keyboard 3/3 + touch 3/3. The earlier S1e "19/19"
+number is not reused.

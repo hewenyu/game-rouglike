@@ -37,12 +37,15 @@ npm test
 npm run build
 npm run test:browser    # 先启动 dev server；默认本机 macOS Google Chrome
 npm run test:browser:regression   # 独立正常输入回归，同样先启动 dev server
+npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
 npm run format
 ```
 
 浏览器测试可用 `CHROME_PATH` 指定 Chromium 可执行文件、`TEST_URL` 指定站点。
 回归脚本另支持 `BASE_URL` 与 `DIST_DIR`（默认使用仓库内 `dist/`）。
 它使用普通键鼠、实际触屏事件和只读观察数据；没有修改战斗状态或开启无敌。
+失败路径由普通键盘朝最近敌人冲的独立 fixture 覆盖（固定 seed 2a/17/91，各一局）；
+`window.scrapMetrics.enemyPositions` 每次返回全新的 `{x,y}` 副本，不泄漏敌人引用。
 `dist/` 使用相对路径，可由任意 HTTP 静态服务托管在根目录或子目录。不支持 file://。
 没有公开部署。文档与审查见 docs/testing.md、docs/reviews.md。
 
