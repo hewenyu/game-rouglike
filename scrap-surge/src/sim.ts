@@ -66,6 +66,8 @@ export type Bullet = Vec & {
   homing: boolean;
   pierce?: number;
   hitIds?: Set<number>;
+  mod?: ModId;
+  tier?: number;
 };
 export type Scrap = Vec & {
   id: number;
@@ -98,7 +100,12 @@ export type Fx = {
     | "number"
     | "pickup"
     | "wake"
-    | "ember";
+    | "ember"
+    | "split"
+    | "tell"
+    | "mod"
+    | "tier-shot"
+    | "ring";
   x: number;
   y: number;
   life: number;
@@ -147,6 +154,13 @@ export type Event = {
     | "branch"
     | "tier"
     | "buy"
+    | "wake-hit"
+    | "ember-blast"
+    | "split"
+    | "spitter-tell"
+    | "mod-cue"
+    | "tier-fire"
+    | "ring"
     | "end";
   kind?: WeaponId;
   value?: number;
@@ -234,6 +248,7 @@ export class Game {
   ringPendingCancelled = 0;
   ringCharge = 0;
   ringCooldown = 0;
+  ringCueReady = false;
   magnetPulse = 0;
   magnetPulseCooldown = 0;
   spitterFallbackToBag = 0;
@@ -269,6 +284,7 @@ export class Game {
         tier: 1,
         paid: 0,
       };
+      this.buildExpeditionPocketSchedule();
       return;
     }
     this.setPocketSchedule();
@@ -330,8 +346,7 @@ export class Game {
     return this.guns.filter((g) => (g.tier ?? 1) === 2).length;
   }
   get pendingBoss() {
-    if (this.mode !== "expedition20" || !isBossWave(this.wave))
-      return false;
+    if (this.mode !== "expedition20" || !isBossWave(this.wave)) return false;
     return this.waveTime >= this.duration - 18 && !this.bossSpawned;
   }
   has(id: ModId) {
@@ -442,17 +457,17 @@ export class Game {
     const exp = this.mode === "expedition20",
       boss = exp ? bossForWave(this.wave) : undefined,
       hp =
-      kind === "boss"
-        ? (boss?.hp ?? 560)
-        : exp
-          ? enemyHp(kind, this.wave)
-        : kind === "can"
-          ? 75
-          : kind === "runner"
-            ? 19
-            : this.wave === 1
-              ? 17
-              : 23;
+        kind === "boss"
+          ? (boss?.hp ?? 560)
+          : exp
+            ? enemyHp(kind, this.wave)
+            : kind === "can"
+              ? 75
+              : kind === "runner"
+                ? 19
+                : this.wave === 1
+                  ? 17
+                  : 23;
     this.enemies.push({
       ...p,
       id: ++this.id,
@@ -479,11 +494,14 @@ export class Game {
       knockY: 0,
       flash: 0,
       age: 0,
-      born:
-        kind === "spitter" && exp ? 0.8 : 0.65,
+      born: kind === "spitter" && exp ? 0.8 : 0.65,
       attack:
         kind === "boss"
-          ? (boss?.interval ?? 2.4)
+          ? exp
+            ? (boss?.interval ?? 2.4)
+            : this.wave === 2
+              ? 1.6
+              : 2.4
           : kind === "spitter"
             ? 0.8
             : 1.6,
@@ -617,7 +635,8 @@ export class Game {
     let spawned = 0;
     const mix = POCKET_MIX[this.wave - 1];
     for (let i = 0; i < count; i++) {
-      const a = (i / Math.max(1, count)) * Math.PI * 2 + (this.random() - 0.5) * 0.42,
+      const a =
+          (i / Math.max(1, count)) * Math.PI * 2 + (this.random() - 0.5) * 0.42,
         p = this.pocketMemberPoint(actualCenter, radius, a);
       if (this.spawn(this.pickKind(mix, true), p)) spawned++;
     }
@@ -684,8 +703,7 @@ export class Game {
     this.expeditionBatchIndex = 0;
   }
   buy(index: number) {
-    if (this.mode === "expedition20")
-      return this.buyExpedition(index);
+    if (this.mode === "expedition20") return this.buyExpedition(index);
     if (
       this.phase !== "shop" ||
       this.sold.has(index) ||
@@ -743,7 +761,12 @@ export class Game {
     this.money -= price;
     gun.tier = 2;
     gun.paid = (gun.paid ?? 0) + price;
-    this.event("tier", gun.id, price);
+    this.events.push({
+      type: "tier",
+      kind: gun.id,
+      value: price,
+      tier: 2,
+    });
     return true;
   }
   sell(index: number) {
@@ -776,16 +799,18 @@ export class Game {
     return true;
   }
   chooseQuick(value: ModId | ExpeditionBranch | number) {
-    if (this.mode !== "expedition20" || this.phase !== "quick") return false;
+    if (
+      this.mode !== "expedition20" ||
+      this.phase !== "quick" ||
+      this.quickPicked
+    )
+      return false;
     const kind = quickKind(this.wave);
     if (!kind) return false;
     if (kind === "mod-1" || kind === "mod-2") {
       if (this.mods.length >= (kind === "mod-1" ? 1 : 2)) return false;
       const id = value as ModId;
-      if (
-        !["popcorn", "domino", "magnet"].includes(id) ||
-        this.has(id)
-      )
+      if (!["popcorn", "domino", "magnet"].includes(id) || this.has(id))
         return false;
       this.mods.push(id);
       this.modTiers.set(id, 1);
@@ -794,7 +819,8 @@ export class Game {
       return true;
     }
     if (kind === "branch") {
-      if (this.branch || !["wake", "ember"].includes(String(value))) return false;
+      if (this.branch || !["wake", "ember"].includes(String(value)))
+        return false;
       this.branch = value as ExpeditionBranch;
       this.wakeAnchor = { x: this.player.x, y: this.player.y };
       this.event("branch", undefined, this.branch === "wake" ? 1 : 2);
@@ -802,14 +828,18 @@ export class Game {
       return true;
     }
     const index = typeof value === "number" ? value : Number.NaN;
-    const id =
-      typeof value === "string" ? (value as ModId) : this.mods[index];
+    const id = typeof value === "string" ? (value as ModId) : this.mods[index];
     if (!id) return false;
     if (!this.quickOptions.includes(id)) return false;
     const tier = this.modTier(id);
     if (tier >= 3) return false;
     this.modTiers.set(id, tier + 1);
-    this.event("tier", undefined, tier + 1, id);
+    this.events.push({
+      type: "tier",
+      value: tier + 1,
+      mod: id,
+      tier: tier + 1,
+    });
     this.quickPicked = true;
     return true;
   }
@@ -850,8 +880,7 @@ export class Game {
     let offers = pool.slice(0, 4);
     if (unowned.length && !offers.some((id) => unowned.includes(id))) {
       const index = Math.floor(this.shopRandom() * 4);
-      offers[index] =
-        unowned[Math.floor(this.shopRandom() * unowned.length)];
+      offers[index] = unowned[Math.floor(this.shopRandom() * unowned.length)];
     }
     for (let i = offers.length - 1; i > 0; i--) {
       const j = Math.floor(this.shopRandom() * (i + 1));
@@ -883,6 +912,7 @@ export class Game {
       this.phase = "interlude";
       this.interludeRemaining = 1.2;
     } else if (this.stop === "end") {
+      this.cancelExpeditionWavePending();
       this.phase = "won";
       this.event("end");
     }
@@ -890,7 +920,8 @@ export class Game {
   nextWave() {
     if (this.mode === "expedition20") {
       if (this.phase !== "shop" && this.phase !== "quick") return;
-      if (quickKind(this.wave) === "mod-upgrade" && this.mods.length === 0) return;
+      if (quickKind(this.wave) === "mod-upgrade" && this.mods.length === 0)
+        return;
       if (this.phase === "quick") {
         const kind = quickKind(this.wave);
         if (kind === "mod-1" && this.mods.length < 1) return;
@@ -925,6 +956,7 @@ export class Game {
     }
   }
   enterExpeditionWave(wave: number) {
+    this.cancelExpeditionWavePending();
     this.wave = clamp(wave, 1, 20);
     this.waveTime = 0;
     this.player.hp = Math.min(10, this.player.hp + 3);
@@ -941,12 +973,9 @@ export class Game {
     this.chainCount = 0;
     this.chainTimer = 0;
     this.chainId = 0;
-    this.popcornPendingCancelled += this.popcornCredits;
-    this.ringPendingCancelled += this.ringPending;
-    this.popcornCredits = 0;
-    this.ringPending = 0;
     this.ringCharge = 0;
     this.ringCooldown = 0;
+    this.ringCueReady = false;
     this.magnetPulse = 0;
     this.magnetPulseCooldown = 0;
     this.expeditionBonusBudget = 0;
@@ -964,6 +993,13 @@ export class Game {
     this.stop = null;
     this.event("wave");
     if (isBossWave(this.wave)) this.event("boss", undefined, this.wave);
+  }
+  cancelExpeditionWavePending() {
+    this.popcornPendingCancelled += this.popcornCredits;
+    this.ringPendingCancelled += this.ringPending;
+    this.popcornCredits = 0;
+    this.ringPending = 0;
+    this.ringCueReady = false;
   }
   pause() {
     if (
@@ -1033,14 +1069,17 @@ export class Game {
         if (n % 4 === 0) {
           const current = this.dominoRadius.get(chain) ?? 0;
           this.dominoRadius.set(chain, Math.min(60, current + 10));
+          this.event("mod-cue", undefined, 2, "domino");
         }
-        if (this.modTier("domino") >= 3 && n % 8 === 0)
+        if (this.modTier("domino") >= 3 && n % 8 === 0) {
+          this.event("mod-cue", undefined, 3, "domino");
           this.pendingBlasts.push({
             p: { x: e.x, y: e.y },
             radius: 160,
             damage: 80,
             chain,
           });
+        }
       }
     }
     this.kills++;
@@ -1048,11 +1087,7 @@ export class Game {
     this.event("kill");
     this.shake = Math.max(this.shake, 0.13);
     const deathRoot =
-      this.mode === "expedition20"
-        ? inChain
-          ? chain
-          : ++this.nextChainId
-        : 0;
+      this.mode === "expedition20" ? (inChain ? chain : ++this.nextChainId) : 0;
     // A lethal spring-fist hit keeps flying as a remnant so its bowling
     // knockback still lands, instead of vanishing with the dead enemy.
     if (corpse)
@@ -1067,7 +1102,8 @@ export class Game {
       this.effect("blast", e, 0.7, "#efaa39", 130);
       this.event("explode");
     }
-    const bossValue = this.mode === "expedition20" ? bossForWave(this.wave)?.value : undefined;
+    const bossValue =
+      this.mode === "expedition20" ? bossForWave(this.wave)?.value : undefined;
     const value =
       e.kind === "boss"
         ? (bossValue ?? 15)
@@ -1103,17 +1139,15 @@ export class Game {
       }
     }
     // Death is settled once (hp <= 0 guard). Chained explosions are queued, not recursive.
-    const blastRoot =
-      this.mode === "expedition20"
-        ? deathRoot
-        : inChain
-          ? chain
-          : ++this.nextChainId;
-    if (this.has("domino") && this.mode !== "expedition20")
-      this.chainCounts.set(blastRoot, this.chainCounts.get(blastRoot) ?? 0);
+    // The slice only allocates a root when a domino blast is actually queued;
+    // expedition allocates the long-lived causal root above for all branches.
+    let blastRoot =
+      this.mode === "expedition20" ? deathRoot : inChain ? chain : 0;
     if (this.has("domino") && this.mode === "expedition20" && !inChain)
       this.chainCounts.set(blastRoot, this.chainCounts.get(blastRoot) ?? 0);
     if (this.has("domino")) {
+      if (this.mode !== "expedition20" && !inChain)
+        blastRoot = ++this.nextChainId;
       this.pendingBlasts.push({
         p: { x: e.x, y: e.y },
         radius:
@@ -1131,6 +1165,8 @@ export class Game {
   }
   split(e: Enemy) {
     const angle = this.random() * Math.PI * 2;
+    this.event("split");
+    this.effect("split", e, 0.34, "#f0b071", 28);
     for (const offset of [-Math.PI / 3, Math.PI / 3]) {
       const p = {
         x: clamp(e.x + Math.cos(angle + offset) * 60, 18, W - 18),
@@ -1231,6 +1267,8 @@ export class Game {
           root: ++this.nextChainId,
           hitIds: new Set(),
         });
+        this.event("wake-hit");
+        this.effect("wake", this.player, 0.28, "#fff0a0", 22);
         if (this.wakePoints.length > 180) this.wakePoints.shift();
         this.wakeAnchor = { x: this.player.x, y: this.player.y };
       }
@@ -1242,6 +1280,10 @@ export class Game {
         if (this.ringCharge >= 5) {
           this.ringCharge -= 5;
           this.ringPending++;
+          if (!this.ringCueReady) {
+            this.ringCueReady = true;
+            this.event("mod-cue", undefined, 3, "popcorn");
+          }
         }
       }
     }
@@ -1249,22 +1291,22 @@ export class Game {
       if (this.mode === "expedition20") {
         // Draining happens after weapon fire in the fixed simulation step.
       } else {
-      if (this.bonusBudget < 8) {
-        const t = this.enemies
-          .filter((e) => e.hp > 0 && e.born <= 0)
-          .sort((a, b) => dist(a, this.player) - dist(b, this.player))[0];
-        if (t) {
-          const a = Math.atan2(t.y - this.player.y, t.x - this.player.x);
-          for (const offset of [-0.3, 0.3])
-            this.shoot(this.player, a + offset, 18, "bonus", t.id, 500, true);
-          this.bonusBudget += 2;
+        if (this.bonusBudget < 8) {
+          const t = this.enemies
+            .filter((e) => e.hp > 0 && e.born <= 0)
+            .sort((a, b) => dist(a, this.player) - dist(b, this.player))[0];
+          if (t) {
+            const a = Math.atan2(t.y - this.player.y, t.x - this.player.x);
+            for (const offset of [-0.3, 0.3])
+              this.shoot(this.player, a + offset, 18, "bonus", t.id, 500, true);
+            this.bonusBudget += 2;
+          }
+        } else if (this.enemies.some((e) => e.hp > 0 && e.born <= 0)) {
+          // F0 read-only counter: this pickup had a target but the per-step
+          // 8-bullet popcorn budget was already spent. Plain `some`, no sort and
+          // no RNG, and the accepted path above is untouched.
+          this.popcornBudgetSkippedPickups++;
         }
-      } else if (this.enemies.some((e) => e.hp > 0 && e.born <= 0)) {
-        // F0 read-only counter: this pickup had a target but the per-step
-        // 8-bullet popcorn budget was already spent. Plain `some`, no sort and
-        // no RNG, and the accepted path above is untouched.
-        this.popcornBudgetSkippedPickups++;
-      }
       }
     }
     if (this.has("magnet") && this.combatPicked % 8 === 0) {
@@ -1280,9 +1322,24 @@ export class Game {
           550,
           tier >= 2 && !!target,
         );
-      if (this.mode === "expedition20" && tier >= 3 && this.magnetPulseCooldown <= 0) {
+      if (tier >= 2) {
+        const hitIds = target ? new Set<number>() : undefined;
+        for (let i = this.bullets.length - 10; i < this.bullets.length; i++) {
+          const bullet = this.bullets[i];
+          if (!bullet?.homing) continue;
+          bullet.mod = "magnet";
+          bullet.tier = tier;
+          bullet.hitIds = hitIds;
+        }
+      }
+      if (
+        this.mode === "expedition20" &&
+        tier >= 3 &&
+        this.magnetPulseCooldown <= 0
+      ) {
         this.magnetPulse = 0.6;
         this.magnetPulseCooldown = 0.6;
+        this.event("mod-cue", undefined, 3, "magnet");
       }
       this.effect("blast", this.player, 0.3, BLAST.ring, 70);
     }
@@ -1294,7 +1351,7 @@ export class Game {
       this.bullets.length + 8 <= 420
     ) {
       const angle = this.random() * Math.PI * 2;
-      for (let i = 0; i < 8; i++)
+      for (let i = 0; i < 8; i++) {
         this.shoot(
           this.player,
           angle + (i * Math.PI) / 4,
@@ -1304,7 +1361,16 @@ export class Game {
           500,
           false,
         );
+        const bullet = this.bullets[this.bullets.length - 1];
+        if (bullet) {
+          bullet.mod = "popcorn";
+          bullet.tier = 3;
+        }
+      }
       this.ringPending--;
+      this.ringCueReady = false;
+      this.event("ring");
+      this.effect("ring", this.player, 0.36, BLAST.ring, 72);
       this.ringCooldown = 0.5;
     }
     let drained = 0;
@@ -1317,7 +1383,10 @@ export class Game {
         .filter((e) => e.hp > 0 && e.born <= 0)
         .sort((a, b) => dist(a, this.player) - dist(b, this.player))[0];
       if (!target) break;
-      const angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
+      const angle = Math.atan2(
+        target.y - this.player.y,
+        target.x - this.player.x,
+      );
       for (const offset of [-0.3, 0.3])
         this.shoot(
           this.player,
@@ -1330,8 +1399,13 @@ export class Game {
         );
       const first = this.bullets[this.bullets.length - 2],
         second = this.bullets[this.bullets.length - 1];
-      if (first) first.pierce = this.modTier("popcorn") >= 2 ? 1 : 0;
-      if (second) second.pierce = this.modTier("popcorn") >= 2 ? 1 : 0;
+      const tier = this.modTier("popcorn");
+      for (const bullet of [first, second]) {
+        if (!bullet) continue;
+        bullet.pierce = tier >= 2 ? 1 : 0;
+        bullet.mod = "popcorn";
+        bullet.tier = tier;
+      }
       this.popcornCredits--;
       this.popcornDrained++;
       this.expeditionBonusBudget += 2;
@@ -1352,15 +1426,13 @@ export class Game {
       if (gun.id === "saw") {
         const saws = gun.tier === 2 ? 2 : 1;
         for (let n = 0; n < saws; n++) {
-          const a =
-              this.time * 4 + (index * Math.PI) / 2 + (n * Math.PI),
+          const a = this.time * 4 + (index * Math.PI) / 2 + n * Math.PI,
             p = {
               x: this.player.x + Math.cos(a) * 83,
               y: this.player.y + Math.sin(a) * 83,
             };
           for (const e of this.enemies)
-            if (e.hp > 0 && dist(e, p) < e.r + 24)
-              this.hit(e, info.damage, p);
+            if (e.hp > 0 && dist(e, p) < e.r + 24) this.hit(e, info.damage, p);
         }
         gun.cooldown = info.interval;
         continue;
@@ -1395,8 +1467,11 @@ export class Game {
         y: mount.y + Math.sin(gun.angle) * 24,
       };
       this.event("fire", gun.id);
+      if (this.mode === "expedition20" && gun.tier === 2) {
+        this.events.push({ type: "tier-fire", kind: gun.id, tier: 2 });
+      }
       if (gun.id === "coil") {
-    const chain: Vec[] = [mount],
+        const chain: Vec[] = [mount],
           seen = new Set<number>();
         let current: Vec = target;
         const targets = gun.tier === 2 ? 7 : 5;
@@ -1416,12 +1491,17 @@ export class Game {
           if (!e) break;
           seen.add(e.id);
           chain.push({ ...e });
-          this.hit(e, info.damage * (gun.tier === 2 ? GUN_TIER.coil.damage : 1), current);
+          this.hit(
+            e,
+            info.damage * (gun.tier === 2 ? GUN_TIER.coil.damage : 1),
+            current,
+          );
           current = e;
         }
         this.effect("arc", mount, 0.2, "#9becce", 4, undefined, chain);
       } else if (gun.id === "fist") {
-        const lethal = target.hp <=
+        const lethal =
+          target.hp <=
           info.damage * (gun.tier === 2 ? GUN_TIER.fist.damage : 1);
         this.hit(
           target,
@@ -1442,7 +1522,8 @@ export class Game {
         ]);
       } else if (gun.id === "shotgun") {
         const pellets = gun.tier === 2 ? GUN_TIER.shotgun.hits : 5;
-        const damage = info.damage * (gun.tier === 2 ? GUN_TIER.shotgun.damage : 1);
+        const damage =
+          info.damage * (gun.tier === 2 ? GUN_TIER.shotgun.damage : 1);
         for (let n = -(pellets - 1) / 2; n <= (pellets - 1) / 2; n++)
           this.shoot(
             muzzle,
@@ -1454,7 +1535,10 @@ export class Game {
           );
         incoming.set(target.id, (incoming.get(target.id) || 0) + damage);
       } else {
-        const shots = gun.tier === 2 && (gun.id === "slinger" || gun.id === "rocket") ? 2 : 1;
+        const shots =
+          gun.tier === 2 && (gun.id === "slinger" || gun.id === "rocket")
+            ? 2
+            : 1;
         for (let n = 0; n < shots; n++)
           this.shoot(
             muzzle,
@@ -1465,7 +1549,10 @@ export class Game {
             gun.id === "rocket" ? 390 : 650,
             gun.id === "rocket",
           );
-        incoming.set(target.id, (incoming.get(target.id) || 0) + info.damage * shots);
+        incoming.set(
+          target.id,
+          (incoming.get(target.id) || 0) + info.damage * shots,
+        );
       }
     }
   }
@@ -1494,7 +1581,10 @@ export class Game {
     if (inFight) {
       this.waveTime += dt;
       this.chainTimer = Math.max(0, this.chainTimer - dt);
-      if (this.chainTimer === 0 && this.chainCount > 0) this.chainCount = 0;
+      if (this.chainTimer === 0 && this.chainCount > 0) {
+        this.chainCount = 0;
+        if (this.mode !== "expedition20") this.chainCounts.clear();
+      }
     }
     this.player.invulnerable = Math.max(0, this.player.invulnerable - dt);
     for (const f of this.fx) {
@@ -1527,21 +1617,23 @@ export class Game {
       if (this.spawnTimer <= 0) {
         if (this.mode === "expedition20")
           this.spawnTimer = 1 / RATES[this.wave - 1];
-        else
-        this.spawnTimer = this.wave === 1 ? 1 / 3.1 : 1 / 4.2;
+        else this.spawnTimer = this.wave === 1 ? 1 / 3.1 : 1 / 4.2;
         const spawned =
           this.mode === "expedition20"
             ? this.spawn(this.pickKind(MIX[this.wave - 1]))
             : this.spawn(
-                this.wave === 1
-                  ? this.random() > 0.87
-                    ? "runner"
-                    : "bag"
-                  : this.random() > 0.84
-                    ? "can"
-                    : this.random() > 0.6
+                (() => {
+                  const r = this.random();
+                  return this.wave === 1
+                    ? r > 0.87
                       ? "runner"
-                      : "bag",
+                      : "bag"
+                    : r > 0.84
+                      ? "can"
+                      : r > 0.6
+                        ? "runner"
+                        : "bag";
+                })(),
               );
         // The frozen slice keeps its timer-only counter. Expedition counts all
         // successful births centrally in spawn().
@@ -1561,12 +1653,7 @@ export class Game {
               this.expeditionClusterCenters.set(batch.time, centers);
             }
             const center = centers[batch.group];
-            this.spawnExpeditionBatch(
-              batch.formation,
-              batch.count,
-              75,
-              center,
-            );
+            this.spawnExpeditionBatch(batch.formation, batch.count, 75, center);
           } else {
             this.spawnExpeditionBatch(
               batch.formation,
@@ -1636,11 +1723,11 @@ export class Game {
                   ? 118
                   : e.kind === "splitter"
                     ? 50
-              : e.kind === "can"
-                ? 39
-                : e.kind === "runner"
-                  ? 102
-                  : 57;
+                    : e.kind === "can"
+                      ? 39
+                      : e.kind === "runner"
+                        ? 102
+                        : 57;
         e.vx = (dx / l) * speed;
         e.vy = (dy / l) * speed;
         // Simple symmetric soft separation; contact and targeting still use world geometry.
@@ -1680,10 +1767,7 @@ export class Game {
             if (e.tell === 0) e.attack = 0;
           }
           if (e.attack <= 0) {
-            const stage =
-                this.mode === "expedition20"
-                  ? (e.bossStage ?? 1)
-                  : 1,
+            const stage = this.mode === "expedition20" ? (e.bossStage ?? 1) : 1,
               info =
                 this.mode === "expedition20"
                   ? bossForWave(this.wave)!
@@ -1692,22 +1776,19 @@ export class Game {
             e.volleys = (e.volleys ?? 0) + 1;
             const volley = e.volleys;
             if ((stage === 2 || stage === 4) && volley % 3 === 0) {
-              const a = Math.atan2(
-                this.player.y - e.y,
-                this.player.x - e.x,
-              );
+              const a = Math.atan2(this.player.y - e.y, this.player.x - e.x);
               for (const offset of [-0.24, 0, 0.24])
                 this.shoot(e, a + offset, 1, "enemy", 0, 150);
             } else {
               for (let i = 0; i < info.radial; i++)
-              this.shoot(
-                e,
-                (i * Math.PI * 2) / info.radial + e.age * 0.15,
-                1,
-                "enemy",
-                0,
-                120,
-              );
+                this.shoot(
+                  e,
+                  (i * Math.PI * 2) / info.radial + e.age * 0.15,
+                  1,
+                  "enemy",
+                  0,
+                  120,
+                );
             }
             if (stage === 3 && volley % 3 === 0) {
               for (let i = 0; i < 3; i++)
@@ -1728,16 +1809,17 @@ export class Game {
         } else if (e.kind === "spitter") {
           e.attack -= dt;
           if (e.attack <= 0) {
+            if (!e.tell) {
+              this.event("spitter-tell");
+              this.effect("tell", e, 0.8, "#e5a04d", 34);
+            }
             e.attack = 2.2;
             e.tell = 0.8;
           }
           if (e.tell && e.tell > 0) {
             e.tell = Math.max(0, e.tell - dt);
             if (e.tell === 0) {
-              const a = Math.atan2(
-                this.player.y - e.y,
-                this.player.x - e.x,
-              );
+              const a = Math.atan2(this.player.y - e.y, this.player.x - e.x);
               this.shoot(e, a, 1, "enemy", 0, 190, false, 3.5);
             }
           }
@@ -1820,18 +1902,27 @@ export class Game {
       // this, sustained secondary kills keep refreshing chainTimer and finished
       // roots would never be released in a long run. The xN readout is a separate
       // scalar (chainCount) and still decays on its own 0.8s timer.
-      if (this.chainCounts.size) {
+      if (
+        this.chainCounts.size ||
+        (this.mode === "expedition20" && this.dominoRadius.size)
+      ) {
         const live = new Set<number>();
         for (const b of this.pendingBlasts) live.add(b.chain);
         for (const k of this.corpses) live.add(k.chain);
-        if (this.mode === "expedition20") {
-          for (const point of this.wakePoints) live.add(point.root);
-          for (const s of this.scraps)
-            if (this.branch === "ember" && (s.heat ?? 0) > 0 && s.root)
-              live.add(s.root);
+        for (const point of this.wakePoints) live.add(point.root);
+        for (const s of this.scraps)
+          if (this.branch === "ember" && (s.heat ?? 0) > 0 && s.root)
+            live.add(s.root);
+        for (const id of this.chainCounts.keys()) {
+          if (live.has(id)) continue;
+          this.chainCounts.delete(id);
         }
-        for (const id of this.chainCounts.keys())
-          if (!live.has(id)) this.chainCounts.delete(id);
+        // This map must prune independently: a radius can outlive deletion of
+        // its chainCounts key, and looping chainCounts alone would leak it.
+        if (this.mode === "expedition20")
+          for (const id of this.dominoRadius.keys()) {
+            if (!live.has(id)) this.dominoRadius.delete(id);
+          }
       }
       const canEndFight =
         this.mode === "expedition20"
@@ -1844,6 +1935,7 @@ export class Game {
         this.waveTime >= this.duration &&
         canEndFight
       ) {
+        if (this.mode === "expedition20") this.cancelExpeditionWavePending();
         this.phase = "sweep";
         this.sweepTime = 1;
         this.enemies = [];
@@ -1867,7 +1959,9 @@ export class Game {
         this.event("wave");
       }
       const deadline =
-        this.mode === "expedition20" ? this.waveTime > this.deadline : this.waveTime > 50;
+        this.mode === "expedition20"
+          ? this.waveTime > this.deadline
+          : this.waveTime > 50;
       if (
         this.phase === "fight" &&
         deadline &&
@@ -1898,7 +1992,8 @@ export class Game {
   }
   updateLooseScraps(dt: number) {
     const expedition = this.mode === "expedition20";
-    if (this.magnetPulse > 0) this.magnetPulse = Math.max(0, this.magnetPulse - dt);
+    if (this.magnetPulse > 0)
+      this.magnetPulse = Math.max(0, this.magnetPulse - dt);
     for (const s of this.scraps) {
       s.age += dt;
       if (expedition && (s.heat ?? 0) > 0) {
@@ -1915,13 +2010,8 @@ export class Game {
         s.heat = Math.max(0, s.heat! - dt);
         if (s.heat === 0 && !s.exploded) {
           s.exploded = true;
-          this.explode(
-            s,
-            55,
-            25,
-            false,
-            s.root || ++this.nextChainId,
-          );
+          this.explode(s, 55, 25, false, s.root || ++this.nextChainId);
+          this.event("ember-blast");
           this.effect("ember", s, 0.42, BLAST.ring, 55);
         }
         continue;
@@ -1959,14 +2049,7 @@ export class Game {
             dist(e, point) < point.radius + e.r
           ) {
             point.hitIds.add(e.id);
-            this.hit(
-              e,
-              point.damage,
-              point,
-              "secondary",
-              50,
-              point.root,
-            );
+            this.hit(e, point.damage, point, "secondary", 50, point.root);
           }
         }
       }

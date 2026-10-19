@@ -65,6 +65,9 @@ npm run format
 它使用普通键鼠、实际触屏事件和只读观察数据；没有修改战斗状态或开启无敌。
 失败路径由普通键盘朝最近敌人冲的独立 fixture 覆盖（固定 seed 2a/17/91，各一局）；
 `window.scrapMetrics.enemyPositions` 每次返回全新的 `{x,y}` 副本，不泄漏敌人引用。
+`tests/browser-expedition-review.mjs` 是独立的 20 波普通输入审查脚本，必须显式提供
+`REVIEW_SHA` 和新的 `OUTPUT_DIR`（例如 `BASE_URL=http://127.0.0.1:4190`）；它未纳入
+`npm test`，一个尚未执行的副本不算胜利证据。
 `dist/` 使用相对路径，可由任意 HTTP 静态服务托管在根目录或子目录。不支持 file://。
 没有公开部署。文档与审查见 docs/testing.md、docs/reviews.md。
 

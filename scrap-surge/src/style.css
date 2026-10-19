@@ -561,6 +561,27 @@ h1 > i {
   display: block;
   background: #e97c54;
 }
+#boss.stage-2 > span {
+  background: #f0c45a;
+}
+#boss.stage-2 i {
+  background: #c78b36;
+}
+#boss.stage-3 > span {
+  background: #b8d7d0;
+}
+#boss.stage-3 i {
+  background: #4d8279;
+}
+#boss.stage-4 > span {
+  background: #fff0a1;
+}
+#boss.stage-4 i {
+  background: #f07558;
+}
+.expedition20 #boss {
+  top: calc(max(24px, env(safe-area-inset-top)) + 84px);
+}
 .kill-banner {
   position: absolute;
   top: calc(var(--edge) + 15%);
@@ -1953,6 +1974,18 @@ h1 > i {
   font-size: 10px;
   font-weight: 800;
 }
+.quick-card.selected,
+.branch-card.selected {
+  background: #dce5b5;
+  box-shadow: 4px 4px 0 #627b5a;
+}
+.quick-card:disabled:not(.selected),
+.branch-card:disabled:not(.selected) {
+  opacity: 0.45;
+}
+.branch-card:disabled {
+  cursor: default;
+}
 .tier-label {
   display: inline-block;
   font-size: 10px;
@@ -2044,7 +2077,7 @@ h1 > i {
 
 @media (max-width: 520px) {
   .expedition-shop {
-    padding-bottom: 18px;
+    padding-bottom: 76px;
   }
   .owned-heading {
     display: block;
@@ -2053,9 +2086,19 @@ h1 > i {
     display: block;
     margin-top: 4px;
   }
-  .owned-grid,
+  .expedition-shop .owned-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .quick-grid {
     grid-template-columns: 1fr;
+  }
+  .expedition-shop .shop-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    background: var(--paper);
+    border-top: 2px solid var(--ink);
+    padding: 10px 0 max(8px, env(safe-area-inset-bottom));
   }
   .owned-weapon > svg {
     width: 66px;

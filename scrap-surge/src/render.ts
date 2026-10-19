@@ -667,27 +667,80 @@ export class Renderer {
         this.ellipse(0, 0, b.r, b.r, "#e9695b", "#813b31", 2);
         this.ellipse(-2, -2, 2, 2, "#fff0a0", "#0000", 0);
       } else {
+        const isTierIIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) >= 3;
+        const isTierIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) === 2;
+        const isMagnet = b.mod === "magnet" && b.homing && (b.tier ?? 1) >= 2;
         this.line(
           [
-            { x: -10, y: 0 },
+            {
+              x: isTierIIPopcorn ? -17 : isMagnet ? -14 : -10,
+              y: 0,
+            },
             { x: 0, y: 0 },
           ],
-          b.kind === "bonus" ? "#d5edb2" : "#fceabe",
-          4,
+          isMagnet
+            ? "#86e1c2"
+            : isTierIIIPopcorn
+              ? "#ff9b2f"
+              : isTierIIPopcorn
+                ? "#b7efc8"
+                : b.kind === "bonus"
+                  ? "#d5edb2"
+                  : "#fceabe",
+          isTierIIPopcorn ? 5 : 4,
         );
         this.ellipse(
           0,
           0,
-          b.r,
-          b.r * 0.75,
+          b.r + (isTierIIPopcorn ? 1.5 : 0),
+          b.r * 0.75 + (isTierIIPopcorn ? 1 : 0),
           b.kind === "enemy"
             ? "#e9695b"
-            : b.kind === "bonus"
-              ? "#e9cf4a"
-              : "#fff3c8",
+            : isMagnet
+              ? "#8fe3c5"
+              : isTierIIIPopcorn
+                ? "#ffd76a"
+                : b.kind === "bonus"
+                  ? "#e9cf4a"
+                  : "#fff3c8",
           INK,
           1.8,
         );
+        if (isTierIIPopcorn) {
+          // Tier-II popcorn pierces one extra enemy; the trailing fork makes
+          // that second hit readable instead of only sounding different.
+          this.line(
+            [
+              { x: -15, y: -7 },
+              { x: -7, y: 0 },
+              { x: -15, y: 7 },
+            ],
+            "#fff8d8",
+            1.8,
+          );
+        }
+        if (isTierIIIPopcorn) {
+          for (const side of [-1, 1])
+            this.line(
+              [
+                { x: -4, y: side * 5 },
+                { x: -12, y: side * 13 },
+              ],
+              "#fff0a0",
+              2,
+            );
+        }
+        if (isMagnet) {
+          this.line(
+            [
+              { x: -8, y: -8 },
+              { x: -14, y: -1 },
+              { x: -8, y: 7 },
+            ],
+            "#d7fff0",
+            1.6,
+          );
+        }
       }
       c.restore();
     }
@@ -833,6 +886,47 @@ export class Renderer {
               },
             ],
             i % 2 ? "#fff0a0" : BLAST.ring,
+            3,
+          );
+        }
+      } else if (f.kind === "split") {
+        for (const side of [-1, 1])
+          this.line(
+            [
+              { x: f.x, y: f.y },
+              {
+                x: f.x + side * f.size * (0.4 + (1 - a) * 1.4),
+                y: f.y - f.size * (0.25 + (1 - a) * 0.55),
+              },
+            ],
+            side < 0 ? "#df8a5e" : "#f0b071",
+            3,
+          );
+      } else if (f.kind === "tell") {
+        this.ellipse(
+          f.x,
+          f.y,
+          f.size * (0.45 + (1 - a) * 0.55),
+          f.size * (0.45 + (1 - a) * 0.55),
+          "#0000",
+          f.color,
+          3 * a,
+        );
+      } else if (f.kind === "ring") {
+        for (let i = 0; i < 8; i++) {
+          const ang = (i * Math.PI) / 4 + f.x * 0.01;
+          this.line(
+            [
+              {
+                x: f.x + Math.cos(ang) * f.size * 0.35,
+                y: f.y + Math.sin(ang) * f.size * 0.35,
+              },
+              {
+                x: f.x + Math.cos(ang) * f.size * (0.65 + (1 - a) * 0.5),
+                y: f.y + Math.sin(ang) * f.size * (0.65 + (1 - a) * 0.5),
+              },
+            ],
+            i % 2 ? "#fff0a0" : f.color,
             3,
           );
         }
@@ -1089,10 +1183,7 @@ export class Renderer {
       c.fillStyle = "#a6d2af";
       c.fillRect(e.x - 19, e.y - 33, (38 * e.hp) / e.maxHp, 2);
     }
-    if (
-      (e.kind === "splitter" || e.kind === "spitter") &&
-      e.hp < e.maxHp
-    ) {
+    if ((e.kind === "splitter" || e.kind === "spitter") && e.hp < e.maxHp) {
       c.fillStyle = INK;
       c.fillRect(e.x - 20, e.y - e.r - 12, 40, 4);
       c.fillStyle = e.kind === "spitter" ? "#e5a04d" : "#e08a65";

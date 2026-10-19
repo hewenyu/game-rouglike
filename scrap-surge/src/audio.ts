@@ -98,13 +98,36 @@ export class Sound {
       }
     }
     if (e.type === "tier") {
-      const tier = e.tier ?? 2;
+      if (e.tier !== 2 && e.tier !== 3) return;
+      const tier = e.tier;
       this.tone(420 + tier * 110, 690 + tier * 180, 0.16, 0.16, "triangle");
       setTimeout(
         () => this.tone(620 + tier * 140, 920 + tier * 120, 0.2, 0.1, "sine"),
         65,
       );
+      if (e.mod === "popcorn")
+        setTimeout(() => this.tone(920, 1460, 0.12, 0.09, "triangle"), 125);
     }
+    if (e.type === "wake-hit") this.tone(1050, 1500, 0.1, 0.1, "sine");
+    if (e.type === "ember-blast") this.tone(170, 55, 0.3, 0.2, "sawtooth");
+    if (e.type === "split") this.tone(280, 145, 0.14, 0.12, "square");
+    if (e.type === "spitter-tell") this.tone(310, 410, 0.32, 0.1, "triangle");
+    if (e.type === "mod-cue") {
+      if (e.mod === "popcorn") this.tone(720, 1120, 0.12, 0.1, "sine");
+      else if (e.mod === "domino") this.tone(150, 90, 0.18, 0.14, "square");
+      else this.tone(390, 560, 0.2, 0.09, "sine");
+    }
+    if (e.type === "tier-fire") {
+      const up = e.kind === "coil" || e.kind === "rocket";
+      this.tone(
+        up ? 620 : 360,
+        up ? 1050 : 190,
+        0.1,
+        0.09,
+        e.kind === "shotgun" ? "sawtooth" : "triangle",
+      );
+    }
+    if (e.type === "ring") this.tone(880, 1760, 0.18, 0.12, "triangle");
     if (e.type === "end") this.tone(660, 220, 0.8, 0.3);
   }
 }

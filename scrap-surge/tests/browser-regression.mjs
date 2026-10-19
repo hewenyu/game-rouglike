@@ -675,6 +675,53 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
       errors.length === 0,
     { ready, ...iso, errors },
   );
+  const bossIso = await page.evaluate(async () => {
+    const idle = window.scrapMetrics.boss;
+    if (idle !== null)
+      return { idleIsNull: false, detail: "slice exposed a boss before W2" };
+    // Wait on the game's own simulation and normal time flow; no state is written.
+    for (let i = 0; i < 300; i++) {
+      if (window.scrapMetrics.boss) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    const a = window.scrapMetrics.boss;
+    if (!a) return { idleIsNull: true, appeared: false };
+    const before = { ...a };
+    const ref = a;
+    a.x = 1e9;
+    a.y = -1e9;
+    a.hp = -1;
+    a.born = -1;
+    const b = window.scrapMetrics.boss;
+    return {
+      idleIsNull: true,
+      appeared: true,
+      freshObject: b !== ref,
+      unchanged:
+        !!b &&
+        b.x === before.x &&
+        b.y === before.y &&
+        b.hp === before.hp &&
+        b.maxHp === before.maxHp &&
+        b.stage === before.stage &&
+        b.born === before.born,
+      shape:
+        !!b && Object.keys(b).sort().join(",") === "born,hp,maxHp,stage,x,y",
+      finiteNumeric:
+        !!b &&
+        [b.x, b.y, b.hp, b.maxHp, b.stage, b.born].every(Number.isFinite),
+    };
+  });
+  check(
+    "H boss metrics are null before spawn and a fresh six-field numeric copy",
+    bossIso.idleIsNull &&
+      bossIso.appeared &&
+      bossIso.freshObject &&
+      bossIso.unchanged &&
+      bossIso.shape &&
+      bossIso.finiteNumeric,
+    bossIso,
+  );
   await page.close();
 }
 

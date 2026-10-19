@@ -1,8 +1,10 @@
-# Expedition20 proposal (UNIMPLEMENTED, NOT APPROVED)
+# Expedition20 approved implementation spec
 
-Status: **proposal only**. No part of this document is implemented or approved until
-Astra, Opus and DeepSeek sign the same text. The shipped page remains the two-wave slice
-at `2746a01`.
+Status: **implemented candidate, not user-accepted and not validation-complete**.
+Astra, Opus, author DeepSeek and independent DeepSeek approved implementation text
+**058951fc84994abb8ee24a2c587bb9232c1c1ccd**. The normal page now defaults to
+`expedition20`; `?mode=slice` preserves the two-wave slice. Any later tuning or
+rule change needs three-party agreement.
 
 Technical selection: TypeScript + Vite + Canvas stays. That already satisfies the
 "prefer Go and TypeScript" rule; there is no server-side need, so no Go backend or build
@@ -21,7 +23,8 @@ overhaul, external/paid assets, production debug entry, bot lab, 3-star weapons.
 ### 1.1 Mode isolation
 
 - `new Game(seed)` keeps today's behaviour = `slice`, so the existing 47 rule tests,
-  23 regression checks and first-shop suite keep testing the frozen slice untouched.
+  the then-23 regression checks and first-shop suite keep testing the frozen slice
+  untouched.
 - `new Game(seed, "expedition20")` is the new mode. Slice numbers are never mutated to
   serve expedition; shared helpers may be parameterized but slice behaviour is
   byte-identical.
@@ -614,9 +617,12 @@ one assertion per row where stated):
 - records isolation: the expedition key is new, and writing the old key changes only
   `muted`, preserving every other field including unknown fields.
 
-The 23 regression checks remain unchanged except for fixture wiring that appends
-`mode=slice` to every existing browser test URL. No rule assertion may be removed or
-weakened by that change; the 47 slice assertions stay byte-for-byte the same.
+The historical 23 regression checks remain unchanged except for fixture wiring that
+appends `mode=slice` to every existing browser test URL. No rule assertion may be
+removed or weakened by that change; the 47 slice assertions stay byte-for-byte the
+same. The current candidate adds two read-only boss-metrics checks, making the new
+browser-regression denominator 25; the earlier 23/23 results must not be relabelled as
+25/25.
 
 ### 12.2 Browser (real input only)
 

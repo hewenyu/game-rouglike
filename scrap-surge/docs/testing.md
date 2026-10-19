@@ -73,6 +73,12 @@ host. Both use ordinary keys, taps and buttons and read only `window.scrapMetric
 plus DOM geometry; no HP, timer or entity writes, and no invulnerability.
 `CHROME_PATH`, `TEST_URL`/`BASE_URL` and `DIST_DIR` are configurable.
 
+The review-only `tests/browser-expedition-review.mjs` is a separate full-run harness
+adapted from Astra's review script. It requires an explicit `REVIEW_SHA` and a fresh
+`OUTPUT_DIR`, defaults to `http://127.0.0.1:4190`, and preserves each attempt's JSON,
+JSONL trace and screenshots. It is deliberately not in an npm script or the frozen
+regression denominator. A copied but unrun script is not a victory result.
+
 Environment: Google Chrome 155.0.8059.80, headless Playwright, macOS 26.6.2 /
 Apple M4, 1440x960, DPR 1, seed 0x2a.
 

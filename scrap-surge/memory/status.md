@@ -6,6 +6,13 @@ code/visual/failure review. It is **not user-accepted and not validation-complet
 The normal page defaults to `expedition20`; `?mode=slice` keeps the approved two-wave
 slice. No balance tuning was made to force a green result.
 
+The candidate now has 84/84 non-browser assertions (the historical 47 slice assertions
+unchanged, plus 37 expedition assertions), a clean build, and a preserved review-only
+20-wave keyboard harness at `tests/browser-expedition-review.mjs`. That harness has
+**not been run** and is not a victory. The browser regression gained two checks, so its
+new denominator is **25**, not the historical 23; no 25/25 claim exists until a fresh
+run is recorded.
+
 Unverified at this review freeze: no ordinary-input 20-wave victory; no real
 ordinary-input `ember` run; post-mode-pin regression/mobile expedition interaction
 coverage; simulation-CPU fixed-step measurement; physical touch/audio/user feel.
@@ -23,8 +30,10 @@ source/test SHA-256 fingerprints in each result.
 Approved implementation spec: **058951fc84994abb8ee24a2c587bb9232c1c1ccd**.
 Astra, Opus, author DeepSeek and independent DeepSeek explicitly approved this same
 text for full `expedition20` implementation. This is approval of the plan, not user
-acceptance. The runnable expedition candidate is being frozen for three-party
-implementation review; it is not yet validation-complete.
+acceptance. The runnable expedition candidate was frozen at
+**018f66ed18963870e55578edf97f9c3812a16ad2** for three-party implementation review;
+the current working tree adds the presentation/UI fixes and tests described below and
+is not yet validation-complete.
 
 User played and rejected Nightfold: not satisfying, wants a Brotato-like roguelike.
 The rejected prototype has been deleted under the user's direct authorization.

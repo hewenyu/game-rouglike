@@ -25,6 +25,7 @@ const recordKey =
     : "scrap-surge.v1";
 const legacyKey = "scrap-surge.v1";
 const app = document.querySelector<HTMLDivElement>("#app")!;
+if (gameMode === "expedition20") document.body.classList.add("expedition20");
 app.innerHTML = `<canvas id="arena" aria-label="废潮自动战斗场地；WASD 或方向键移动，武器自动攻击"></canvas><header><a class="brand" href="#" id="brand">SCRAP<span>SURGE</span><b>废潮</b></a><div class="header-tools"><span class="version">FEEL TEST / 01</span><button id="sound" class="small-button" aria-label="关闭声音">声音 ON</button><button id="pause" class="small-button" hidden aria-label="暂停">Ⅱ</button></div></header>
 <section id="title" class="title"><div class="title-copy"><div class="kicker"><span></span> 一只小蟹。六把破烂。一整片怪潮。</div><h1>废<span>潮</span><i>!</i></h1><h2>捡的是垃圾。<br>打出来的是<span>火力。</span></h2><p>只管走位，让壳上的家伙自动开火。<br>捡废料、挂武器，把一场混战滚成连锁反应。</p><div class="start-row"><button class="primary" id="start">下海，开火 <b>↗</b></button><button id="how" class="outline">怎么玩？</button></div><small>${gameMode === "expedition20" ? "20 波潮线 · 9 次整备 · 4 场首领战 · 约 15 分钟" : "两波战斗 + 一次改装商店 · 约 1 分钟战斗体验"}</small></div><div class="sticker">不用瞄准<br><strong>自动开火！</strong><span>JUST KEEP MOVING</span></div><div class="title-bottom"><div><b>01</b><p>走位活下来<small>WASD / 方向键 · 触屏摇杆</small></p></div><div><b>02</b><p>往壳上挂火力<small>六个槽位，同时开火</small></p></div><div><b>03</b><p>让连锁自己滚起来<small>击杀 → 掉落 → 火力 → 更多击杀</small></p></div></div><div class="bottom-tape">TRASH INTO TREASURE · TREASURE INTO TROUBLE · TRASH INTO TREASURE · TREASURE INTO TROUBLE</div></section>
 <section id="hud" hidden><div class="edge-timer" id="edge"><i id="edge-fill"></i><span id="wave-label">第一波 / 02</span><strong id="timer">20</strong><small id="wave-note">自动开火，别被围住</small></div><div class="hud-bottom" id="hud-bottom"><div class="health"><strong id="hp-label">10 / 10</strong><div id="hp"></div><small>壳还很硬</small></div><div id="loadout" class="loadout"></div><div class="wallet"><span>废料</span><strong id="money">0</strong><small id="kill-count">0 击败</small></div></div><div id="boss" hidden><span>罐头大王 / DON'T GET CANNED</span><div><i></i></div></div><div class="kill-banner" id="kill-banner"></div><div id="mod-strip"></div><p id="hint" class="hint">只需要移动，武器会自动找目标。</p><div id="joystick" role="group" aria-label="触屏移动摇杆"><i></i><span>移动</span></div></section><div id="overlay" hidden></div><div id="toast" role="status"></div>`;
@@ -319,20 +320,25 @@ function quick(g: Game) {
     kind === "branch"
       ? (g.quickOptions as ExpeditionBranch[])
           .map(
-            (id) => `<button class="branch-card" data-quick="${id}">
+            (
+              id,
+            ) => `<button class="branch-card ${g.branch === id ? "selected" : ""}" data-quick="${id}" ${g.quickPicked ? "disabled" : ""} aria-pressed="${g.branch === id}">
               <b>${BRANCHES[id].icon}</b><span>${BRANCHES[id].en}</span>
-              <h3>${BRANCHES[id].name}</h3><p>${BRANCHES[id].desc}</p>
-              <small>永久 · 二选一</small>
+              <h3>${BRANCHES[id].name}${g.branch === id ? " ✓" : ""}</h3><p>${BRANCHES[id].desc}</p>
+              <small>${g.branch === id ? "已选 · 本局生效" : "永久 · 二选一"}</small>
             </button>`,
           )
           .join("")
       : (g.quickOptions as ModId[])
-    .map((id) => {
-            const tier =
-              kind === "mod-upgrade" ? g.modTier(id) + 1 : 1;
-            return `<button class="mod-card quick-card" data-quick="${id}">
+          .map((id) => {
+            const tier = kind === "mod-upgrade" ? g.modTier(id) + 1 : 1;
+            const selected =
+              kind === "mod-upgrade"
+                ? g.quickPicked && Math.abs(g.modTier(id) - tier) < 0.01
+                : g.has(id);
+            return `<button class="mod-card quick-card ${selected ? "selected" : ""}" data-quick="${id}" ${g.quickPicked ? "disabled" : ""} aria-pressed="${selected}">
               <b>${modIcon(id, tier)}</b><div><span class="tier-label">${kind === "mod-upgrade" ? `${modTierLabel(tier - 1)} → ${modTierLabel(tier)}` : `TIER ${modTierLabel(tier)}`}</span><strong>${MODS[id].name}</strong><p>${nextModDescription(id, tier)}</p></div>
-              <small>免费</small>
+              <small>${selected ? "已选 ✓" : "免费"}</small>
             </button>`;
           })
           .join("");
@@ -352,9 +358,7 @@ function quick(g: Game) {
         (b.onclick = () => {
           const raw = b.dataset.quick!;
           const value =
-            kind === "branch"
-              ? (raw as ExpeditionBranch)
-              : (raw as ModId);
+            kind === "branch" ? (raw as ExpeditionBranch) : (raw as ModId);
           if (g.chooseQuick(value)) quick(g);
         }),
     );
@@ -423,9 +427,7 @@ function updateHud() {
       0,
       Math.min(
         1,
-        overtime
-          ? (g.deadline - g.waveTime) / 15
-          : g.waveTime / g.duration,
+        overtime ? (g.deadline - g.waveTime) / 15 : g.waveTime / g.duration,
       ),
     ) * 100
   }%`;
@@ -454,12 +456,13 @@ function updateHud() {
       ? `<div class="${gun.tier === 2 ? "tier-two" : ""}" title="${WEAPONS[gun.id].desc}">${icon(gun.id)}<small>${WEAPONS[gun.id].name} ${modTierLabel(gun.tier ?? 1)}</small></div>`
       : '<div class="empty">+<small>空槽</small></div>';
   }).join("");
-  $("mod-strip").innerHTML = g.mods
-    .map(
-      (id) =>
-        `<span class="tier-${g.modTier(id)}">${MODS[id].icon} ${MODS[id].name} <b>${modTierLabel(g.modTier(id))}</b></span>`,
-    )
-    .join("") +
+  $("mod-strip").innerHTML =
+    g.mods
+      .map(
+        (id) =>
+          `<span class="tier-${g.modTier(id)}">${MODS[id].icon} ${MODS[id].name} <b>${modTierLabel(g.modTier(id))}</b></span>`,
+      )
+      .join("") +
     (g.branch
       ? `<span class="branch-strip">${BRANCHES[g.branch].icon} ${BRANCHES[g.branch].name}</span>`
       : "");
@@ -479,18 +482,19 @@ function updateHud() {
                   ? "容量不是免费枪位。留下真正喂回路的武器。"
                   : "潮水在加速。把已成的连锁交给它自己滚。"
       : g.wave === 1
-      ? g.waveTime < 7
-        ? "只需要移动。每把武器都会自己找目标。"
-        : g.waveTime < 15
-          ? "靠近金色废料，它们会飞进你的壳。"
-          : "即将退潮！剩下的废料会全部收回来。"
-      : g.waveTime < 8
-        ? "新武器都挂上了。冲进废料堆，让反馈回路启动！"
-        : "";
+        ? g.waveTime < 7
+          ? "只需要移动。每把武器都会自己找目标。"
+          : g.waveTime < 15
+            ? "靠近金色废料，它们会飞进你的壳。"
+            : "即将退潮！剩下的废料会全部收回来。"
+        : g.waveTime < 8
+          ? "新武器都挂上了。冲进废料堆，让反馈回路启动！"
+          : "";
   $("hint").hidden = !$("hint").textContent;
   $("boss").hidden = !boss;
   if (boss) {
     const info = g.mode === "expedition20" ? bossForWave(g.wave) : null;
+    $("boss").className = info ? `stage-${info.stage}` : "";
     $("boss").querySelector("span")!.textContent = info
       ? `${info.name} / ${info.en}`
       : "罐头大王 / DON'T GET CANNED";
@@ -640,6 +644,19 @@ Object.defineProperty(window, "scrapMetrics", {
     enemyPositions:
       game?.enemies.filter((e) => e.hp > 0).map((e) => ({ x: e.x, y: e.y })) ??
       [],
+    boss: (() => {
+      const boss = game?.enemies.find((e) => e.kind === "boss" && e.hp > 0);
+      return boss
+        ? {
+            x: boss.x,
+            y: boss.y,
+            hp: boss.hp,
+            maxHp: boss.maxHp,
+            stage: boss.bossStage ?? 1,
+            born: boss.born,
+          }
+        : null;
+    })(),
     bullets: game?.bullets.length,
     scraps: game?.scraps.length,
     pending: game?.pendingBlasts.length,
