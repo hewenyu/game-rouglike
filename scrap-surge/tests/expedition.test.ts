@@ -975,6 +975,25 @@ test("expedition domino tiers inspect every fourth and eighth secondary kill per
   );
 });
 
+test("expedition tier-II domino marks ordinary pending blasts for a double ring", () => {
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  g.modTiers.set("domino", 2);
+  const victim = enemy(g, 300, 300, 1);
+  g.hit(victim, 5, g.player, "weapon");
+  const blast = g.pendingBlasts.find((b) => b.damage === 26);
+  assert(blast);
+  assert.equal(blast.radius, 75);
+  assert.equal(blast.dualRing, true);
+  step(g, 1);
+  assert(
+    g.fx.some(
+      (f) => f.kind === "domino-ring" && f.life === 0.45 && f.size === 75,
+    ),
+  );
+});
+
 test("expedition magnet tier III presents a full-arena warm sweep", () => {
   const g = empty();
   g.mods = ["magnet"];
@@ -984,11 +1003,6 @@ test("expedition magnet tier III presents a full-arena warm sweep", () => {
   enemy(g, 800, 450, 100);
   g.collect(scrap(1));
   assert.equal(g.magnetPulse, 0.6);
-  const sweep = g.fx.find((f) => f.kind === "magnet-sweep");
-  assert(sweep);
-  assert.equal(sweep.life, 0.6);
-  assert.equal(sweep.size, 300);
-  assert.equal(sweep.color, "#f0b45f");
   assert(
     g.bullets.every(
       (b) => b.mod === "magnet" && b.tier === 3 && b.hitIds === undefined,

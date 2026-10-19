@@ -105,7 +105,6 @@ export type Fx = {
     | "tell"
     | "domino-ring"
     | "domino-blast"
-    | "magnet-sweep"
     | "ring";
   x: number;
   y: number;
@@ -188,6 +187,7 @@ export class Game {
     radius: number;
     damage: number;
     chain: number;
+    dualRing?: boolean;
     tier3?: boolean;
   }[] = [];
   wave = 1;
@@ -1081,6 +1081,7 @@ export class Game {
             damage: 80,
             chain,
             tier3: true,
+            dualRing: true,
           });
         }
       }
@@ -1161,6 +1162,7 @@ export class Game {
               : 0)),
         damage: 26,
         chain: blastRoot,
+        dualRing: this.modTier("domino") >= 2,
       });
     }
     this.pendingPeak = Math.max(this.pendingPeak, this.pendingBlasts.length);
@@ -1355,7 +1357,6 @@ export class Game {
         this.magnetPulse = 0.6;
         this.magnetPulseCooldown = 0.6;
         this.event("mod-cue", undefined, 3, "magnet");
-        this.effect("magnet-sweep", this.player, 0.6, "#f0b45f", 300);
       }
       this.effect("blast", this.player, 0.3, BLAST.ring, 70);
     }
@@ -1912,9 +1913,8 @@ export class Game {
       }
       for (let i = 0; i < 12 && this.pendingBlasts.length; i++) {
         const blast = this.pendingBlasts.shift()!;
-        if (blast.tier3) {
-          this.effect("domino-ring", blast.p, 0.45, "#f6c35c", 160);
-        }
+        if (blast.dualRing)
+          this.effect("domino-ring", blast.p, 0.45, "#f6c35c", blast.radius);
         this.explode(
           blast.p,
           blast.radius,

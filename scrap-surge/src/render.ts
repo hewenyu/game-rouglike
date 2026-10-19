@@ -520,6 +520,40 @@ export class Renderer {
       this.oy + Math.cos(t * 67) * shake,
     );
     c.scale(this.scale, this.scale);
+    // Read the existing simulation pulse only. This is an arena-wide visual
+    // sweep, not a collision radius or an extra game rule.
+    if (g.mode === "expedition20" && g.magnetPulse > 0) {
+      const a = Math.min(1, (g.magnetPulse / 0.6) * 1.5),
+        edges = [
+          { x: 16, y: 16 },
+          { x: W - 16, y: 16 },
+          { x: W - 16, y: H - 16 },
+          { x: 16, y: H - 16 },
+        ];
+      c.save();
+      c.globalAlpha = a;
+      c.strokeStyle = "#f0b45f";
+      c.lineCap = "round";
+      for (let i = 0; i < 16; i++) {
+        const side = i % 4,
+          progress = Math.floor(i / 4) / 3,
+          start = edges[side],
+          end = edges[(side + 1) % 4],
+          sx = start.x + (end.x - start.x) * progress,
+          sy = start.y + (end.y - start.y) * progress;
+        c.lineWidth = i % 2 ? 3 : 5;
+        c.beginPath();
+        c.moveTo(sx, sy);
+        c.quadraticCurveTo(
+          (sx + g.player.x) / 2 + Math.cos(i * 1.7) * 42,
+          (sy + g.player.y) / 2 + Math.sin(i * 1.7) * 42,
+          g.player.x,
+          g.player.y,
+        );
+        c.stroke();
+      }
+      c.restore();
+    }
     c.strokeStyle = "#846f4b55";
     c.lineWidth = 2;
     c.setLineDash([3, 10]);
@@ -946,25 +980,6 @@ export class Renderer {
         for (let i = 0; i < 2; i++) {
           const r = f.size * (0.35 + (1 - a) * 0.65 - i * 0.12);
           this.ellipse(f.x, f.y, r, r, "#0000", f.color, 3 - i);
-        }
-      } else if (f.kind === "magnet-sweep") {
-        const radius = f.size * (0.82 + (1 - a) * 0.18);
-        for (let i = 0; i < 4; i++) {
-          const start = i * Math.PI * 0.5 + t * 0.55;
-          this.line(
-            [
-              {
-                x: f.x + Math.cos(start) * radius,
-                y: f.y + Math.sin(start) * radius,
-              },
-              {
-                x: f.x + Math.cos(start + Math.PI * 0.42) * radius,
-                y: f.y + Math.sin(start + Math.PI * 0.42) * radius,
-              },
-            ],
-            i % 2 ? "#fff0c4" : f.color,
-            4 + a * 2,
-          );
         }
       } else {
         this.ellipse(

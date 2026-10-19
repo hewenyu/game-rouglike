@@ -7,12 +7,14 @@ code/visual/failure review. It is **not user-accepted and not validation-complet
 The normal page defaults to `expedition20`; `?mode=slice` keeps the approved two-wave
 slice. No balance tuning was made to force a green result.
 
-The candidate now has 86/86 non-browser assertions (the historical 47 slice assertions
-unchanged, plus 39 expedition assertions), a clean build, and a preserved review-only
+The candidate now has 87/87 non-browser assertions (the historical 47 slice assertions
+unchanged, plus 40 expedition assertions), a clean build, and a preserved review-only
 20-wave keyboard harness at `tests/browser-expedition-review.mjs`. The harness has been
 run but has not produced a victory. The browser regression gained two checks, so its new
-denominator is **25**, not the historical 23; no 25/25 claim exists until a fresh run is
-recorded.
+denominator is 24 at runtime, not the historical 23. No green claim exists for the
+current candidate: a fresh run on `40b3fc0` passed 23/24 and failed only the H
+boss-metrics check because the slice boss did not appear inside that fixture's wait
+window. This is a recorded failure, not a pass or a stability claim.
 
 Latest ordinary-input browser evidence on baseline
 **3140ddf2851e735334112050bfd5de46d10b4555** is a real failure, not a victory. Astra's
@@ -57,7 +59,11 @@ acceptance. The runnable expedition candidate was frozen at
 **018f66ed18963870e55578edf97f9c3812a16ad2** for three-party implementation review;
 it was then frozen at **3140ddf2851e735334112050bfd5de46d10b4555**, and the follow-up
 freeze containing this section adds the presentation/UI fixes and tests described
-below. None of these freezes is user acceptance or validation completion.
+below. Magnet III's presentation is a render-only arena-edge-to-player sweep driven
+by the existing `magnetPulse`; there is no radius-300 FX or collision radius. Every
+real domino pending blast at tier II/III carries the double-ring cue, while the III
+special blast keeps its larger/slower form. None of these freezes is user acceptance
+or validation completion.
 
 User played and rejected Nightfold: not satisfying, wants a Brotato-like roguelike.
 The rejected prototype has been deleted under the user's direct authorization.
