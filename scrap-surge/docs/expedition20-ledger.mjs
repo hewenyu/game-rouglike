@@ -12,13 +12,13 @@ export const POCKETS=[
  [[6,17,'stream'],[14,17,'stream'],[22,17,'stream'],[29,17,'stream']],
  [[6,17,'ring'],[14,17,'ring'],[22,17,'ring'],[30,17,'ring'],[36,17,'ring']],
  [[8,12,'stream'],[12,12,'stream'],[16,12,'stream'],[20,12,'stream'],[24,12,'stream'],[28,12,'stream']],
- [[8,12,'split'],[20,12,'split'],[28,18,'split']],
- [[7,18,'split'],[14,18,'split'],[21,18,'split'],[28,18,'split']],
+ [[8,12,'two-cluster'],[20,12,'two-cluster'],[28,18,'two-cluster']],
+ [[7,18,'two-cluster'],[14,18,'two-cluster'],[21,18,'two-cluster'],[28,18,'two-cluster']],
  [[8,12,'stream'],[11.5,12,'stream'],[15,12,'stream'],[18.5,12,'stream'],[22,12,'stream'],[25.5,12,'stream'],[29,12,'stream']],
- [[6,20,'split'],[14,20,'split'],[22,20,'split'],[30,20,'split'],[38,20,'split']],
+ [[6,20,'two-cluster'],[14,20,'two-cluster'],[22,20,'two-cluster'],[30,20,'two-cluster'],[38,20,'two-cluster']],
  [[8,12,'stream'],[12,12,'stream'],[16,12,'stream'],[20,12,'stream'],[24,12,'stream'],[28,12,'stream'],[32,12,'stream'],[35,12,'stream']],
- [[6,20,'split'],[24,20,'split']],
- [[6,18,'ring'],[20,18,'ring'],[32,18,'split']],
+ [[6,20,'two-cluster'],[24,20,'two-cluster']],
+ [[6,18,'ring'],[20,18,'ring'],[32,18,'two-cluster']],
  [[5,16,'ring'],[10,10,'stream'],[15,16,'ring'],[20,10,'stream'],[25,16,'ring'],[30,10,'stream'],[35,16,'ring']],
  [[6,12,'ring'],[20,12,'ring'],[34,12,'ring'],[50,12,'ring'],[66,12,'ring']],
 ];
@@ -39,9 +39,12 @@ export const BAG=[17,17,17,17,17,20,20,20,20,20,24,24,24,24,24,24,24,17,17,24];
 export const MULT=[1,1,1.15,1.3,1.45,1.6,1.75,1.9,2.1,2.3,2.5,2.7,2.9,3.15,3.4,3.7,4.0,4.35,4.7,5.1];
 export const BASE={runner:19,can:75,splitter:40,chip:8,spitter:55};
 export const VALUE=[2,2,4,3,4];
+export const CHIP_VALUE=1;
+export const CHIPS_PER_SPLIT=2;
 export function hps(i){
  const m=MULT[i];
- return [BAG[i],Math.round(19*m),Math.round(75*m),Math.round(40*m),Math.round(55*m),Math.round(8*m)];
+ return [BAG[i],Math.round(19*m),Math.round(75*m),Math.round(40*m),Math.round(55*m),
+         Math.min(BAG[i],Math.round(8*m))];
 }
 export function row(i){
  const hp=hps(i), bm=MIX[i].map(x=>x/100), pm=PMIX[i].map(x=>x/100);
@@ -49,7 +52,9 @@ export function row(i){
  const avgB=hp.slice(0,5).reduce((s,h,j)=>s+h*bm[j],0);
  const avgP=hp.slice(0,5).reduce((s,h,j)=>s+h*pm[j],0);
  const ehp=nb*avgB+np*avgP;
- const inc=nb*bm.reduce((s,x,j)=>s+x*VALUE[j],0)+np*pm.reduce((s,x,j)=>s+x*VALUE[j],0);
+ const splitValue=CHIPS_PER_SPLIT*CHIP_VALUE;
+ const inc=nb*bm.reduce((s,x,j)=>s+x*(VALUE[j]+(j===3?splitValue:0)),0)
+          +np*pm.reduce((s,x,j)=>s+x*(VALUE[j]+(j===3?splitValue:0)),0);
  return {hp,nb,np,ehps:ehp/DUR[i],income:inc};
 }
 export function ledger(){
@@ -70,9 +75,9 @@ if (import.meta.url === `file://${process.argv[1]}` && !process.argv[2]) {
 }
 
 /**
- * Static economy and DPS estimates. These are NOT measurements: they assume every
- * spawned enemy is collected, no boss drops, no overkill modelling, and that the
- * player buys one new gun before W18 plus tier II at the capacity waves.
+ * Static economy and DPS estimates. These are NOT measurements: they assume a
+ * stated collection rate, two chips per successful splitter, no boss drops and
+ * no overkill modelling, using the legal build route near the end of this file.
  */
 
 // Collector sensitivity. 70% / 85% / 100% of spawned value.
@@ -86,21 +91,30 @@ export function incomeAt(rate) {
   return out;
 }
 
-// Nominal single-target DPS. Interval never changes with tier.
+// Nominal DPS. Interval never changes with tier. Coil reports one target in
+// gunDps() and its full chain in gunGroupDps(); other guns report their normal
+// single-target output in both helpers.
 export const GUN_DPS = {
   slinger: { interval: 0.25, damage: 20, t1: 1, t2: 2, t2Mult: 1.0 },
   shotgun: { interval: 0.85, damage: 15, t1: 5, t2: 7, t2Mult: 1.4 },
   saw: { interval: 0.21, damage: 24, t1: 1, t2: 2, t2Mult: 1.0 },
-  coil: { interval: 0.8, damage: 23, t1: 1, t2: 7, t2Mult: 1.4 },
+  coil: { interval: 0.8, damage: 23, t1: 5, t2: 7, t2Mult: 1.4, group: true },
   rocket: { interval: 1.2, damage: 45, t1: 1, t2: 2, t2Mult: 1.0 },
-  fist: { interval: 0.6, damage: 48, t1: 1, t2: 2, t2Mult: 1.0 },
+  fist: { interval: 0.6, damage: 48, t1: 1, t2: 1, t2Mult: 2.0 },
 };
 
 export function gunDps(id, tier) {
   const g = GUN_DPS[id];
   const hits = tier === 1 ? g.t1 : g.t2;
   const mult = tier === 1 ? 1 : g.t2Mult;
-  return (g.damage * hits * mult) / g.interval;
+  return Math.round(((g.damage * (g.group ? 1 : hits) * mult) / g.interval) * 100) / 100;
+}
+
+export function gunGroupDps(id, tier) {
+  const g = GUN_DPS[id];
+  const hits = tier === 1 ? g.t1 : g.t2;
+  const value = gunDps(id, tier) * (g.group ? hits : 1);
+  return Math.round(value * 100) / 100;
 }
 
 export const BASE_PRICE = {
@@ -115,11 +129,79 @@ export function price(base, mult, wave) {
 // Tier-II capacity by wave, from the agreed ramp.
 export const TIER2_CAP = { 8: 1, 10: 2, 12: 3, 14: 4, 16: 5, 18: 6 };
 
+// One legal six-gun route: the starting slinger costs 0, then five new guns and
+// one tier-II upgrade per capacity shop. This is a planning route, not a claim
+// that every seed deals these offers without rerolls.
+export const INITIAL_SLINGER_COST = 0;
+export const LEGAL_ROUTE = [
+  { wave: 2, purchases: [{ id: 'shotgun', tier: 1 }, { id: 'coil', tier: 1 }] },
+  { wave: 4, purchases: [{ id: 'rocket', tier: 1 }] },
+  { wave: 6, purchases: [] },
+  { wave: 8, purchases: [{ id: 'saw', tier: 1 }, { id: 'slinger', tier: 2 }] },
+  { wave: 10, purchases: [{ id: 'shotgun', tier: 2 }] },
+  { wave: 12, purchases: [{ id: 'fist', tier: 1 }, { id: 'coil', tier: 2 }] },
+  { wave: 14, purchases: [{ id: 'rocket', tier: 2 }] },
+  { wave: 16, purchases: [{ id: 'saw', tier: 2 }] },
+  { wave: 18, purchases: [{ id: 'fist', tier: 2 }] },
+];
+
+export function routeCost(route) {
+  return route.purchases.reduce(
+    (sum, p) => sum + price(BASE_PRICE[p.id], p.tier === 1 ? 1 : 4, route.wave),
+    0,
+  );
+}
+
+export const TOTAL_BUILD_COST =
+  INITIAL_SLINGER_COST + LEGAL_ROUTE.reduce((sum, r) => sum + routeCost(r), 0);
+
+// Static shop ledger. Income through the wave ending immediately before the
+// shop includes 2 chips per successful splitter. It does not model boss drops,
+// enemy-cap rejections, or an over-cap spitter falling back to a bag.
+export function shopLedger() {
+  const rates = [0.7, 0.85, 1.0];
+  const incomes = rates.map(incomeAt);
+  let spend = INITIAL_SLINGER_COST;
+  return LEGAL_ROUTE.map((route) => {
+    const cost = routeCost(route);
+    spend += cost;
+    const idx = route.wave - 1;
+    const income = incomes.map((series) => series[idx]);
+    return {
+      wave: route.wave,
+      purchases: route.purchases
+        .map((p) => `${p.id}${p.tier === 1 ? '' : ' II'}`)
+        .join(' + '),
+      cost,
+      spend,
+      income70: income[0],
+      income85: income[1],
+      income100: income[2],
+      balance70: income[0] - spend,
+      balance85: income[1] - spend,
+      balance100: income[2] - spend,
+    };
+  });
+}
+
 if (import.meta.url === `file://${process.argv[1]}` && process.argv[2] === 'economy') {
-  console.log('# tier II DPS');
-  for (const id of Object.keys(GUN_DPS))
-    console.log(id, gunDps(id, 1).toFixed(1), gunDps(id, 2).toFixed(1));
+  console.log('# DPS: single target (coil group in parentheses)');
+  for (const id of Object.keys(GUN_DPS)) {
+    const extra = GUN_DPS[id].group
+      ? ` (${gunGroupDps(id, 1).toFixed(2)}, ${gunGroupDps(id, 2).toFixed(2)})`
+      : '';
+    console.log(id, gunDps(id, 1).toFixed(2), gunDps(id, 2).toFixed(2) + extra);
+  }
   console.log('# slinger tier II at W8 =', price(15, 4, 8));
+  console.log('# legal route:');
+  for (const r of shopLedger()) {
+    console.log(
+      `W${r.wave}\t${r.purchases}\tcost=${r.cost}\tspend=${r.spend}` +
+      `\tincome=${r.income70}/${r.income85}/${r.income100}` +
+      `\tbalance=${r.balance70}/${r.balance85}/${r.balance100}`,
+    );
+  }
+  console.log('# total build cost =', TOTAL_BUILD_COST);
   console.log('# cash at 70/85/100% by W10 and W18');
   const i70 = incomeAt(0.7), i85 = incomeAt(0.85), i100 = incomeAt(1.0);
   for (const w of [10, 18, 20])

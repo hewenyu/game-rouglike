@@ -30,7 +30,9 @@ overhaul, external/paid assets, production debug entry, bot lab, 3-star weapons.
 - **Records:** the slice keeps its existing `scrap-surge.v1` key unchanged, so existing
   local records survive. Expedition20 uses a **new** key
   (`scrap-surge.expedition20.v1`). Mute preference is read from the old key and written
-  to both, so a player's audio setting carries over without migrating run counts.
+  to both. When the old key is written, **only `muted`** may change; every other old
+  field and unknown field is preserved, so a player's audio setting carries over
+  without migrating or rewriting run records.
 
 ## 2. Run structure
 
@@ -97,8 +99,10 @@ pause: if paused, the interlude does not advance.
 Tier II is not all unlocked at once. The number of tier-II guns the run may hold grows by
 shop: **W8 = 1, W10 = 2, W12 = 3, W14 = 4, W16 = 5, W18 = 6**. This is a live capacity
 for the current wave, not a one-time voucher: it reads from the wave number each shop,
-selling a tier-II gun frees capacity immediately, and no extra currency is involved.
-Upgrading an already-owned selected slot is allowed whenever capacity is available.
+counts every currently held tier-II slot separately (two copies of the same type count
+as two), selling a tier-II gun frees capacity immediately, and no extra currency is
+involved. Upgrading an already-owned selected slot is allowed whenever capacity is
+available. At the capacity limit the upgrade button is disabled and deducts nothing.
 
 ## 3. Economy
 
@@ -115,20 +119,21 @@ and `w` = current wave. There is no floating-point factor anywhere in the price 
 | new gun | 1 |
 | tier II | 4 |
 
-Reference: slinger tier II at W8 = `ceil(20*4*12/5)`… using B=15 gives
-`ceil(15*4*12/5) = 144`. The earlier 145 came from a floating-point 1.4 factor and is
-withdrawn; the test must assert **144**.
+Reference: slinger tier II at W8 uses B=15 and the wave factor
+`(8 + 4) / 5 = 2.4`: `ceil(15*4*12/5) = 144`. The test must assert **144**.
 
 ### 3.2 Buying and upgrading (two explicit actions)
 
-- The shop has two explicit actions per offer: **buy as a new stack** and **upgrade a
-  selected owned slot**. Neither is implied by the other and the UI never silently
-  guesses.
-- If the type is already owned, "upgrade selected slot" targets the slot the player
-  selected - **not** the lowest tier.
+- Four random cards are **new-gun purchases only**. Buying a card creates a tier-I
+  stack of that card's type if a gun slot is available.
+- Upgrade and sell are **independent buttons on each owned slot**. They do not require
+  that type to appear in the current four offers.
+- Upgrade targets the slot the player selected - **not** the lowest tier.
 - A full 6-slot loadout can still upgrade an owned slot.
 - Duplicate purchase is optional; nothing forces buying all six types.
-- At tier II the action is disabled with a stated reason and **no money is deducted**.
+- At tier-II capacity, the upgrade button is disabled with the next opening wave number
+  (for example, "opens after wave N"), or "capacity max" after W18, and **no money is
+  deducted**.
 
 ### 3.3 Selling
 
@@ -140,47 +145,64 @@ withdrawn; the test must assert **144**.
 
 ### 3.4 Offers and rerolls
 
-- 4 gun cards per shop.
-- Composition: at least one already-owned offer, and - if any type is still unowned - at
-  least one unowned offer. This is a composition constraint only: it never guarantees
-  affordability and never creates a negative or zero price.
-- If every type is owned at tier II, the constraint degrades to "at least one owned";
-  no synthetic filler is invented.
+- 4 new-gun cards per shop.
+- Composition: if any gun type is still unowned, the set contains at least one unowned
+  type. It need not contain an owned type, because slot upgrades are independent.
+  This is a composition constraint only: it never guarantees affordability and never
+  creates a negative or zero price.
+- The constraint is an existence check; it is not a promise that a specific weapon
+  appears.
 - Rerolls use the shop RNG stream: first free, then 6, 8, 10, 12, … (the slice's 6 is
   unchanged for slice).
 
 ### 3.5 Static ledger (estimate, not a promise)
 
 `docs/expedition20-ledger.mjs` is the reproducible calculator for the table in §4 and the
-income column. All figures are **static estimates under stated assumptions**, not
+shop ledger below. All figures are **static estimates under stated assumptions**, not
 measurements:
 
-- 100% of spawned value collected;
+- collection of 70%, 85% or 100% of the static spawned drop value, including the chip
+  assumption below;
+- each splitter is assumed to produce both chips, so their value is included; a
+  cap-rejected chip and a cap-overflow spitter that falls back to a bag are **not**
+  modelled;
 - no boss drops counted;
 - no overkill or area-damage modelling;
-- purchases spread as one new gun before W18 and tier II at the capacity waves.
+- the legal build route below; its shop timing is fixed, while the four offered cards
+  and any rerolls remain seed-dependent.
 
 Cash is expected to be **left over**, not tight. This plan explicitly does **not**
 claim "money never limits anything" or "2-3 items per shop"; the ledger shows the
 estimate, and the real per-seed shop ledger is measured during implementation
-validation. Sensitivity is reported at 70% / 85% / 100% collection by reading the
-cumulative-income column.
+validation. These are not upper bounds: boss drops, boss-spawned chips, cap rejection,
+fallback composition changes and area/overkill effects can move actual income in either
+direction.
 
 ### 3.6 Affordability check (the independent-review concern)
 
 The concern was that income runs far ahead of a full tier-II build, so the later shops
-go idle. Static estimate from the ledger script:
+go idle. The starting slinger costs 0. This legal route buys five new guns, makes one
+tier-II upgrade in each of W8/10/12/14/16/18, and keeps W6 as a no-purchase full shop
+(the W4+6+8 route totals six distinct gun types):
 
-| cumulative cash | 70% | 85% | 100% |
-|---|---|---|---|
-| by W10 | 3057 | 3712 | 4367 |
-| by W18 | 7891 | 9581 | 11272 |
-| by W20 | 9951 | 12083 | 14215 |
+`income` is cumulative collection through the wave immediately before the shop;
+`balance` is that income after the listed purchases.
 
-A full 6-gun tier-II build (new guns at W2/4/7/10/12/14 + tier II at the capacity waves
-8/10/12/14/16/18) costs **2073** at integer prices: 18.4% of W18 income at 100%
-collection, 26.3% at 70%. Cash is therefore expected to be **far ahead** of what a
-coherent build needs, even in the pessimistic 70% case.
+| shop | purchases | cost | income 70/85/100% | balance 70/85/100% |
+|---|---|---|---|---|
+| W2 | shotgun + coil | 57 | 301 / 366 / 430 | 244 / 309 / 373 |
+| W4 | rocket | 42 | 753 / 915 / 1076 | 654 / 816 / 977 |
+| W6 | none | 0 | 1401 / 1702 / 2002 | 1302 / 1603 / 1903 |
+| W8 | saw + slinger II | 195 | 2207 / 2680 / 3152 | 1913 / 2386 / 2858 |
+| W10 | shotgun II | 247 | 3315 / 4025 / 4735 | 2774 / 3484 / 4194 |
+| W12 | fist + coil II | 378 | 4340 / 5271 / 6201 | 3421 / 4352 / 5282 |
+| W14 | rocket II | 375 | 5623 / 6828 / 8033 | 4329 / 5534 / 6739 |
+| W16 | saw II | 336 | 7300 / 8864 / 10428 | 5670 / 7234 / 8798 |
+| W18 | fist II | 317 | 8751 / 10627 / 12502 | 6804 / 8680 / 10555 |
+
+The route costs **1,947** in total, after the free initial slinger. At W18 the balance
+is still 6,804 at 70% collection and 10,555 at 100%; cash is therefore expected to be
+**far ahead** of what this coherent build needs, even in the pessimistic case.
 
 This plan does not hide that: it says the late shops are likely to be slack, and that is
 a **known risk to the pacing goal**, not a claim that the economy is tense. If real play
@@ -189,14 +211,43 @@ not a claim that money never limits anything.
 
 ## 4. Wave table (exact)
 
-Rules: `rate` spawns/s (timer = `1/rate`); pockets are `[time, count, formation]` with
-`ring` / `stream` / `split` semantics; `mix` is bag/runner/can/splitter/spitter percent;
-HP column is **bag/runner/can/splitter/spitter/chip** integer values.
+Rules: `rate` spawns/s (timer = `1/rate`); pockets are `[time, count, formation]`;
+`mix` is bag/runner/can/splitter/spitter percent; HP column is
+**bag/runner/can/splitter/spitter/chip** integer values. Every pocket and sub-pocket
+must fire with `time < duration`, and every batch records its own cap-rejected
+remainder; rejection never adds value or moves work to a later batch.
 
-- `ring` - one full circle at once (burst; rewards area damage).
-- `stream` - many small pockets on a short cadence (sustained pressure; rewards
-  consistent DPS).
-- `split` - heavy splitter pockets (cascades into chip swarms).
+Pocket safety and geometry:
+
+- A pocket centre is chosen at least **310** units from the player. Individual
+  enemies remain at least **235** units away.
+- Every enemy, including a splitter chip, keeps the **0.65s `born` warning**. The chip
+  offset is the one exception to centre placement, so its 0.65s warning is the
+  guarantee that makes the ±60 offset dodgeable.
+- Placement makes at most **8 seeded attempts**, then uses a deterministic fallback;
+  there is no unbounded retry loop. The single-centre fallback is the arena edge
+  opposite the player's horizontal half at `x=70` or `x=W-70`,
+  `y=clamp(player.y,80,H-80)`. For `two-cluster`, if no second candidate is both safe
+  and ≥200 from the first centre, use the same opposite-half edge at `y=80` and
+  `y=H-80` for the two clusters. Both are ≥530 horizontally from the player, so the
+  individual-enemy **235** guarantee still applies, and the pair is **640** apart.
+- `ring` - one count at once, placed on a circle of radius up to **75** around one
+  safe centre.
+- `stream` - split one scheduled count into `ceil(n/3)`, `ceil((n-ceil(n/3))/2)` and
+  the remainder. The three small-ring batches fire at `t`, `t+0.4`, `t+0.8`; each
+  batch picks a new safe centre and uses radius up to **45**. This changes cadence,
+  not the total count of a scheduled pocket; each batch's cap rejection is recorded
+  independently.
+- The former `split` name is replaced by **`two-cluster`**. At `t`, the count is split
+  into `ceil(n/2)` and `floor(n/2)` at two independently chosen safe centres with
+  centre separation **≥200**. Each group is a radius-up-to-**75** ring and both use
+  `PMIX`; `two-cluster` does **not** force splitters or create a second enemy type.
+  Each cluster uses the same `PMIX` as all other pocket members; `two-cluster` changes
+  geometry, not spawn type. There is no separate splitter-only pocket.
+  The two batches have separate cap rejection; neither is compensated by the other.
+
+`PMIX` is the per-spawn-type mix for pocket members; `two-cluster` only changes where
+and when those members appear. It is not a hidden spawn table.
 
 | W | dur | rate | pockets | mix | pocket mix | HP |
 |---|---|---|---|---|---|---|
@@ -211,15 +262,15 @@ HP column is **bag/runner/can/splitter/spitter/chip** integer values.
 | 9 | 32 | 5.2 | 6:17 stream, 14:17 stream, 22:17 stream, 29:17 stream | 40/24/18/18/0 | 36/24/22/18/0 | 20/40/158/84/116/17 |
 | 10 | 40 | 5.4 | 6:17 ring, 14:17 ring, 22:17 ring, 30:17 ring, 36:17 ring | 38/24/18/20/0 | 34/24/22/20/0 | 20/44/173/92/126/18 |
 | 11 | 32 | 5.6 | 8:12 stream, 12:12 stream, 16:12 stream, 20:12 stream, 24:12 stream, 28:12 stream | 40/22/22/16/0 | 38/22/24/16/0 | 24/48/188/100/138/20 |
-| 12 | 34 | 5.8 | 8:12 split, 20:12 split, 28:18 split | 34/20/18/12/16 | 32/20/20/12/16 | 24/51/203/108/149/22 |
-| 13 | 34 | 6.0 | 7:18 split, 14:18 split, 21:18 split, 28:18 split | 32/20/18/14/16 | 30/20/20/14/16 | 24/55/218/116/160/23 |
-| 14 | 36 | 6.2 | 8:12 stream, 11.5:12 stream, 15:12 stream, 18.5:12 stream, 22:12 stream, 25.5:12 stream, 29:12 stream | 30/20/18/16/16 | 28/20/20/16/16 | 24/60/236/126/173/25 |
-| 15 | 45 | 6.4 | 6:20 split, 14:20 split, 22:20 split, 30:20 split, 38:20 split | 28/20/18/18/16 | 26/20/20/18/16 | 24/65/255/136/187/27 |
-| 16 | 38 | 6.6 | 8:12 stream, 12:12 stream, 16:12 stream, 20:12 stream, 24:12 stream, 28:12 stream, 32:12 stream, 35:12 stream | 26/20/18/20/16 | 24/20/20/20/16 | 24/70/278/148/204/30 |
-| 17 | 38 | 6.8 | 6:20 split, 24:20 split | 24/20/18/22/16 | 24/20/18/22/16 | 24/76/300/160/220/32 |
-| 18 | 40 | 7.0 | 6:18 ring, 20:18 ring, 32:18 split | 30/20/16/20/14 | 24/20/18/24/14 | 17/83/326/174/239/35 |
-| 19 | 40 | 7.4 | 5:16 ring, 10:10 stream, 15:16 ring, 20:10 stream, 25:16 ring, 30:10 stream, 35:16 ring | 32/20/16/18/14 | 24/20/18/24/14 | 17/89/353/188/259/38 |
-| 20 | 75 | 7.8 | 6:12 ring, 20:12 ring, 34:12 ring, 50:12 ring, 66:12 ring | 26/20/16/22/16 | 20/20/18/26/16 | 24/97/383/204/281/41 |
+| 12 | 34 | 5.8 | 8:12 two-cluster, 20:12 two-cluster, 28:18 two-cluster | 34/20/18/12/16 | 32/20/20/12/16 | 24/51/203/108/149/22 |
+| 13 | 34 | 6.0 | 7:18 two-cluster, 14:18 two-cluster, 21:18 two-cluster, 28:18 two-cluster | 32/20/18/14/16 | 30/20/20/14/16 | 24/55/218/116/160/23 |
+| 14 | 36 | 6.2 | 8:12 stream, 11.5:12 stream, 15:12 stream, 18.5:12 stream, 22:12 stream, 25.5:12 stream, 29:12 stream | 30/20/18/16/16 | 28/20/20/16/16 | 24/60/236/126/173/24 |
+| 15 | 45 | 6.4 | 6:20 two-cluster, 14:20 two-cluster, 22:20 two-cluster, 30:20 two-cluster, 38:20 two-cluster | 28/20/18/18/16 | 26/20/20/18/16 | 24/65/255/136/187/24 |
+| 16 | 38 | 6.6 | 8:12 stream, 12:12 stream, 16:12 stream, 20:12 stream, 24:12 stream, 28:12 stream, 32:12 stream, 35:12 stream | 26/20/18/20/16 | 24/20/20/20/16 | 24/70/278/148/204/24 |
+| 17 | 38 | 6.8 | 6:20 two-cluster, 24:20 two-cluster | 24/20/18/22/16 | 24/20/18/22/16 | 24/76/300/160/220/24 |
+| 18 | 40 | 7.0 | 6:18 ring, 20:18 ring, 32:18 two-cluster | 30/20/16/20/14 | 24/20/18/24/14 | 17/83/326/174/239/17 |
+| 19 | 40 | 7.4 | 5:16 ring, 10:10 stream, 15:16 ring, 20:10 stream, 25:16 ring, 30:10 stream, 35:16 ring | 32/20/16/18/14 | 24/20/18/24/14 | 17/89/353/188/259/17 |
+| 20 | 75 | 7.8 | 6:12 ring, 20:12 ring, 34:12 ring, 50:12 ring, 66:12 ring | 26/20/16/22/16 | 20/20/18/26/16 | 24/97/383/204/281/24 |
 
 ### 4.1 Bag "fuel" schedule
 
@@ -231,7 +282,19 @@ Bags are the low-HP fuel that keeps fixed damage from feeling like scraping:
 - W18-19: **17** (deliberate dip: dense low-HP tide, see below)
 - W20: **24**
 
-There is no automatic second damage source that grows with the wave.
+There is no automatic second damage source that grows with the wave. Chip HP follows
+the table above and is also capped at the same wave's bag HP:
+
+| W | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| chip | 8 | 8 | 9 | 10 | 12 | 13 | 14 | 15 | 17 | 18 |
+
+| W | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| chip | 20 | 22 | 23 | 24 | 24 | 24 | 24 | 17 | 17 | 24 |
+
+These are the values already shown in the HP column; the formula is
+`min(bag HP, round(8 * wave multiplier))`.
 
 ### 4.2 Special-enemy introduction
 
@@ -242,7 +305,8 @@ shape rather than only HP.
 
 ### 4.3 W17-20: the payoff tide
 
-- W17: two heavy splitter pockets, cascade setup.
+- W17: two heavy two-cluster pockets, cascade setup from the existing splitter
+  share in `PMIX`; the formation itself does not force splitters.
 - **W18/W19: bag share rises back to 30-32%** and pockets are explicit ring/stream
   alternation, so the board is a dense low-HP tide: the formed build visibly clears
   screens. This is the shape payoff the user asked for, not just more HP.
@@ -255,39 +319,52 @@ still appearing in more than half the run.
 
 ### 4.4 Bosses (one model, four stages)
 
-A single boss archetype with escalating stages; the player may stand still when the
-build is formed, so no boss forces permanent movement.
+A single CAN KING model with four visibly distinct stages. All stages use the same
+silhouette and remain stationary; the player may stand still when the build is formed,
+so no boss forces permanent movement.
 
-| W | Boss | HP | Behaviour |
+| W | Stage | HP | Armor / core colours | Attack pattern |
 |---|---|---|---|
-| 5 | 罐头大王 CAN KING | 560 | 8-way radial, 2.4s |
-| 10 | 铁壳督军 SCRAP WARLORD | 1600 | 10-way radial, 2.1s |
-| 15 | 废铁母舰 THE LEVIATHAN | 3000 | 12-way radial, 1.9s |
-| 20 | 潮汐核 TIDE CORE | 5000 | 12-way radial, 1.75s |
+| 5 | CAN KING I | 560 | rust-grey armor with an orange core | 8-way radial every 2.4s |
+| 10 | CAN KING II | 1600 | dark steel armor with an amber core | 10-way radial every 2.1s; every 3rd volley is a **3-bullet aimed spread** |
+| 15 | CAN KING III | 3200 | slate armor with a yellow-white core; visible side pods | 12-way radial every 1.9s; every 3rd volley spawns **3 runners** |
+| 20 | CAN KING IV | 6400 | near-black armor with a white-hot core and exposed seams | 12-way radial every 1.75s; every 3rd volley is an aimed spread; every 4th volley spawns **4 chips** |
 
 - All spawn at `duration - 18`, must die by `duration`, and all get **+15s overtime**
   with the existing live countdown.
 - Missing the overtime deadline is a real defeat at hp > 0.
 - The F0 slot reservation applies to every boss wave (179 while pending, real death
   frees the last slot, failed attempt retries next step).
+- Each stage has its own short sound cue and its own armor/core visual pair; they
+  cannot be distinguished by ring count or speed alone.
 
 ## 5. New enemies (max 2)
 
 ### 5.1 Splitter 裂壳蟹
 
 - Stats: 40 base HP (scaled per §4), r 20, speed 50, drop 3, born 0.65, contact only.
-- On death spawns **2 chips** at ±60 units from the death point on a seeded angle, via
-  the normal `spawn()` path (so cap and boss reservation apply).
-- A chip rejected by the cap simply does not exist: no deferred queue, no extra value.
-- Chip: 8 base HP, r 10, speed 118, drop 1, contact only.
+- On death spawns **2 chips** at ±60 units from the death point on a seeded angle. The
+  chip batches are independent `spawn()` attempts, so each applies the cap and boss
+  reservation separately.
+- A chip rejected by the cap simply does not exist: no deferred queue, no replacement
+  attempt and no extra value.
+- Chip HP is `min(bag HP for that wave, round(8 * wave multiplier))`; this caps fuel at
+  or below the same wave's bag and leaves the other four enemy types to carry threat.
+  r 10, speed 118, drop 1, born 0.65, contact only.
 - A full split is worth 3 + 2×1 = 5 in three pickups; the 250 merge rule still applies.
 
 ### 5.2 Spitter 吐酸罐
 
-- Stats: 55 base HP, r 19, speed 34, drop 4, **born 0.8 counts toward the cap** (it
-  occupies a live slot like every warning-outline enemy).
+- Stats: 55 base HP, r 19, speed 34, drop 4, **born 0.8**, and the unit counts toward
+  the live cap while born.
+- Simultaneous spitter cap is **6, including units still in `born`**. An over-cap
+  spitter spawn attempt becomes a bag through the normal spawn path, and increments a
+  separate `spitterFallbackToBag` counter; if that bag is cap-rejected, no enemy or
+  value is created.
 - Holds at 320 units and fires a slow aimed projectile: speed 190, damage 1, life 3.5s,
   radius 7, every 2.2s, with a **0.8s visible tell**.
+- The projectile is a filled **orange-red circle**, visually distinct from the wake's
+  star marks and ember's fragment marks.
 - Aims at the player's position at fire time with no lead; steady movement dodges it.
 - No acid pool, no ground hazard, no new entity.
 - Enemy bullets use `kind: "enemy"` and the shared 420 cap.
@@ -363,15 +440,22 @@ Chosen after wave 5, permanent, mutually exclusive.
 ### 7.2 余烬 (Ember)
 
 - Every scrap drop is **heat-locked for 1.2s**: it cannot be collected during that time.
+- A heat-locked scrap is **stationary**. It cannot be absorbed or collected by any
+  pickup path, including magnet III's arena pulse, and contact with the player does not
+  collect it.
 - At the end of heat it explodes in place with **radius 55, damage 25**, then becomes
   collectible at its normal drop value. Ember itself adds no scrap: the "25" is the
   explosion damage, not a new value.
 - **One explosion per object.** Merged objects keep the merged value; merging does **not**
   re-start heat and does **not** add another explosion.
 - Cap **250 merged objects**; value merging unchanged; ember adds no extra value.
-- At the wave boundary pending heat is cancelled and the value retained for sweep.
-- Ember explosions are secondary kills and **inherit the chain root of the object that
-  created the drop**; they do not mint a fresh root.
+- At the wave boundary pending heat is **unlocked without exploding**, and the value is
+  retained for the normal sweep.
+- **Root selection for every expedition death:** use the inherited `chain > 0` root
+  when present; otherwise allocate one new root. The domino blast and every ember
+  scrap from that same death share that one root; a death with neither effect leaves
+  the root immediately reclaimable. Ember never uses root 0 or loses the chain when no
+  domino was present.
 
 ### 7.3 Chain-root correctness (must-fix)
 
@@ -381,9 +465,10 @@ live root can still be referenced well after the 0.8s display timer.
 - `chainTimer` expires the **display scalar only**; it must never clear the causal map.
 - Roots are reclaimed **only by reference**. The live-reference set is exactly:
   pending blasts, live corpses, live wake points, and heat-locked ember scraps.
-- Causal roots are attached to wake points and heat-locked ember scraps. Popcorn and
-  magnet bullets keep today's weapon-source behaviour and do **not** mint or queue new
-  roots; there is no unbounded root queue.
+- A wake point always allocates a **new root**. A heat-locked ember scrap carries its
+  death's shared root, as does that death's domino blast. Popcorn and magnet bullets
+  keep today's weapon-source behaviour and **do not** mint or queue new roots; there is
+  no unbounded root queue.
 - Wave boundary clears all roots together with blasts, corpses, wake points and heat.
 
 No claim is made that a cap proves an infinite loop terminates; validation is finite
@@ -405,7 +490,6 @@ reused, no audio refactor).
 - I: each qualifying pickup fires a 2-bullet homing pair (18 damage each).
 - II: those bullets **pierce 1 enemy** (each enemy once per bullet).
 - III: every 5 qualifying pickups also queues the 8-bullet ring per §6.2.
-- Card shows the tier and states the queued-pair behaviour.
 
 ### 8.2 domino
 
@@ -422,6 +506,17 @@ reused, no audio refactor).
 - III: each burst also triggers a 0.6s full-arena attraction pulse; real scraps move, and
   it can re-trigger no faster than every 0.6s.
 
+Concrete tier presentation:
+
+| mod | tier II form / short sound | tier III form / short sound |
+|---|---|---|
+| popcorn | trailing spark + thicker card border / high paper "tick" | orange-white 8-ray star burst / deeper star "pop" |
+| domino | double ring pulse on chain blasts / low double pulse | larger, slower 160-radius blast / heavier boom |
+| magnet | visibly curved bullet paths / rising short hum | full-arena sweep arc / short sweep whoosh |
+
+The HUD shows each mod's tier number and a small tier pip. All cues route through the
+existing audio limiter; no audio refactor.
+
 ## 9. Gun tier II
 
 - Opens at the **wave-8 shop**, gated by the capacity ramp in §2.5.
@@ -432,21 +527,24 @@ reused, no audio refactor).
 
 | Gun | Tier II | Effective output |
 |---|---|---|
-| slinger | 2 bullets | 160 DPS = ×2.0 |
-| shotgun | 7 pellets | 173 DPS = ×1.96 |
-| saw | 2 hit points | 229 DPS = ×2.0 |
-| coil | 7 chain targets | 282 DPS single-target = ×9.8 (multi-target by design) |
-| rocket | 2 rockets | 75 DPS = ×2.0 |
-| fist | force 800, remnant r ×1.25, damage ×1.0 | 160 DPS = ×2.0 |
+| slinger | 2 bullets; paired silver muzzle flash | 160 DPS = ×2.0 |
+| shotgun | 7 pellets; wider orange fan | 173 DPS = ×1.96 |
+| saw | 2 hit points; dual orbit sparks | 229 DPS = ×2.0 |
+| coil | 7 chain targets; thicker zig-zag arc | 40.25 single-target; 281.75 DPS across 7 targets = ×1.96 group multiplier |
+| rocket | 2 rockets; paired smoke trails | 75 DPS = ×2.0 |
+| fist | **one hit**, damage ×2, force 800, remnant r ×1.25; larger impact ring | 160 DPS = ×2.0 |
 
-The tier-II rule agreed with Opus is: doubling the output (slinger, saw, rocket, fist)
-keeps damage ×1.0, while shotgun and coil use the ×1.4 damage multiplier because their
-tier-II behaviour multiplies hits rather than doubling projectiles. Slinger tier II is
-therefore **160** DPS at ×2.0, not 256 and not 128 - the 256/×3.2 line in an earlier draft
-double-counted the multiplier.
+The tier-II rule is: doubling the output (slinger, saw, rocket) keeps damage ×1.0;
+shotgun and coil use ×1.4 because their tier-II behaviour multiplies hits; fist keeps
+**one hit** but doubles damage to ×2.0. Slinger tier II is therefore **160** DPS at
+×2.0, not 256 and not 128 - the 256/×3.2 line in an earlier draft double-counted the
+multiplier.
 
-All figures are nominal single-target except coil, which is explicitly a multi-target
-weapon. The reproducible source is `docs/expedition20-ledger.mjs`.
+Coil I is **28.75** single-target and **143.75** across 5 targets. Coil II is **40.25**
+single-target and **281.75** across 7 targets. The applicable group multiplier is
+**1.96**, not single-target ×9.8. All other figures are nominal single-target. The
+reproducible source is `docs/expedition20-ledger.mjs`. Every tier-II form also gets a
+distinct short cue through the existing audio limiter; no audio refactor.
 
 ## 10. Visual and audio
 
@@ -474,25 +572,46 @@ weapon. The reproducible source is `docs/expedition20-ledger.mjs`.
 
 ### 12.1 Rules (fast)
 
-Slice: all 47 existing tests unchanged. New tests, one per rule:
+Slice: all 47 existing tests unchanged. New tests, one per rule (or one table test with
+one assertion per row where stated):
 
 - wave table: 20 rows, durations sum to 692, 9 full / 6 quick / 4 auto;
-- pocket `[time,count,formation]` fires correctly and records `pocketRejected` when the
-  180 cap blocks the remainder (never deleting enemies, never adding value);
+- every pocket/sub-pocket has `time < duration`; `ring` uses one safe centre and
+  radius ≤75; each `stream` batch uses a new centre and radius ≤45 at `t/t+0.4/t+0.8`;
+  `two-cluster` centres are ≥200 apart with radius ≤75 each; all centres are ≥310 from
+  the player with the individual-enemy ≥235 guarantee and a bounded fallback;
+- each pocket or sub-pocket records its own `pocketRejected` remainder when the 180 cap
+  blocks it (never deleting enemies, never adding value, never deferring to another
+  batch);
+- price formula and tier-II group-DPS helpers match the doc (fist one hit at ×2, coil
+  single/group split, slinger II at 144);
 - boss on 5/10/15/20: reservation, 179 hold, retry, +15s overtime, hp>0 defeat;
-- splitter → 2 chips; chip cap rejection makes no value; spitter born 0.8 counts to cap;
-- tier-II capacity ramp 1..6, upgrade selected slot, max-tier no charge, sell selected
-  slot, refund 35%, last gun unsellable;
-- offer composition, reroll 0/6/8/10;
+- splitter → 2 independent chip attempts; each cap rejection makes no value or
+  replacement; chips keep 0.65s born warning and use the min fuel-HP table;
+- spitter born 0.8 counts to the 6-unit cap; an over-cap attempt falls back to a bag
+  and increments `spitterFallbackToBag`; each over-cap attempt is independent (a
+  rejected fallback bag is not retried);
+- tier-II capacity ramp 1..6 counts currently held tier-II slots (including duplicate
+  types), upgrading a selected slot, capacity-limit no charge, selling frees capacity,
+  refund 35%, last gun unsellable;
+- offers satisfy the unowned-type constraint when one exists and do not require an
+  owned type; reroll 0/6/8/10;
 - price integer formula and the **144** slinger tier-II case;
 - mod tiers and per-root counters;
 - wake: collect-time anchor, ≥30 gate, 1.0s/36/30, cap 180, root stays live;
-- ember: 1.2s lock (not collectible), radius 55 / damage 25 (ember adds no value), one
-  explosion per object, cap 250 with merge not re-heating, wave-end cancel retains value;
-- chain-root survival across the 1.2s heat window;
+- ember: 1.2s stationary lock (uncollectable by contact or magnet III), radius 55 /
+  damage 25 (ember adds no value), one explosion per object, cap 250 with merge not
+  re-heating, wave-end unlock-without-explosion retains value;
+- chain-root survival across the 1.2s heat window; same-death drops share one root,
+  a non-secondary death allocates one new root, and no ember uses root 0;
 - popcorn: credits accumulate with no target; atomic 2-bullet pair only with 2 free
   slots; 4 credits/step; ring 8 bullets/0.5s as a separate budget; both cancel counters;
-- records isolation.
+- records isolation: the expedition key is new, and writing the old key changes only
+  `muted`, preserving every other field including unknown fields.
+
+The 23 regression checks remain unchanged except for fixture wiring that appends
+`mode=slice` to every existing browser test URL. No rule assertion may be removed or
+weakened by that change; the 47 slice assertions stay byte-for-byte the same.
 
 ### 12.2 Browser (real input only)
 
@@ -500,6 +619,9 @@ Slice: all 47 existing tests unchanged. New tests, one per rule:
   with a per-shop ledger. An early death does not satisfy this.
 - **Separately, at least one ordinary-input failure run** (0 hp or overtime) showing the
   failure UI and a working retry.
+- If ordinary-input tuning cannot produce that victory, record the failed attempt and
+  the observed cause; do not inject state or call the run a win. A tuning change or a
+  documented ordinary-player strategy may be proposed only after three-party approval.
 - Touch at 560×760 and 390×844: movement, purchase, quick choice, pause.
 - Refresh mid-fight returns to title without resuming; blur pauses; resume clears ghost
   keys.
@@ -521,7 +643,7 @@ stability; model review is not user acceptance.
 | Parameter | Initial | Risk |
 |---|---|---|
 | HP multiplier | 1.0 → 5.1 | late spikes; tune ±20% |
-| boss HP | 560/1600/3000/5000 | finale too easy/hard; ±25% |
+| boss HP | 560/1600/3200/6400 | finale too easy/hard; ±25% |
 | tier II price | 4× | upgrades skipped; 3×-5× |
 | refund | 35% | sell/rebuy abuse; 30%-50% |
 | popcorn drain | 4 credits/step | feels laggy |
@@ -535,12 +657,9 @@ shops or raise prices; do not add currency.
 
 ## 14. Open items
 
-1. Whether the empty second slot at wave 1 should instead start with a free gun (pacing
-   decision; this proposal keeps it empty).
-2. Exact auto-interlude presentation (text/visual) within the 1.2s.
-3. Split-quota 360/60 is withdrawn from this batch; revisit only with starvation
+1. Split-quota 360/60 is withdrawn from this batch; revisit only with starvation
    evidence.
-4. Boss HP remain tunables with the validation contract above.
+2. Boss HP remain tunables with the validation contract above.
 
 ## 15. Implementation order
 
