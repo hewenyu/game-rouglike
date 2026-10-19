@@ -25,4 +25,14 @@ async function run(seed,touch){
  }return {mode:touch?'touch':'keyboard',seed,phase:'timeout',metrics:await metrics(),errors};
  }finally{await release();await context.close();}
 }
-try{const results=await Promise.all([false,true].flatMap(t=>seeds.map(s=>run(s,t))));console.log(JSON.stringify({normalInputsOnly:true,immediateMovement:true,performanceClaim:false,results,majorities:['keyboard','touch'].map(mode=>({mode,shops:results.filter(r=>r.mode===mode&&r.phase==='shop').length,total:3}))},null,2));}finally{await browser.close();}
+try{
+ const results=await Promise.all([false,true].flatMap(t=>seeds.map(s=>run(s,t))));
+ // A 'timeout' run never counts as reaching the shop.
+ const majorities=['keyboard','touch'].map(mode=>({mode,shops:results.filter(r=>r.mode===mode&&r.phase==='shop').length,total:3}));
+ console.log(JSON.stringify({normalInputsOnly:true,immediateMovement:true,performanceClaim:false,results,majorities},null,2));
+ // Gate: each mode must reach the shop on at least two of three seeds, and no
+ // run may log a page error. Fail the process (exit 1) otherwise.
+ const errors=results.flatMap(r=>r.errors||[]);
+ const short=majorities.filter(m=>m.shops<2);
+ if(short.length||errors.length){console.error('first-shop review failed:',JSON.stringify({short,errors}));process.exitCode=1;}
+}finally{await browser.close();}

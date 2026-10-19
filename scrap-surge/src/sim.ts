@@ -584,17 +584,21 @@ export class Game {
         gun.id === "rocket"
           ? 0
           : Math.min(0.5, dist(target, this.player) / 600);
+      const mount = this.mount(index);
+      // Aim from the mount the bullet actually leaves, not the player centre.
+      // Aiming from the player centre offset every shot by the mount's
+      // perpendicular distance, so an enemy level with the player on the
+      // mount's left or right was shot straight past and never hit.
       gun.angle = Math.atan2(
-        target.y + target.vy * lead - this.player.y,
-        target.x + target.vx * lead - this.player.x,
+        target.y + target.vy * lead - mount.y,
+        target.x + target.vx * lead - mount.x,
       );
       gun.cooldown = info.interval;
       gun.recoil = 1;
-      const mount = this.mount(index),
-        muzzle = {
-          x: mount.x + Math.cos(gun.angle) * 24,
-          y: mount.y + Math.sin(gun.angle) * 24,
-        };
+      const muzzle = {
+        x: mount.x + Math.cos(gun.angle) * 24,
+        y: mount.y + Math.sin(gun.angle) * 24,
+      };
       this.event("fire", gun.id);
       if (gun.id === "coil") {
         const chain: Vec[] = [mount],

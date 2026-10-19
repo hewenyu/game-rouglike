@@ -555,3 +555,44 @@ test("S1d: slinger damage is 20, one-shotting a wave-1 runner and four-shotting 
   assert(can.hp <= 0);
   assert.equal(c.kills, 1);
 });
+test("S1e: enemies level with the player on the mount's left and right are actually hit", () => {
+  // Regression for the aiming bug: the bullet leaves the mount (offset from the
+  // player centre) but the gun aimed from the player centre, so a target level
+  // with the player on the mount's left or right was shot straight past and
+  // never hit. This drives the real weapon path, not a direct hit() call.
+  const g = empty();
+  const left = enemy(g, 460, 450);
+  const right = enemy(g, 740, 450);
+  assert.equal(left.y, g.player.y);
+  assert.equal(right.y, g.player.y);
+  assert.equal(left.x, 460);
+  assert.equal(right.x, 740);
+  step(g, 120); // two seconds of real auto-fire with no input
+  assert.equal(g.kills, 2);
+  assert(left.hp <= 0);
+  assert(right.hp <= 0);
+});
+test("S1e: a single gun reaches all eight fixed directions, not just ahead", () => {
+  const g = empty();
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    enemy(g, 600 + Math.cos(a) * 200, 450 + Math.sin(a) * 200);
+  }
+  step(g, 240);
+  assert.equal(g.kills, 8);
+});
+test("S1e: multi-slot mounts keep every direction covered", () => {
+  const g = empty();
+  g.guns = [0, 1, 2].map(() => ({
+    id: "slinger" as const,
+    cooldown: 0,
+    angle: 0,
+    recoil: 0,
+  }));
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 + Math.PI / 8;
+    enemy(g, 600 + Math.cos(a) * 200, 450 + Math.sin(a) * 200);
+  }
+  step(g, 240);
+  assert.equal(g.kills, 8);
+});

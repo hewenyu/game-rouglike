@@ -146,8 +146,40 @@ sign-off before any implementation.
   path.
 - The infinite `refine` does not directly require a hard cap; it needs an economy
   review.
-- S1d (fast gun `18 -> 20`) is already agreed by all three but is **not yet
-  implemented**; the recovery task forbade implementation changes, so it stays
-  pending.
+- S1d (fast gun `18 -> 20`) was agreed by all three and is now implemented at
+  `d6ba6fe`. The recovery package recorded above did not implement it; the S1e
+  review below covers `d6ba6fe`.
 - `ee53cf8` is the post-palette-restore slice and is still pending review. The
   older `21a18fd` review must not be reused for this new SHA.
+
+## Review of d6ba6fe and the S1e aiming fix (2026-10-19)
+
+All three parties reviewed `d6ba6fe` ("S1d: can-popper damage 18 -> 20").
+
+- Automated: `npm test` 37/37, `npm run build` clean, the author-run browser
+  regression 19/19, and a normal-play browser victory at 286 kills.
+- Astra's first-shop review **failed**: normal keyboard input reached the first shop
+  on 0/3 seeds and touch on 2/3 seeds. That is the blocking result for this build.
+- Opus: the visual work passed, but Opus blocked the build overall because of the
+  first-shop failure.
+- Independent DeepSeek: confirmed the root cause is the weapon aim geometry. The gun
+  aimed from the player centre while the bullet leaves a mount offset from it, so a
+  target level with the player on the mount's left or right was shot straight past and
+  never hit. This is a long-standing S1 defect, **not** introduced by S1d, which only
+  changed the damage number.
+
+Three-party decision (S1e): fix exactly that aim geometry and nothing else. Each shot
+now aims from the mount toward the same predicted point, with the lead factor, target
+selection, range, damage, fire rate, spawn and economy all unchanged, and the muzzle
+still at `mount + direction * 24`. The coil/fist direct-hit rules and the saw are
+untouched; no anchor or draft code is involved.
+
+S1e result on `codex/scrap-surge`: `npm test` 40/40 (three new tests: left/right 140px
+same-row enemies are hit and killed within two seconds through the real weapon path, a
+single gun reaches all eight fixed directions, and multi-slot mounts keep every
+direction covered), `npm run build` clean, the first-shop review now passes (keyboard
+3/3, touch 3/3, no page errors), a normal-play browser victory at 287 kills, and the
+browser regression 19/19.
+
+The first-shop gate counts three seeds per input mode. n = 3 is only a smoke test, not
+a statistical claim; a passing run does not prove every seed works.

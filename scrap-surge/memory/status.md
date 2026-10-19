@@ -42,16 +42,18 @@ User acceptance of this version is still pending.
 ## Current source under review
 
 The current source on branch codex/scrap-surge is baseline **ee53cf8** (the
-post-palette-restore slice) plus the S1d damage change, frozen by the commit whose
-subject begins "S1d:" (the freeze commit for that package).
+post-palette-restore slice) plus S1d (slinger damage 18 -> 20) and S1e (weapon aim
+fix), frozen by the commit whose subject begins "S1e:". The S1d freeze is
+**d6ba6fef5e117d342f1ac594d7d9ff2858b6bfd1**; S1e is the commit whose subject begins
+"S1e:" (see the S1e section below).
 
 The earlier frozen slice **21a18fd66f782c8239ec6511897c66da9c58fe5a**
 ("scrap-surge: freeze S1/S1b/S1c feel slice", parent c502295) is historical. The
-21a18fd review does **not** apply to ee53cf8 or to the S1d commit: the explosion
-palette changed at ee53cf8 and the slinger damage changed at S1d. Astra, Opus and an
-isolated DeepSeek reviewer must review the current S1d source commit.
+21a18fd review does **not** apply to ee53cf8 or later: the explosion palette changed
+at ee53cf8, the slinger damage at d6ba6fe and the aim geometry at S1e. Astra, Opus and
+an isolated DeepSeek reviewer must review the current S1e source commit.
 
-Scope is exactly S1 + S1b + S1c + S1d. No other product scope is authorized.
+Scope is exactly S1 + S1b + S1c + S1d + S1e. No other product scope is authorized.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 
@@ -106,3 +108,34 @@ independent review run after this freeze, not here.
 
 This is still a two-wave feel-validation slice. There is **no user playtest
 acceptance** of this or any version yet.
+
+## Slice S1e (approved by Astra, Opus and DeepSeek) - implemented 2026-10-19
+
+S1e fixes one real bug and nothing else: the weapon aim geometry. The gun aimed from
+the player centre while the bullet leaves a mount offset from it, so a target level
+with the player on the mount's left or right was shot straight past and never hit.
+Each shot now aims from the mount toward the same predicted point; the lead factor,
+target selection, range, damage, fire rate, spawn and economy are unchanged, and the
+muzzle is still `mount + direction * 24`. The coil/fist direct-hit rules and the saw
+are untouched, and no anchor or draft code is involved.
+
+Review of the prior freeze `d6ba6fe` (S1d):
+
+- `npm test` 37/37, `npm run build` clean, the browser regression 19/19 and a
+  normal-play browser victory at 286 kills.
+- Astra's first-shop review failed: keyboard reached the first shop on 0/3 seeds and
+  touch on 2/3. Opus passed the visual work but blocked the build overall on that
+  result.
+- Independent DeepSeek confirmed the aiming defect and that it is a long-standing S1
+  bug, not introduced by S1d.
+
+S1e evidence on the current source: `npm test` 40/40 (left/right 140px same-row
+enemies hit and killed within two seconds through the real weapon path, a single gun
+reaching all eight fixed directions, and multi-slot mounts covering every direction),
+`npm run build` clean, the first-shop review now passing (keyboard 3/3, touch 3/3, no
+page errors), a normal-play browser victory at 287 kills and the browser regression
+19/19.
+
+The first-shop gate runs three seeds per input mode. n = 3 is only a smoke test, not a
+statistical claim; a passing run does not prove every seed works. No user playtest
+acceptance of any version yet.
