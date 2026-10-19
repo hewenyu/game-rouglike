@@ -18,9 +18,11 @@ feedback only covers wave count and build-formation pacing - and **expansion bey
 the slice is not authorized**.
 
 An F0 repair package (boss slot reservation, honest boss-spawn flag, read-only
-instruments) is implemented on top of the slice at the checkpoint recorded below. It
-leaves ordinary combat, the waves, the weapons and the popcorn mechanic untouched and
-awaits independent review against that exact commit.
+instruments) is implemented on top of the slice. The F0 code checkpoint is commit
+**42f4ff8f6163f6565ab4f939de147efa5a7b0564** (see the F0 section below); the frozen
+tip that carries this record is a docs-only commit on the same branch. F0 leaves
+ordinary combat, the waves, the weapons and the popcorn mechanic untouched and awaits
+independent review against that exact commit.
 
 ## Roles
 Astra coordinates, owns architecture boundaries and integration review; Opus reviews
@@ -130,6 +132,8 @@ popcorn mechanic, the camera and the visuals are untouched, and the expansion dr
   copy check and the G death-path group). Raw logs (auxiliary) in
   `/tmp/f0-logs-final-20261019T072230/`; the commands themselves are reproducible from
   this repository.
+- F0 code checkpoint: `42f4ff8f6163f6565ab4f939de147efa5a7b0564` (this entry ships with
+  it; the frozen tip adds only this SHA record).
 - These are author runs, not independent review. Independent review of the F0
   checkpoint is pending, and none of this is user acceptance.
 

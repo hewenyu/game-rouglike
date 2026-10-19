@@ -292,3 +292,6 @@ changes; `scrapMetrics` exports scalars only.
 
 F0 does **not** change the popcorn mechanic, the camera, the visuals, the weapons or the
 waves, and it does not merge the expansion draft `8e1542e`.
+
+F0 code checkpoint: **42f4ff8f6163f6565ab4f939de147efa5a7b0564** (docs-only follow-up
+commit records this SHA; the code is identical).
