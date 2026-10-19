@@ -1,4 +1,4 @@
-import { Game, type Enemy, type Gun } from "./sim";
+import { Game, type Bullet, type Enemy, type Gun } from "./sim";
 import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
 import { bossForWave } from "./expedition";
 const INK = "#273b35",
@@ -675,109 +675,8 @@ export class Renderer {
       );
       c.restore();
     }
-    for (const b of g.bullets) {
-      c.save();
-      c.translate(b.x, b.y);
-      c.rotate(Math.atan2(b.vy, b.vx));
-      if (b.kind === "rocket") {
-        this.round(-12, -5, 20, 10, 4, "#e88951", INK, 2);
-        this.line(
-          [
-            { x: -14, y: 0 },
-            { x: -26, y: Math.sin(t * 55) * 3 },
-          ],
-          "#fff0a0",
-          4,
-        );
-      } else if (b.kind === "enemy" && b.r >= 7) {
-        this.line(
-          [
-            { x: -12, y: 0 },
-            { x: -3, y: 0 },
-          ],
-          "#f7a05d",
-          4,
-        );
-        this.ellipse(0, 0, b.r, b.r, "#e9695b", "#813b31", 2);
-        this.ellipse(-2, -2, 2, 2, "#fff0a0", "#0000", 0);
-      } else {
-        const isTierIIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) >= 3;
-        const isTierIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) === 2;
-        const isMagnet = b.mod === "magnet" && b.homing && (b.tier ?? 1) >= 2;
-        this.line(
-          [
-            {
-              x: isTierIIPopcorn ? -17 : isMagnet ? -14 : -10,
-              y: 0,
-            },
-            { x: 0, y: 0 },
-          ],
-          isMagnet
-            ? "#efb45f"
-            : isTierIIIPopcorn
-              ? "#ff9b2f"
-              : isTierIIPopcorn
-                ? "#b7efc8"
-                : b.kind === "bonus"
-                  ? "#d5edb2"
-                  : "#fceabe",
-          isTierIIPopcorn ? 5 : 4,
-        );
-        this.ellipse(
-          0,
-          0,
-          b.r + (isTierIIPopcorn ? 1.5 : 0),
-          b.r * 0.75 + (isTierIIPopcorn ? 1 : 0),
-          b.kind === "enemy"
-            ? "#e9695b"
-            : isMagnet
-              ? "#f2c76f"
-              : isTierIIIPopcorn
-                ? "#ffd76a"
-                : b.kind === "bonus"
-                  ? "#e9cf4a"
-                  : "#fff3c8",
-          INK,
-          1.8,
-        );
-        if (isTierIIPopcorn) {
-          // Tier-II popcorn pierces one extra enemy; the trailing fork makes
-          // that second hit readable instead of only sounding different.
-          this.line(
-            [
-              { x: -15, y: -7 },
-              { x: -7, y: 0 },
-              { x: -15, y: 7 },
-            ],
-            "#fff8d8",
-            1.8,
-          );
-        }
-        if (isTierIIIPopcorn) {
-          for (const side of [-1, 1])
-            this.line(
-              [
-                { x: -4, y: side * 5 },
-                { x: -12, y: side * 13 },
-              ],
-              "#fff0a0",
-              2,
-            );
-        }
-        if (isMagnet) {
-          this.line(
-            [
-              { x: -8, y: -8 },
-              { x: -14, y: -1 },
-              { x: -8, y: 7 },
-            ],
-            "#fff0c4",
-            1.6,
-          );
-        }
-      }
-      c.restore();
-    }
+    for (const b of g.bullets)
+      if (b.kind !== "enemy") this.bullet(b, t);
     this.crab(
       g.player.x,
       g.player.y,
@@ -1007,6 +906,113 @@ export class Renderer {
       this.text(`×${g.chainCount}`, 0, 0, 30, "#ffb020", true);
       c.restore();
     }
+    // Enemy projectiles stay above world effects. A blast core is opaque, so
+    // drawing them in the normal bullet pass made a lethal hitbox disappear.
+    for (const b of g.bullets) if (b.kind === "enemy") this.bullet(b, t);
+  }
+  bullet(b: Bullet, t: number) {
+    const c = this.ctx;
+    c.save();
+    c.translate(b.x, b.y);
+    c.rotate(Math.atan2(b.vy, b.vx));
+    if (b.kind === "rocket") {
+      this.round(-12, -5, 20, 10, 4, "#e88951", INK, 2);
+      this.line(
+        [
+          { x: -14, y: 0 },
+          { x: -26, y: Math.sin(t * 55) * 3 },
+        ],
+        "#fff0a0",
+        4,
+      );
+    } else if (b.kind === "enemy" && b.r >= 7) {
+      this.line(
+        [
+          { x: -12, y: 0 },
+          { x: -3, y: 0 },
+        ],
+        "#f7a05d",
+        4,
+      );
+      this.ellipse(0, 0, b.r, b.r, "#e9695b", INK, 3);
+      this.ellipse(-2, -2, 2, 2, "#fff0a0", "#0000", 0);
+    } else {
+      const isTierIIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) >= 3;
+      const isTierIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) === 2;
+      const isMagnet = b.mod === "magnet" && b.homing && (b.tier ?? 1) >= 2;
+      this.line(
+        [
+          {
+            x: isTierIIPopcorn ? -17 : isMagnet ? -14 : -10,
+            y: 0,
+          },
+          { x: 0, y: 0 },
+        ],
+        isMagnet
+          ? "#efb45f"
+          : isTierIIIPopcorn
+            ? "#ff9b2f"
+            : isTierIIPopcorn
+              ? "#b7efc8"
+              : b.kind === "bonus"
+                ? "#d5edb2"
+                : "#fceabe",
+        isTierIIPopcorn ? 5 : 4,
+      );
+      this.ellipse(
+        0,
+        0,
+        b.r + (isTierIIPopcorn ? 1.5 : 0),
+        b.r * 0.75 + (isTierIIPopcorn ? 1 : 0),
+        b.kind === "enemy"
+          ? "#e9695b"
+          : isMagnet
+            ? "#f2c76f"
+            : isTierIIIPopcorn
+              ? "#ffd76a"
+              : b.kind === "bonus"
+                ? "#e9cf4a"
+                : "#fff3c8",
+        INK,
+        1.8,
+      );
+      if (isTierIIPopcorn) {
+        // Tier-II popcorn pierces one extra enemy; the trailing fork makes
+        // that second hit readable instead of only sounding different.
+        this.line(
+          [
+            { x: -15, y: -7 },
+            { x: -7, y: 0 },
+            { x: -15, y: 7 },
+          ],
+          "#fff8d8",
+          1.8,
+        );
+      }
+      if (isTierIIIPopcorn) {
+        for (const side of [-1, 1])
+          this.line(
+            [
+              { x: -4, y: side * 5 },
+              { x: -12, y: side * 13 },
+            ],
+            "#fff0a0",
+            2,
+          );
+      }
+      if (isMagnet) {
+        this.line(
+          [
+            { x: -8, y: -8 },
+            { x: -14, y: -1 },
+            { x: -8, y: 7 },
+          ],
+          "#fff0c4",
+          1.6,
+        );
+      }
+    }
+    c.restore();
   }
   enemy(e: Enemy) {
     const c = this.ctx;

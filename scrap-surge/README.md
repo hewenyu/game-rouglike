@@ -6,7 +6,7 @@
 试玩。三方已完成仅限 PLAYTEST 的审查，但这不是最终目标完成或用户验收，也不是
 已完成的 10–20 分钟肉鸽。**
 普通入口默认进入 20 波远征；`?mode=slice` 保留已批准的两波手感切片。当前证据
-包括 89/89 规则测试、干净构建、24/24 浏览器回归、
+包括 89/89 规则测试、2/2 渲染顺序回归、干净构建、24/24 浏览器回归、
 作者 7/7 接波输入回归、独立 DeepSeek 7/7（
 `/tmp/astra-f7d-review.B5iCbP/f7/scrap-surge/artifacts/input-lifecycle-results.json`，
 SHA-256 `241fea027757a430d2088b5f5776c1a1f9904738524c4853b82f434836f1a6f3`）、
@@ -75,6 +75,8 @@ npm run test:browser:regression   # 独立正常输入回归，同样先启动 d
 npm run test:browser:lifecycle    # W7 自动接波的键盘/触屏输入生命周期回归
 npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
 npm run test:browser:expedition    # expedition 普通输入全程；每次独立 attempt 留证
+BASE_URL=http://127.0.0.1:4188 OUTPUT_DIR=/tmp/render-occlusion \
+  node tests/browser-render-occlusion.mjs  # 固定合成遮挡 fixture；可选普通 W2 截图
 SOURCE_SHA=<sha> npm run test:astra:perf    # 固定步模拟 CPU 诊断，输出 JSON
 SOURCE_SHA=<sha> npm run test:astra:ranged  # Astra 固定普通输入远程战术，可能约 10 分钟
 npm run test:astra:heal-trace -- <trace-dir> # 只读核对逐波回血
@@ -98,6 +100,10 @@ npm run format
 音频或 GPU 证据。
 `dist/` 使用相对路径，可由任意 HTTP 静态服务托管在根目录或子目录。不支持 file://。
 没有公开部署。文档与审查见 docs/testing.md、docs/reviews.md。
+
+敌方弹丸现在在所有世界特效和连锁数字之后绘制，保留原来的橙色尾迹、红色弹体、
+半径与旋转；轮廓改为 3px 深色。这样不透明的爆炸核心不会再遮住实际致命判定。
+该修复只改渲染顺序与弹体轮廓，模拟、碰撞、经济、波次和切片规则不变。
 
 工程分离：src/sim.ts 规则、src/render.ts 表现、src/input.ts 输入、src/audio.ts 声音、
 src/main.ts 生命周期和界面、src/data.ts 内容。60 Hz 固定模拟与渲染分辨率分开。

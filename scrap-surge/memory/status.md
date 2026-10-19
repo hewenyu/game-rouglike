@@ -1,5 +1,8 @@
 # Status
 
+Render-order fix after `3305687`: enemy projectiles draw once above blasts and the
+chain readout with unchanged geometry, 3px INK outline; simulation state is unchanged.
+
 ## Current PLAYTEST candidate: source identity `db74a8c` (2026-10-19)
 
 This is the final 20-wave candidate for user playtesting. It is runnable and

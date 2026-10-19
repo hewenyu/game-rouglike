@@ -15,8 +15,9 @@ depend on a `/tmp` path. `/tmp` paths appear only as raw evidence locations.
 
 ## Automated rules
 
-Current `npm test` runs **89/89** non-browser assertions across
-`tests/rules.test.ts` and `tests/expedition.test.ts`: automatic first kill,
+Current `npm test` runs **91/91**: the original **89/89** rules assertions across
+`tests/rules.test.ts` and `tests/expedition.test.ts`, plus 2 render-order tests in
+`tests/render-occlusion.test.ts`. The original rules assertions cover automatic first kill,
 one-time death settlement, multigeneration explosions, budgeted queue retention,
 pickup uniqueness, pickup -> kill -> explosion -> drop feedback, stacked mod
 validation, shop transactions, isolated shop RNG, incoming-damage reservations,
@@ -70,6 +71,29 @@ from lost/won states. The full chronological F0/T2 history is in
 
 These are finite samples, not a proof over all builds or seeds. The stress test
 establishes bounded, finite state, not real-device frame-rate fitness.
+
+## Enemy-projectile occlusion
+
+Enemy projectiles are now drawn after world effects and the real chain readout,
+while player projectiles remain in the original world pass. The enemy bullet
+keeps its orange trail, red fill, glint, radius and rotation; its outer stroke is
+3px `#273b35`. The opaque `BLAST.core` fill previously covered the lethal red
+hitbox when both occupied the same point.
+
+`tests/render-occlusion.test.ts` uses a recording canvas to assert one enemy-bullet
+draw, retained player/rocket draws, blast-core and chain-text order, and unchanged
+state while rendering. It also compares rendered and control simulations every
+step for three seeds in both modes. This is render-order coverage, not a visual
+acceptance or gameplay-balance result.
+
+`tests/browser-render-occlusion.mjs` runs the same synthetic overlap fixture at
+1440x960 and 390x844 and checks for visible red centre and dark-ring pixels. The
+pre-fix checkout `3305687` produced 0 red / 0 ink pixels in both fixtures; the
+fixed checkout produced 56/115 at desktop and 14/18 at 390x844 (pixels are a
+focused fixture check, not a gameplay statistic). Its optional ordinary-input
+slice mode waits for `shootAcceptedEnemy` to increase and preserves sequential
+canvas frames, but that counter alone does not prove visual coexistence. Reviewers
+must inspect the frames; if no suitable frame exists, retain it as a coverage gap.
 
 ## Browser method
 
