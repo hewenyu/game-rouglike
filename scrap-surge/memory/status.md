@@ -49,8 +49,9 @@ to 37 with S1d, below), `npm run build` clean,
 page errors) and an author-run `npm run test:browser:regression` 19/19 including the
 idle-play defeat path and the arena-vs-HUD geometry checks. The checks were drafted by a
 separate agent, but the implementer ran them, so that is author evidence, not
-independent review. Frozen slice review by Astra, Opus and an isolated DeepSeek
-reviewer is pending and must run against the frozen source commit.
+independent review. That "review pending" line is historical: the frozen slice was
+subsequently reviewed and approved by Astra, Opus and an isolated DeepSeek at
+`8cb0e8f` (see the sign-off below), so it no longer describes the current state.
 
 This is a feel-validation slice, not a claim of a finished 10-20-minute game.
 User acceptance of this version is still pending.
@@ -70,8 +71,9 @@ The earlier frozen slice **21a18fd66f782c8239ec6511897c66da9c58fe5a**
 ("scrap-surge: freeze S1/S1b/S1c feel slice", parent c502295) is historical. The
 21a18fd review does **not** apply to ee53cf8 or later: the explosion palette changed
 at ee53cf8, the slinger damage at d6ba6fe, the aim geometry at 03ff521 and the metrics
-API at T1. Astra, Opus and an isolated DeepSeek reviewer must review the current T1
-source commit.
+API at T1. That "must review the current T1 source commit" requirement is historical
+and has since been completed: Astra, Opus and an isolated DeepSeek reviewed and
+approved `8cb0e8f` (the T1 commit) as recorded in the sign-off below.
 
 Scope is exactly S1 + S1b + S1c + S1d + S1e + T1. No other product scope is
 authorized; expansion beyond the two-wave slice still needs its own review.
@@ -134,8 +136,67 @@ popcorn mechanic, the camera and the visuals are untouched, and the expansion dr
   this repository.
 - F0 code checkpoint: `42f4ff8f6163f6565ab4f939de147efa5a7b0564` (this entry ships with
   it; the frozen tip adds only this SHA record).
-- These are author runs, not independent review. Independent review of the F0
-  checkpoint is pending, and none of this is user acceptance.
+- Three-party review of `a434f12` has since returned: Astra (47/47, build clean, normal
+  victory 287 kills hp 10 chain 13 pending 14, first-shop 6/6, three fixed-seed hashes
+  identical to `6780128`), Opus (47/47, `tsc` clean, first-shop 6/6, but regression
+  **22/23 exit 1** - all three G seeds ended at the first shop with 0 deaths, a real
+  retained failure), and independent DeepSeek (47/47, build clean, ordinary run's five
+  checks passed, first-shop 6/6, regression 23/23 with one real 0 hp death). All three
+  approved the F0 source and flagged the same documentation gaps, which the T2 package
+  repairs. Per-party evidence is in docs/reviews.md.
+- The F0 instrument sample on Astra's normal run was 598 accepted player + 8 accepted
+  enemy shots = 606, 0/0 rejected, projectile peak 60, popcorn skips 0. That is a
+  limited sample, not a performance or budget-sufficiency result.
+- The G fixture is probabilistic and timing-sensitive: 22/23 and 23/23 are two honest
+  samples of the same check set, and neither is a stability claim. None of this is user
+  acceptance.
+
+## T2 browser-fixture revision (tests-only, 2026-10-19)
+
+T2 is a tests-only package agreed by Astra, Opus and DeepSeek. It changes only the G
+block of `tests/browser-regression.mjs`; A-F and H are untouched, and no source,
+package, data or visual file changes.
+
+The old G fixture treated the first shop as terminal, so it only ever covered wave 1
+and its "at least one 0 hp death" gate depended on luck. T2 keeps the same strategy
+(70ms poll, +-6px deadzone, nearest-enemy charge from read-only `enemyPositions`) for
+fixed seeds 2a/17/91, one run each, but makes the shop non-terminal: buy **no weapon**,
+take exactly `magnet` + `popcorn`, then keep charging through wave 2 under a single
+100s wall cap (normal play is at most 20 + 1 + 50 + 1 = 72s), with no per-phase timer.
+
+`endReason` is `death` (lost at 0 hp - the only death coverage), `deadline` (lost with
+hp > 0, boss alive at the 50s limit - recorded as not covered), `won`, or `timeout`
+(still fighting at 100s - a real failure). Every run asserts exactly magnet + popcorn,
+`gunsAtShop === 1`, `gunsAtWave2 === 1` and no page errors; a 0 hp death also requires
+the failure UI and a retry reset to fight / 10 hp / 0 kills / 1 gun / 0 mods. The group
+still requires at least one real 0 hp loss. The fixture remains probabilistic and
+timing-sensitive - a green group run covers these three seeds only and is not a
+stability claim.
+
+Historic diagnostics are kept as history, not as T2 passes: Opus's `/tmp` 95s run
+produced 2 deaths and 1 win without the mod/gun assertions (seed 91 reached wave 2 and
+won, a finite observation only), and an independent diagnostic had all three seeds die
+in wave 1 without reaching the new shop branch.
+
+The first author run of this fixture was a defective revision and is retained as such:
+it failed a real wave-1 death (seeds 17/91, both genuine 0 hp losses with working
+retries) because the shop assertions were applied unconditionally, and its
+`waitForFunction` passed the options object as the `arg` parameter so the 5s timeout was
+never applied. Both were fixed before freeze (shop contract only when a shop was
+reached; `waitForFunction(fn, undefined, { timeout })` with no swallowed error; `won`
+records "death path not covered"). The raw log of the defective run is
+`/tmp/t2-logs-20261019T074132/browser-regression.log`; the corrected run is a new
+verification, not a re-run chosen for a pass.
+
+Corrected T2 author run (once, no retry): **23/23, exit 0**
+(`/tmp/t2-fixed-20261019T074505/browser-regression.log`). Seeds 2a and 17 reached the
+shop, took exactly magnet + popcorn, kept one gun, entered wave 2 and died at 0 hp
+(203 kills / 45.1s and 217 kills / 47.8s). Seed 91 died at 0 hp in wave 1 (68 kills /
+19.0s) and correctly recorded the shop path as not covered instead of failing. All
+three deaths showed the failure UI and a retry that reset to fight / 10 hp / 0 kills /
+1 gun / 0 mods, with no page errors; the group gate counted 3/3 real 0 hp deaths. This
+is one three-seed sample of a probabilistic, timing-sensitive fixture, not a stability
+claim and not user acceptance.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 

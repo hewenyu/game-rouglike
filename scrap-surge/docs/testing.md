@@ -5,8 +5,12 @@ Frozen candidate reviewed by all three parties:
 sign-off). All reproduction commands below run from this repository; nothing depends on
 a `/tmp` path.
 
-The F0 repair package sits on top of that candidate (scope and approval in
-docs/reviews.md). It adds no gameplay rule, so the S1 numbers below still hold.
+The current source candidate is the F0 code checkpoint
+**42f4ff8f6163f6565ab4f939de147efa5a7b0564** (`a434f12` is the docs-only tip that
+records it); F0 scope and approval are in docs/reviews.md. F0 adds no gameplay rule, so
+the S1 numbers below still hold. The T2 browser-fixture revision is tests-only and its
+frozen SHA is recorded in docs/reviews.md after the commit lands rather than guessed
+here.
 
 ## Automated rules
 
@@ -80,21 +84,32 @@ cancelled a touch and resumed with no ghost movement.
 
 Author-run regression using separately authored checks
 (`tests/browser-regression.mjs`). The checks were drafted by a separate agent, but
-this execution was run by the implementer, so it is not independent review. The
-formal independent review runs after the freeze against the frozen commit. The
-current check set:
+this execution was run by the implementer, so it is not independent review. That
+"independent review runs after the freeze" line is historical: the slice went on to be
+reviewed at `8cb0e8f`, and that result supersedes it. The check set below describes the
+slice-era fixture; the T2 revision of G is documented further down.
 
 - A1 an ordinary-input run reaches a terminal state (win or loss). The A-run no
   longer requires idle play to die or to win: after S1e an ordinary run can
   legitimately win, so requiring a loss here would be wrong.
 - G the forced defeat path: an ordinary keyboard charge toward the nearest enemy
   (read only from the read-only `enemyPositions`) for fixed seeds 2a/17/91, one run
-  each. Each run ends at a loss or at the wave-1 shop; a shop end means the death
-  path was not covered, never a death, and a run still fighting at 40s is a real
-  timeout that fails. The group must contain at least one real loss at 0 hp with the
-  failure UI visible and a working retry (back to fight / 10 hp / 0 kills / 1 gun /
-  0 mods). At least one loss proves the defeat path is reachable; it does not prove
-  every seed loses and it is not a difficulty judgement.
+  each. This bullet describes the **slice-era** fixture (shop was terminal, 40s cap).
+  The current **T2** fixture keeps the same 70ms poll, +-6px deadzone and nearest-enemy
+  charge, but the first shop is no longer terminal: the run buys **no weapon**, takes
+  exactly `magnet` + `popcorn`, then keeps charging through wave 2 to a real outcome
+  under a **single 100s wall cap** (normal play tops out at 20 + 1 + 50 + 1 = 72s) with
+  no per-phase timer. `endReason` is `death` / `deadline` / `won` / `timeout`:
+  - `death` - lost at 0 hp; the only outcome counted as death coverage, requiring the
+    failure UI and a working retry (fight / 10 hp / 0 kills / 1 gun / 0 mods).
+  - `deadline` - lost with hp > 0 because the boss was not killed in time; recorded as
+    "not covered", never counted as a death.
+  - `won` - normal victory.
+  - `timeout` - still fighting at 100s; a real failure, never retried.
+  Every run must also prove `mods === [magnet, popcorn]`, `gunsAtShop === 1` and
+  `gunsAtWave2 === 1`, with no page errors. The group must still contain at least one
+  real 0 hp loss. This fixture remains probabilistic and timing-sensitive; a green run
+  is evidence for these three fixed seeds only, not a stability or difficulty claim.
 - H the read-only metrics API: `enemyPositions` returns a fresh array of fresh
   `{x,y}` copies, and mutating a returned snapshot does not change the next read.
 - A3-A6 the end panel offers retry, the record is written once, retry resets

@@ -26,8 +26,10 @@ kill chains. Weapons are visible on the shell. Left-hand movement is the only
 required control; auto-aim and auto-fire are part of the contract, not upgrades.
 
 The old game was technically functional but rejected by actual user play. That
-result takes precedence over all model design approval. This slice must be shown
-for new user feedback before claiming the concept works or expanding its scope.
+result takes precedence over all model design approval. The user has authorized
+autonomous, reversible work while Astra, Opus and DeepSeek explicitly agree on each
+step. That authorization is permission to proceed, not user acceptance: it must never
+be written up as the user approving the concept, the feel or the visuals.
 
 ## User clarification: positive-feedback builds
 The user explicitly requires "左脚踩右脚上天": build synergies should break through

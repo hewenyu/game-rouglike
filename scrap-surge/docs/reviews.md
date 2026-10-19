@@ -86,9 +86,11 @@ slice, with regression tests:
 
 ## Status
 
-Frozen slice review is pending against the commit recorded in memory/status.md.
-Model review and an automated victory cannot establish whether this version feels
-satisfying to the user. No user acceptance of this version yet.
+That was the state at the time. The frozen slice was later reviewed and approved by
+Astra, Opus and an isolated DeepSeek at `8cb0e8f`; the later result supersedes this
+pending line (see the two sign-off sections below). Model review and an automated
+victory still cannot establish whether this version feels satisfying to the user, and
+no user acceptance exists.
 
 ## Full review and disposition of the unapproved expansion (2026-10-19)
 
@@ -149,8 +151,10 @@ sign-off before any implementation.
 - S1d (fast gun `18 -> 20`) was agreed by all three and is now implemented at
   `d6ba6fe`. The recovery package recorded above did not implement it; the S1e
   review below covers `d6ba6fe`.
-- `ee53cf8` is the post-palette-restore slice and is still pending review. The
-  older `21a18fd` review must not be reused for this new SHA.
+- `ee53cf8` is the post-palette-restore slice. The pending state recorded here at the
+  time was resolved later: `ee53cf8` led through S1d/S1e/T1 to `8cb0e8f`, which Astra,
+  Opus and an isolated DeepSeek reviewed and approved (see the sign-off sections
+  below). The older `21a18fd` review must still not be reused for this line of SHAs.
 
 ## Review of d6ba6fe and the S1e aiming fix (2026-10-19)
 
@@ -295,3 +299,95 @@ waves, and it does not merge the expansion draft `8e1542e`.
 
 F0 code checkpoint: **42f4ff8f6163f6565ab4f939de147efa5a7b0564** (docs-only follow-up
 commit records this SHA; the code is identical).
+
+### Per-party review of `a434f12` (F0)
+
+Each party ran its own session against `a434f12`. The source was approved by all three;
+the documentation blockers found here are the same items repaired in the T2 package.
+
+- **Astra**: `npm test` 47/47, `npm run build` clean, ordinary browser run reached
+  victory at 287 kills, hp 10, chain peak 13, pending peak 14, no page errors;
+  first-shop keyboard 3/3 + touch 3/3. Three fixed-seed (`2a`/`17`/`91`) per-step state
+  and event hashes were identical to baseline `6780128`, so these finite normal
+  trajectories show no combat drift. F0 instruments on the normal run read 598 accepted
+  player shots + 8 accepted enemy shots = 606, 0 rejected player / 0 rejected enemy,
+  projectile peak 60, popcorn skips 0 - limited samples, not a performance result.
+- **Opus**: `npm test` 47/47, `tsc` clean, first-shop 6/6. Regression was **22/23,
+  exit 1**: all three G seeds ended at the first shop (hp 5 / 1 / 3, deaths 0), so the
+  slice-era "at least one 0 hp death" gate genuinely failed. That failure is a real
+  result - it is retained, not re-run until it passes. Fifteen limited simulation
+  trajectories matched `6780128`.
+- **Independent DeepSeek**: `npm test` 47/47, `npm run build` clean, ordinary browser
+  run passed its five checks (chain peak 19, pending peak 10; kill and hp were not
+  reported, so they are not guessed here), first-shop 6/6, regression 23/23 (G: seed 2a
+  shop hp 4, seed 17 lost at hp 0, seed 91 shop hp 1 - one real death). Source approved
+  at this SHA; the documentation gaps matched the ones under repair. T2 agreed,
+  including its timing risk.
+
+Gate reading: the G fixture is probabilistic and timing-sensitive. A green group run
+means the death path was reachable on those seeds in that run; it is not a stability
+claim, and the 22/23 and 23/23 results are two honest samples of the same fixture.
+
+### T2 fixture revision (tests-only, agreed by all three)
+
+T2 keeps the old G strategy (70ms poll, +-6px deadzone, charge the nearest enemy) but
+makes the first shop non-terminal. The final spec, agreed by Astra, Opus and DeepSeek:
+
+- The run buys **no weapon**, takes exactly `magnet` + `popcorn`, then continues through
+  wave 2 to a real outcome.
+- A **single 100s wall limit**, no per-phase timer (normal play tops out at
+  20 + 1 + 50 + 1 = 72s).
+- `endReason` is `death` / `deadline` / `won` / `timeout`. `death` means lost at 0 hp and
+  is the only outcome that counts toward the group gate; `deadline` means lost with
+  hp > 0 (boss alive at the 50s limit) and is recorded as not covered; `timeout` fails.
+- Every run asserts `mods === [magnet, popcorn]`, `gunsAtShop === 1`,
+  `gunsAtWave2 === 1`, no page errors, and a 0 hp death requires the failure UI plus a
+  retry that resets to fight / 10 hp / 0 kills / 1 gun / 0 mods.
+- Three fixed seeds, one run each; nothing is retried to force a result.
+
+Historical diagnostics from this period are kept but are **not** T2 passes: Opus's
+`/tmp` single 95s run produced 2 deaths and 1 win without the mod or gun-count
+assertions (seed 91 did go shop -> wave 2 -> won, a finite observation that the new path
+works, not a final T2 pass); an independent diagnostic had all three seeds die in wave 1
+and never reach the new shop branch, which is no stability claim either.
+
+### T2 author defect found before freeze (2026-10-19)
+
+The first author run of the T2 G block is recorded here as a **defective revision**, not
+as a T2 result. It produced 21/23 with two failures that were the fixture's fault, not
+the game's:
+
+- The pass condition required `shopReached` unconditionally, so a genuine wave-1 death
+  (seeds 17 and 91, both real `lost` at 0 hp with a working retry) was failed. The
+  agreed spec never required every seed to reach the shop. The shop contract
+  (exactly `magnet` + `popcorn`, `gunsAtShop === 1`, `gunsAtWave2 === 1`) applies only
+  once a shop was actually reached. Fixed to
+  `errors.length === 0 && !timedOut && (!shopReached || shopContractOk)`.
+- `page.waitForFunction(fn, { timeout: 5000 })` passed the options object as
+  Playwright's second argument, which is `arg`, so the timeout was never applied. Fixed
+  to `waitForFunction(fn, undefined, { timeout: 5000 })` and the `.catch()` removed, so
+  a failure to leave the shop fails the run instead of being swallowed.
+- `won` now records `death path not covered` in its detail, alongside `deadline`.
+
+Raw log of the defective run: `/tmp/t2-logs-20261019T074132/browser-regression.log`.
+Everything else in it passed: A1/A3-A6, B1-B3, C1-C2, D1-D2, E1, F1-F5, G seed 2a
+(shop -> wave 2 -> won at hp 1, exactly magnet+popcorn and one gun), the group death
+gate (2 real 0 hp deaths) and H. The strategy, seeds and combat rules are unchanged by
+the fix; the corrected run is a new verification, not a re-run selected for a pass.
+
+Corrected T2 verification, run once with no retry: **23/23, exit 0**
+(`/tmp/t2-fixed-20261019T074505/browser-regression.log`).
+
+- seed 2a: shop reached (money 146, 1 gun, exactly `magnet`+`popcorn`), wave 2,
+  **death** at 0 hp after 203 kills, 45.1s; failure UI visible, retry reset to
+  fight / 10 hp / 0 kills / 1 gun / 0 mods; no page errors.
+- seed 17: shop reached (money 144, 1 gun, exactly `magnet`+`popcorn`), wave 2,
+  **death** at 0 hp after 217 kills, 47.8s; same retry reset and no page errors.
+- seed 91: **death in wave 1** at 0 hp after 68 kills, 19.0s; the shop branch was not
+  reached, which is explicitly valid for a genuine death, and the detail records
+  "shop path not covered" rather than failing on shop-only assertions. Retry reset
+  verified, no page errors.
+- Group: 3/3 real 0 hp deaths, so the death gate is covered on these seeds in this run.
+
+This is a single three-seed sample of a probabilistic, timing-sensitive fixture. It is
+not a stability claim, not a difficulty measurement and not user acceptance.

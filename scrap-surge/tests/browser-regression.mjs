@@ -437,13 +437,24 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
 
 // ---------- G. forced defeat: ordinary keyboard charge into the nearest enemy ----------
 {
-  // Approved gate (Astra / Opus / independent DeepSeek): fixed seeds 2a/17/91 and
+  // T2 final gate (agreed by Astra, Opus and DeepSeek): fixed seeds 2a/17/91 and
   // a fixed strategy - 70ms poll, +-6px deadzone, charge the nearest enemy read
   // from the read-only enemyPositions (which includes the visible warning
   // outlines). Each seed runs exactly once; nothing here is retried to force a
-  // result. A run ends at "lost" or at "shop" (it survived wave 1); a shop end
-  // means the death path was not covered, never a death. A run still fighting at
-  // 40s is a real timeout and fails.
+  // result.
+  //
+  // T2 differs from the old G fixture in one way: the first shop is no longer a
+  // terminal stop. At the shop the run buys no weapon, takes exactly magnet +
+  // popcorn, then keeps charging through wave 2 to a real outcome. The hard wall
+  // limit is a single 100s (normal play tops out at 20 + 1 + 50 + 1 = 72s), with
+  // no per-phase timer. endReason is one of:
+  //   death    - lost at 0 hp (the only outcome that counts as death coverage)
+  //   deadline - lost with hp > 0 because the wave-2 boss was not killed in time;
+  //              recorded as "not covered", never as a death
+  //   won      - normal victory
+  //   timeout  - still fighting at 100s; a real failure, never retried
+  // This fixture stays probabilistic and timing-sensitive; a green run is
+  // evidence for these three fixed seeds only, not a stability claim.
   let deaths = 0;
   const group = [];
   for (const seed of ["2a", "17", "91"]) {
@@ -462,13 +473,51 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
     };
     const t0 = Date.now();
     let s = await metrics(page);
-    while (Date.now() - t0 < 40000) {
+    let shopReached = false;
+    let shopDetail = null;
+    let gunsAtWave2 = null;
+    while (Date.now() - t0 < 100000) {
       s = await metrics(page);
-      if (s.phase === "lost" || s.phase === "won" || s.phase === "shop") break;
+      if (s.phase === "lost" || s.phase === "won") break;
+      if (s.wave === 2 && gunsAtWave2 === null) gunsAtWave2 = s.guns.length;
       if (s.phase === "paused") {
         await release();
         const r = page.locator("#resume");
         if (await r.isVisible()) await r.click();
+        continue;
+      }
+      if (s.phase === "shop") {
+        await release();
+        shopReached = true;
+        const gunsAtShop = s.guns.length;
+        const moneyAtShop = s.money;
+        // No weapon is bought here on purpose: the death path must not be
+        // masked by a stronger build. Take exactly magnet + popcorn.
+        for (const id of ["magnet", "popcorn"]) {
+          const m = page.locator(`[data-mod="${id}"]`);
+          if (await m.isEnabled()) await m.click();
+        }
+        const after = await metrics(page);
+        shopDetail = {
+          gunsAtShop,
+          moneyAtShop,
+          mods: after.mods.slice(),
+          modsOk:
+            after.mods.length === 2 &&
+            after.mods.includes("magnet") &&
+            after.mods.includes("popcorn"),
+        };
+        const next = page.locator("#next");
+        if (await next.isEnabled()) await next.click();
+        // The shop is not terminal: wait for the wave-2 fight to actually start.
+        // Playwright's signature is (pageFunction, arg, options), so the options
+        // must be the third argument. This is a necessary step, not an optional
+        // extra timeout, so a failure here fails the run instead of being swallowed.
+        await page.waitForFunction(
+          () => window.scrapMetrics.phase !== "shop",
+          undefined,
+          { timeout: 5000 },
+        );
         continue;
       }
       let nx = 0,
@@ -493,8 +542,14 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
       await page.waitForTimeout(70);
     }
     await release();
-    const timedOut =
-      s.phase !== "lost" && s.phase !== "won" && s.phase !== "shop";
+    const timedOut = s.phase !== "lost" && s.phase !== "won";
+    const endReason = timedOut
+      ? "timeout"
+      : s.phase === "won"
+        ? "won"
+        : s.hp === 0
+          ? "death"
+          : "deadline";
     const retryVisible = await page
       .locator("#retry")
       .isVisible()
@@ -505,12 +560,25 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
       hp: s.hp,
       wave: s.wave,
       kills: s.kills,
+      endReason,
+      shopReached,
+      ...(shopDetail || {}),
+      gunsAtWave2,
       retryVisible,
       wallSeconds: +((Date.now() - t0) / 1000).toFixed(1),
       errors,
     };
-    let ok = errors.length === 0 && !timedOut;
-    if (s.phase === "lost") {
+    // T2 does not require every seed to reach the shop: a genuine wave-1 death is
+    // a valid outcome and must not be failed by shop-only assertions. The shop
+    // contract (exactly magnet + popcorn, no gun bought, still one gun in wave 2)
+    // applies only once a shop was actually reached.
+    const shopOk =
+      !shopReached ||
+      (!!shopDetail?.modsOk &&
+        shopDetail.gunsAtShop === 1 &&
+        gunsAtWave2 === 1);
+    let ok = errors.length === 0 && !timedOut && shopOk;
+    if (endReason === "death") {
       deaths++;
       let retryReset = false;
       if (s.hp === 0 && retryVisible) {
@@ -533,8 +601,16 @@ const metrics = (p) => p.evaluate(() => window.scrapMetrics);
       }
       detail.retryReset = retryReset;
       ok = ok && s.hp === 0 && retryVisible && retryReset;
-    } else if (s.phase === "shop") {
-      detail.note = "survived wave 1; death path not covered (not a death)";
+      if (!shopReached)
+        detail.note =
+          "died in wave 1; shop path not covered (death itself is real)";
+    } else if (endReason === "deadline") {
+      // A live boss at the 50s deadline is a real loss, but not the 0-hp death
+      // path this fixture is here to cover.
+      detail.note =
+        "boss deadline at hp > 0; death path not covered (not a death)";
+    } else if (endReason === "won") {
+      detail.note = "normal victory; death path not covered (not a death)";
     }
     group.push(detail);
     check(`G charge seed ${seed}`, ok, detail);
