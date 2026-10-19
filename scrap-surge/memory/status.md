@@ -40,4 +40,12 @@ User acceptance of this version is still pending.
 
 ## Frozen slice commit
 
-Pending: recorded after the freeze commit is created (see the final report).
+Source commit under review: **21a18fd66f782c8239ec6511897c66da9c58fe5a**
+("scrap-surge: freeze S1/S1b/S1c feel slice"), parent c502295.
+
+Astra, Opus and an isolated DeepSeek reviewer should review that exact SHA. This
+status paragraph is a docs-only follow-up commit; the source at the reviewed SHA is
+unchanged by it, so the frozen source SHA stays 21a18fd.
+
+Scope is exactly S1 + S1b + S1c. No new product scope is authorized and no further
+non-blocking item is pending from the implementer.
