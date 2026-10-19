@@ -1,21 +1,22 @@
 # Validation evidence and boundaries
 
-Frozen candidate reviewed by all three parties:
-**8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (see docs/reviews.md for the per-party
-sign-off). All reproduction commands below run from this repository; nothing depends on
-a `/tmp` path.
+Current source baseline: **851cd13faa17f930cbeb9cbf28eff3eeafe17073**, plus this
+approved docs/header/portable-diagnostic cleanup. This is the runnable 20-wave
+`expedition20` candidate for user playtesting. It is not user-accepted or
+validation-complete, the full goal is not complete, and same-SHA final review
+remains required. `?mode=slice` retains the approved two-wave behavior.
 
-The current source candidate is the F0 code checkpoint
-**42f4ff8f6163f6565ab4f939de147efa5a7b0564** (`a434f12` is the docs-only tip that
-records it); F0 scope and approval are in docs/reviews.md. F0 adds no new player-facing
-mechanics; it fixes the boss-cap boundary and adds read-only instrumentation. The S1
-numbers below still hold. The T2 browser-fixture revision is tests-only and was
-frozen at **5e050b221775f57744e39bfd20f5fbc4499360a6**; no source, data, package or
-visual file changed in it.
+The frozen slice reviewed at **8cb0e8f104d4150ceca8f8660ae6a6c62972e208**, the F0
+code checkpoint **42f4ff8f6163f6565ab4f939de147efa5a7b0564**, and the tests-only T2
+revision **5e050b221775f57744e39bfd20f5fbc4499360a6** remain historical evidence in
+`docs/reviews.md` and `docs/status-history.md`; they are not the current candidate.
+All repository reproduction commands below run from this repository and do not
+depend on a `/tmp` path. `/tmp` paths appear only as raw evidence locations.
 
 ## Automated rules
 
-`npm test` runs 47 simulation tests (`tests/rules.test.ts`): automatic first kill,
+Current `npm test` runs **89/89** non-browser assertions across
+`tests/rules.test.ts` and `tests/expedition.test.ts`: automatic first kill,
 one-time death settlement, multigeneration explosions, budgeted queue retention,
 pickup uniqueness, pickup -> kill -> explosion -> drop feedback, stacked mod
 validation, shop transactions, isolated shop RNG, incoming-damage reservations,
@@ -62,6 +63,11 @@ Repair-package (F0) tests added on top:
 - popcorn skips count only real target pickups past the per-step 8-bullet budget
   (no target and sweep pickups add nothing).
 
+The current late-recovery tests also pin W1-W10 at 3 health, expedition W11-W20 at
+4, slice entries at 3, the 10-health cap, one application per entry, and no revival
+from lost/won states. The full chronological F0/T2 history is in
+`docs/status-history.md`.
+
 These are finite samples, not a proof over all builds or seeds. The stress test
 establishes bounded, finite state, not real-device frame-rate fitness.
 
@@ -86,8 +92,61 @@ adapted from Astra's review script. It requires an explicit `REVIEW_SHA` and a f
 JSONL trace and screenshots. It is deliberately not in an npm script or the frozen
 regression denominator. A copied but unrun script is not a victory result.
 
+`tests/astra-ranged-run.mjs` (`npm run test:astra:ranged`) preserves Astra's fixed
+ordinary keyboard ranged strategy: seed 2a, 80ms polling, a 0.32 deadzone, the
+210/170 center/boss orbit and 105-unit nearest-enemy avoidance, with legal shop
+clicks only. It requires `SOURCE_SHA` and supports `CHROME_PATH`, `BASE_URL` and
+`OUTPUT_DIR`. A loss stays an assertion failure with its terminal state, JSON,
+JSONL trace and screenshots; the harness never retries to force a pass. Without
+`OUTPUT_DIR`, it creates a unique path under the system temporary directory and
+refuses to overwrite an existing target.
+
+`tests/astra-perf.ts` (`npm run test:astra:perf`) is a diagnostic simulation CPU
+benchmark, not a browser or frame-rate test. It requires `SOURCE_SHA`, accepts
+`OUTPUT_FILE`, and writes the complete JSON there (or to a unique file under the
+system temporary directory by default). It measures only `Game.step(1/60)`, with
+input and event draining excluded, after 3000 warm-up ticks.
+
+`tests/astra-heal-trace.cjs` (`npm run test:astra:heal-trace -- <run-dir>`) is a
+read-only post-analysis of a ranged run's JSONL trace. It compares the final
+prior-wave sweep/stop/interlude HP with the first observed HP in the next fight,
+checks 3 recovery through W10, 4 from W11, and the 10 cap. It writes nothing.
+
 Environment: Google Chrome 155.0.8059.80, headless Playwright, macOS 26.6.2 /
 Apple M4, 1440x960, DPR 1, seed 0x2a.
+
+Current candidate evidence on `851cd13`:
+
+- `npm test`: **89/89**; `npm run build`: **clean**.
+- Fresh browser regression on `851cd13`: **24/24**, log
+  `/tmp/astra-851cd13-regression.log`.
+- Input lifecycle on `f7d0741`: **author DeepSeek 7/7**, log
+  `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`. Independent
+  DeepSeek separately reported 7/7 but supplied no path in this cleanup.
+- Ordinary ranged run on `f7d0741`: lost W18 at 0 hp, 4,781 kills, simulated
+  `594.7166666664544s`, wall `599.635s`, no page errors; raw result in
+  `/tmp/astra-f7d0741-ranged/result.json`.
+- Final preregistered domino diagnostic on `f7d0741`: lost W15 with 3,455 kills,
+  using the registered seed 42/ranged-guns/105-input variant, domino at W9/W13
+  and popcorn at W17, with domino second
+  (`/tmp/astra-f7d0741-domino-diagnostic.json`). The preserved file contains the
+  diagnostic CPU result and terminal outcome, not a full browser stop trace. No
+  further strategy variants.
+- Slice equivalence on `851cd13`: **0 step differences** for seeds 42/23/145;
+  all won, with kills 307/308/307 and chain peaks 20/18/18
+  (`/tmp/astra-851cd13-slice-equivalence.log`).
+- Simulation CPU diagnostic on `851cd13`: W1-W15 only, p95 `0.060041ms`, max
+  `1.301042ms`, Apple M4 / Node 26 (`/tmp/astra-851cd13-perf.json`). This is
+  neither FPS nor W20/mobile/render/audio/GPU evidence.
+- Ordinary ranged run on `851cd13`: **death at W20**, 0 hp, 5,965 kills at wave
+  time `57.583333333331346s`, entered the boss at 1 hp, boss untouched at 6,400
+  hp, simulated `698.6666666663599s`, wall `703.349s`, no page errors, all 12
+  functional checks passed, and the victory assertion failed as intended. Raw
+  result: `/tmp/astra-851cd13-ranged/result.json`.
+- Final read-only heal trace: **19/19 through W20** at
+  `/tmp/astra-851cd13-heal-trace.json` (also mirrored as
+  `/tmp/astra-851cd13-heal-trace-final.json`). The earlier 12/12 W13 read was an
+  intermediate state, not a separate final artifact.
 
 Normal-play run: automatic first kill at 1.45s, ordinary movement plus weapon
 purchases plus two stacked mods, then a boss victory. Repeated runs land around
@@ -162,7 +221,11 @@ not a peak-load or midrange-phone claim.
 - Headless cannot confirm a real window blur; the regression dispatches a synthetic
   blur and records that boundary explicitly (`realBlurDeliveredHeadless: false`).
 - The 420 shared projectile cap is documented and instrumented but not yet observed
-  as actually reached in a normal wave-2 run.
+  as actually reached in a normal slice run. The W20 ranged artifact's
+  `bulletPeak` is 144; `shootAcceptedEnemy` is 549 admitted enemy projectiles,
+  neither a rejection count nor an injury attribution.
 - Physical touch ergonomics, the audible mix and user enjoyment remain unverified.
-- This is a two-wave feel slice, not the finished 10-20 minute roguelike, and it has
-  no user acceptance yet.
+- The 20-wave candidate has no ordinary-input victory on `851cd13`; its one
+  completed ordinary ranged run reached W20 and lost at the boss. There is no physical
+  device or Safari performance measurement, and no user acceptance. W16-W20 were
+  not part of the CPU sample.

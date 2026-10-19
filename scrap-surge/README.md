@@ -2,9 +2,14 @@
 
 一只小蟹，六把破烂，一整片怪潮。
 
-**当前是 `expedition20` 实现审查候选，未验收，也不是已完成的 10–20 分钟肉鸽。**
-普通入口默认进入 20 波远征；`?mode=slice` 保留已批准的两波手感切片。20 波版本
-尚缺普通输入全通、完整移动端交互与模拟 CPU 验证，不能把计划或局部测试当作验收。
+**当前是 `expedition20` 的 20 波运行候选（基线 `851cd13`），未验收，也不是
+已完成的 10–20 分钟肉鸽；这是供用户试玩的最终候选，仍需同 SHA 三方终审。**
+普通入口默认进入 20 波远征；`?mode=slice` 保留已批准的两波手感切片。当前证据
+包括 89/89 规则测试、干净构建、24/24 浏览器回归、
+作者 7/7 接波输入回归（独立 DeepSeek 另行报告 7/7）、三个 seed 的切片逐步骤
+等价检查（0 差异），以及只读的 19/19 接波回血追踪。普通远程跑法真实进入
+W20 首领战，在 1 格生命时被击败，W20 首领仍是满血；这不是胜利，也不是
+完整验收。以上是有限验证，不能替代用户试玩。
 
 用户实际试玩并否定了原先的折线游戏，因此另建本项目。仅借鉴《土豆兄弟》的
 移动自动战斗、短波次和商店
@@ -12,7 +17,8 @@
 
 两波切片已通过三方 slice gate（冻结候选 `8cb0e8f`，逐方证据见
 docs/reviews.md）。完整 10–20 分钟目标尚未完成；expedition20 的实现方案已获
-三方批准，但当前实现仍在等待同一可运行版本的代码、视觉和失败原因审查。
+三方批准。晚波恢复由 W1–W10 回 3 格、W11–W20 回 4 格统一处理，恢复不超过
+10，切片仍回 3 格；恢复不会复活已失败或已胜利的战局。
 
 用户试玩后的最新目标（最高优先级）：**至少 20 关**，build 要在 20 关里渐进成形，
 把过快/过慢的成形节奏控制住（原因待测）。旧 12 波方案作废；短 4 波只是内部实验，
@@ -58,6 +64,9 @@ npm run test:browser:regression   # 独立正常输入回归，同样先启动 d
 npm run test:browser:lifecycle    # W7 自动接波的键盘/触屏输入生命周期回归
 npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
 npm run test:browser:expedition    # expedition 普通输入全程；每次独立 attempt 留证
+SOURCE_SHA=<sha> npm run test:astra:perf    # 固定步模拟 CPU 诊断，输出 JSON
+SOURCE_SHA=<sha> npm run test:astra:ranged  # Astra 固定普通输入远程战术，可能约 10 分钟
+npm run test:astra:heal-trace -- <trace-dir> # 只读核对逐波回血
 npm run format
 ```
 
@@ -71,6 +80,11 @@ npm run format
 `tests/browser-expedition-review.mjs` 是独立的 20 波普通输入审查脚本，必须显式提供
 `REVIEW_SHA` 和新的 `OUTPUT_DIR`（例如 `BASE_URL=http://127.0.0.1:4190`）；它未纳入
 `npm test`，一个尚未执行的副本不算胜利证据。
+`test:astra:ranged` 可用 `BASE_URL`、`CHROME_PATH`、`OUTPUT_DIR` 配置；未指定时
+在系统临时目录下创建唯一目录。失败会保留 JSON、trace、截图和终止状态，并以
+断言失败退出，不会为追求绿色结果而重跑。`test:astra:perf` 可用
+`OUTPUT_FILE` 指定唯一结果文件，只测固定步模拟 CPU，不是 FPS、手机、渲染、
+音频或 GPU 证据。
 `dist/` 使用相对路径，可由任意 HTTP 静态服务托管在根目录或子目录。不支持 file://。
 没有公开部署。文档与审查见 docs/testing.md、docs/reviews.md。
 

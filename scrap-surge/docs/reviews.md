@@ -1,5 +1,13 @@
 # Three-model collaboration and sign-off record
 
+This file is the chronological review and sign-off archive. Historical decisions
+remain intact even when a later commit superseded their implementation or evidence.
+For the current candidate, evidence and open boundaries live in
+`memory/status.md` and `docs/testing.md`; the longer superseded status narrative is
+preserved in `docs/status-history.md`. This cleanup is the final candidate for user
+playtesting, not validation completion; Astra, Opus and independent DeepSeek must
+review this exact frozen SHA after the cleanup commit exists.
+
 Astra coordinates, defines architecture boundaries and reviews integration. Opus
 reviews gameplay, aesthetics, audiovisual direction and feel. DeepSeek is the only
 writer in this directory (implementation, tests, fixes). Astra, Opus and DeepSeek
@@ -28,6 +36,36 @@ through one shared helper used by simulation and UI copy; the W10 stop therefore
 and the W9 stop says 3. The cap remains 10, and lost/won states are not resurrected.
 This addresses attrition late in the run without changing damage, enemies, waves,
 prices, or strategy. It does not promise a W20 victory.
+
+Implementation landed at
+**851cd13faa17f930cbeb9cbf28eff3eeafe17073** after the input-lifecycle fix at
+**f7d0741bf9ac87340d76d7f02143d2be2021de4d**. On `851cd13`, `npm test` passed
+89/89 and the build was clean. The three-seed slice-equivalence diagnostic found
+zero step differences for seeds 42, 23 and 145
+(`/tmp/astra-851cd13-slice-equivalence.log`). The ordinary ranged run on `851cd13`
+later reached W20 and lost at the boss; the final result is recorded below.
+
+Current evidence also includes the **author DeepSeek** lifecycle run on `f7d0741`
+(7/7, `/tmp/astra-input-f7d0741-evidence/lifecycle-f7d0741.log`); independent
+DeepSeek separately reported 7/7 but supplied no captured path in this cleanup.
+A fresh root-reported browser regression on `851cd13` passed 24/24
+(`/tmp/astra-851cd13-regression.log`). The preserved ranged failure
+on `f7d0741` ended lost in W18 at 0 hp with 4,781 kills, simulated
+`594.7166666664544s`, wall `599.635s`, and no page errors
+(`/tmp/astra-f7d0741-ranged/result.json`). The final preregistered domino variant
+lost in W15 with 3,455 kills
+(`/tmp/astra-f7d0741-domino-diagnostic.json`). These are finite strategy samples,
+not proof that W20 is unwinnable.
+
+The final ranged run reached W20 and died at 0 hp at wave time
+`57.583333333331346s`, before damaging the W20 boss (5,965 kills, 1 hp at boss
+spawn, boss still at 6,400 hp, simulated `698.6666666663599s`, wall `703.349s`,
+no page errors). All 12 functional checks passed and the full-victory assertion
+failed as intended. This is a real failure, not a victory or deadline. Its final
+read-only heal post-analysis passed **19/19**
+(`/tmp/astra-851cd13-heal-trace.json`, mirrored as
+`/tmp/astra-851cd13-heal-trace-final.json`); the earlier 12/12 W13 read was an
+intermediate state, not a separate final artifact.
 
 ## Explicit sign-off: S1 (feel slice, fixed numbers)
 
@@ -241,6 +279,10 @@ Frozen candidate **8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (S1 + S1b + S1c + 
 S1e + T1). Astra, Opus and the independent DeepSeek each reviewed this exact SHA and
 explicitly approved the slice scope. Each ran its own session; the death samples are
 registered per party and must **not** be merged into one "3/3" claim.
+
+Historical scope note: this approval covers the two-wave feel slice at that commit.
+It does not approve the later 20-wave candidate, and the current candidate does not
+reuse this sign-off as its own validation.
 
 - Astra: `npm test` 40/40, `npm run build` clean, first-shop keyboard 3/3 + touch 3/3,
   regression 23/23. G fixture: 2a reached the shop, 17 and 91 lost (2 deaths), retry

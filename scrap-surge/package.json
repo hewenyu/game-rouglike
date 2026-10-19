@@ -11,6 +11,9 @@
     "test:browser:expedition": "node tests/browser-expedition.mjs",
     "test:browser:first-shop": "node tests/browser-first-shop.mjs",
     "test:browser:lifecycle": "node tests/browser-input-lifecycle.mjs",
+    "test:astra:perf": "tsx tests/astra-perf.ts",
+    "test:astra:ranged": "node tests/astra-ranged-run.mjs",
+    "test:astra:heal-trace": "node tests/astra-heal-trace.cjs",
     "format": "prettier --write src tests vite.config.ts",
     "test:browser:regression": "node tests/browser-regression.mjs"
   },
