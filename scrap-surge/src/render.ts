@@ -1,5 +1,5 @@
 import { Game, type Enemy, type Gun } from "./sim";
-import { W, H, WEAPONS, type WeaponId } from "./data";
+import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
 const INK = "#273b35",
   SAND = "#e8c696",
   CREAM = "#fff1c8",
@@ -649,12 +649,13 @@ export class Renderer {
           2,
         );
       } else if (f.kind === "blast") {
-        // Saturated flash core, an expanding shock ring and flying debris so a
-        // chain reads as a real explosion instead of a soft coloured disc.
+        // Approved explosion palette: orange-yellow flash core, orange outer
+        // ring, white shock ring and flying debris. Primary and chain blasts use
+        // the same family and are told apart by size and lifetime.
         const r = f.size * (1.25 - a * 0.55);
         this.ellipse(f.x, f.y, r, r, `${f.color}30`, f.color, 6 * a + 1);
         const core = f.size * 0.62 * (0.4 + a * 0.6);
-        this.ellipse(f.x, f.y, core, core, "#fff6c0", "#0000", 0);
+        this.ellipse(f.x, f.y, core, core, BLAST.core, "#0000", 0);
         this.ellipse(
           f.x,
           f.y,

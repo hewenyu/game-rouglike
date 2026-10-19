@@ -96,3 +96,9 @@ export const MODS: Record<ModId, { name: string; desc: string; icon: string }> =
 export const W = 1200,
   H = 800,
   DT = 1 / 60;
+// Approved explosion palette (S1). Explosions are saturated orange-yellow:
+// `core` is the flash centre, `ring` the outer shock stroke. Chain (secondary)
+// blasts must use this same family, never a new hue - the reviewed slice shipped
+// them in the player teal, which Opus blocked. Shared here so simulation and
+// rendering cannot drift apart again.
+export const BLAST = { core: "#ffd24a", ring: "#ff8a2a" } as const;

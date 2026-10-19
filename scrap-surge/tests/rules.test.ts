@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../src/sim";
-import { DT, W, H } from "../src/data";
+import { DT, W, H, BLAST } from "../src/data";
 function step(g: Game, n: number, x = 0, y = 0) {
   for (let i = 0; i < n; i++) g.step(DT, { x, y });
 }
@@ -496,4 +496,29 @@ test("spawnCount counts successful spawns, not cap-rejected attempts", () => {
   step(g, 120);
   assert.equal(g.enemies.length, 180);
   assert.equal(g.spawnCount, before);
+});
+test("explosions use the approved orange-yellow palette, primary and chain alike", () => {
+  // Opus blocked the frozen slice because chain blasts shipped in the player
+  // teal (#3fd0a8) instead of the approved orange-yellow. Pin the values so the
+  // palette cannot drift again.
+  assert.equal(BLAST.core, "#ffd24a");
+  assert.equal(BLAST.ring, "#ff8a2a");
+  const g = empty();
+  g.guns = [];
+  g.mods = ["domino"];
+  enemy(g, 600, 200);
+  enemy(g, 640, 200);
+  g.hit(g.enemies[0], 30, g.player);
+  step(g, 1);
+  const blasts = g.fx.filter((f) => f.kind === "blast");
+  assert(blasts.length > 0);
+  for (const b of blasts) assert.equal(b.color, BLAST.ring);
+  const magnet = empty();
+  magnet.guns = [];
+  magnet.mods = ["magnet"];
+  for (let i = 0; i < 8; i++)
+    magnet.collect({ x: 600, y: 450, id: i, value: 1, vx: 0, vy: 0, age: 0 });
+  const burst = magnet.fx.filter((f) => f.kind === "blast");
+  assert.equal(burst.length, 1);
+  assert.equal(burst[0].color, BLAST.ring);
 });

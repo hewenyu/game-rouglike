@@ -1,5 +1,5 @@
 import { clamp, dist, rng, segmentDistance, type Vec } from "./math";
-import { WEAPONS, W, H, type WeaponId, type ModId } from "./data";
+import { WEAPONS, W, H, BLAST, type WeaponId, type ModId } from "./data";
 export type Phase = "fight" | "sweep" | "shop" | "paused" | "won" | "lost";
 export type Enemy = Vec & {
   id: number;
@@ -487,7 +487,9 @@ export class Game {
     });
   }
   explode(p: Vec, radius: number, damage: number, primary = true, chain = 0) {
-    this.effect("blast", p, 0.32, primary ? "#ffab1f" : "#3fd0a8", radius);
+    // Primary and chain blasts share the approved orange-yellow explosion
+    // palette. They are told apart by size and lifetime, not by a new hue.
+    this.effect("blast", p, primary ? 0.32 : 0.3, BLAST.ring, radius);
     this.shake = Math.max(this.shake, 0.2);
     this.event("explode");
     for (const e of this.enemies)
@@ -543,7 +545,7 @@ export class Game {
     if (this.has("magnet") && this.combatPicked % 8 === 0) {
       for (let i = 0; i < 10; i++)
         this.shoot(this.player, (i * Math.PI) / 5, 24, "bonus", 0, 550);
-      this.effect("blast", this.player, 0.3, "#79bda5", 70);
+      this.effect("blast", this.player, 0.3, BLAST.ring, 70);
     }
   }
   weapons(dt: number) {

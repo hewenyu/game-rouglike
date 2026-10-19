@@ -62,6 +62,14 @@ per tick; the rest stay queued in FIFO order and are never silently dropped. The
 queue peak is recorded in `pendingPeak`. Remaining queued blasts are cancelled at the
 wave boundary, which is a documented boundary, not a silent loss.
 
+Explosion palette (approved, recorded here so it cannot drift again): explosions are
+saturated orange-yellow - flash core `#FFD24A`, outer shock stroke `#FF8A2A`, plus a
+white shock ring and flying debris. Primary weapon blasts and chain (secondary)
+blasts use that same family and are told apart by size and lifetime, never by a new
+hue. The frozen slice shipped secondary blasts in the player teal `#3FD0A8`; Opus
+blocked that and the value is restored to the approved family. The values live in
+`BLAST` in `src/data.ts` so simulation and rendering share one source.
+
 Chain counting: a chain is the set of real secondary deaths caused by queued
 explosions. `nextChainId` is a monotonic allocator; counts are kept per causal root
 in `chainCounts`, so interleaved chains cannot inflate each other. `chainCounts` is a
