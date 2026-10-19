@@ -178,7 +178,9 @@ S1e result on `codex/scrap-surge`: `npm test` 40/40 (three new tests: left/right
 same-row enemies are hit and killed within two seconds through the real weapon path, a
 single gun reaches all eight fixed directions, and multi-slot mounts keep every
 direction covered), `npm run build` clean, the first-shop review now passes (keyboard
-3/3, touch 3/3, no page errors) and a normal-play browser victory at 287 kills.
+3/3, touch 3/3, no page errors), and, per Astra's own run on `03ff521`, a normal-play
+browser victory at 309 kills, hp 9. The earlier author figure of 287 kills was not
+re-executed and is not adopted.
 
 Retraction: the S1e author first wrote "browser regression 19/19", but that number
 came from a stale `artifacts/browser-regression-results.json` (a pre-S1e run), not a
@@ -213,3 +215,34 @@ T1 commit: `npm test` 40/40, `npm run build` clean,
 2a/17/91 at 0 hp; the ordinary A-run won normally at 305 kills) and
 `npm run test:browser:first-shop` keyboard 3/3 + touch 3/3. The earlier S1e "19/19"
 number is not reused.
+
+## Three-party slice-gate sign-off: 8cb0e8f (2026-10-19)
+
+Frozen candidate **8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (S1 + S1b + S1c + S1d +
+S1e + T1). Astra, Opus and the independent DeepSeek each reviewed this exact SHA and
+explicitly approved the slice scope. Each ran its own session; the death samples are
+registered per party and must **not** be merged into one "3/3" claim.
+
+- Astra: `npm test` 40/40, `npm run build` clean, first-shop keyboard 3/3 + touch 3/3,
+  regression 23/23. G fixture: 2a reached the shop, 17 and 91 lost (2 deaths), retry
+  reset normally. Normal browser run won at 308 kills, hp 9, chain peak 18, pending
+  peak 14, no page errors. Environment Chrome 155, macOS 26.6.2, Apple M4, 1440x960
+  DPR1; raw rAF final 1800 samples median and p95 16.7ms - a headless frame-interval
+  measurement, not GPU, phone or peak-load acceptance.
+- Opus: same SHA approved. `npm test` 40/40, `tsc` clean, regression 23/23. G fixture:
+  2a and 91 reached the shop, 17 lost (1 death). H copy-isolation passed. Its `03ff521`
+  visual check is inherited as valid because the render/css/sim/data blobs are
+  unchanged at this SHA, so no new screenshots were taken; earlier ordinary play won
+  four runs.
+- Independent DeepSeek: same SHA approved, no blocker. `npm test` 40/40, build clean,
+  first-shop 6/6, regression 23/23. G fixture: 2a and 17 reached the shop, 91 lost (1
+  death). H passed.
+
+Gate reading: the group gate is "at least one real loss at 0 hp", a limited
+reachability check. It is not proof that every seed loses, and it is not a difficulty
+measurement. The whole group could still end with zero deaths on an unlucky timing run;
+that instability is recorded, not hidden.
+
+Outcome: the two-wave feel-validation slice **passes** the three-party slice gate. This
+is not the full 10-20 minute goal, which is **not** complete. There is **no user
+acceptance** yet, and **no expansion beyond the slice is authorized**.

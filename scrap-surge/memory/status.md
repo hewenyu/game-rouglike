@@ -8,6 +8,11 @@ browser auto-combat roguelike targeting a 10-20 minute normal run with genuine
 positive-feedback builds. The user's latest goal supersedes the older "stop before
 demonstrating" note; the two-wave build is now the first slice toward that goal.
 
+Current state: the two-wave feel-validation slice has passed the three-party slice
+gate at frozen candidate **8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (see the
+sign-off below). The full 10-20 minute goal is **not** complete, there is **no user
+acceptance** yet, and **expansion beyond the slice is not authorized**.
+
 ## Roles
 Astra coordinates, owns architecture boundaries and integration review; Opus reviews
 gameplay/aesthetics/feel; DeepSeek is the sole writer here (implementation, tests,
@@ -39,14 +44,15 @@ reviewer is pending and must run against the frozen source commit.
 This is a feel-validation slice, not a claim of a finished 10-20-minute game.
 User acceptance of this version is still pending.
 
-## Current source under review
+## Frozen candidate under review
 
 The current source on branch codex/scrap-surge is baseline **ee53cf8** (the
 post-palette-restore slice) plus S1d (slinger damage 18 -> 20), S1e (weapon aim fix)
 and T1 (read-only `enemyPositions` metrics plus a forced-defeat browser fixture). The
-prior freezes are **d6ba6fef5e117d342f1ac594d7d9ff2858b6bfd1** (S1d) and
-**03ff521d8da70584751b3fc1192425e12f82ccc7** (S1e); T1 is the commit whose subject
-begins "T1:" (see the T1 section below).
+candidate reviewed and approved by all three parties is
+**8cb0e8f104d4150ceca8f8660ae6a6c62972e208**; the prior freezes are
+**d6ba6fef5e117d342f1ac594d7d9ff2858b6bfd1** (S1d) and
+**03ff521d8da70584751b3fc1192425e12f82ccc7** (S1e).
 
 The earlier frozen slice **21a18fd66f782c8239ec6511897c66da9c58fe5a**
 ("scrap-surge: freeze S1/S1b/S1c feel slice", parent c502295) is historical. The
@@ -56,7 +62,39 @@ API at T1. Astra, Opus and an isolated DeepSeek reviewer must review the current
 source commit.
 
 Scope is exactly S1 + S1b + S1c + S1d + S1e + T1. No other product scope is
-authorized.
+authorized; expansion beyond the two-wave slice still needs its own review.
+
+## Three-party slice-gate sign-off (2026-10-19)
+
+Frozen candidate **8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (S1 + S1b + S1c + S1d +
+S1e + T1). Astra, Opus and the independent DeepSeek each reviewed this exact SHA and
+explicitly approved the slice scope. Each ran its own session; the death samples below
+are registered per party and must **not** be merged into one "3/3" claim.
+
+- Astra: `npm test` 40/40, `npm run build` clean, `npm run test:browser:first-shop`
+  keyboard 3/3 + touch 3/3, `npm run test:browser:regression` 23/23. G fixture: 2a
+  reached the shop, 17 and 91 lost (2 deaths), retry reset normally. Normal browser run
+  won at 308 kills, hp 9, chain peak 18, pending peak 14, no page errors. Environment
+  Chrome 155, macOS 26.6.2, Apple M4, 1440x960 DPR1; raw rAF final 1800 samples median
+  and p95 16.7ms - a headless frame-interval measurement, not GPU, phone or peak-load
+  acceptance.
+- Opus: same SHA approved. `npm test` 40/40, `tsc` clean, regression 23/23. G fixture:
+  2a and 91 reached the shop, 17 lost (1 death). H copy-isolation passed. Its `03ff521`
+  visual check is inherited as valid because the render/css/sim/data blobs are
+  unchanged at this SHA, so no new screenshots were taken; earlier ordinary play won
+  four runs.
+- Independent DeepSeek: same SHA approved, no blocker. `npm test` 40/40, `build`
+  clean, first-shop 6/6, regression 23/23. G fixture: 2a and 17 reached the shop, 91
+  lost (1 death). H passed.
+
+Gate reading: the group gate is "at least one real loss at 0 hp", a limited
+reachability check. It is not proof that every seed loses, and it is not a difficulty
+measurement. The whole group could still end with zero deaths on an unlucky timing run;
+that instability is recorded, not hidden.
+
+Slice gate outcome: **passed** for the two-wave feel-validation slice. This is not the
+full 10-20 minute goal, which is **not** complete. There is **no user acceptance** of
+this or any version yet, and **no expansion beyond the slice is authorized**.
 
 ## Recovery of the unapproved expansion (2026-10-19)
 
@@ -136,7 +174,9 @@ S1e evidence on the current source: `npm test` 40/40 (left/right 140px same-row
 enemies hit and killed within two seconds through the real weapon path, a single gun
 reaching all eight fixed directions, and multi-slot mounts covering every direction),
 `npm run build` clean, the first-shop review now passing (keyboard 3/3, touch 3/3, no
-page errors) and a normal-play browser victory at 287 kills.
+page errors), and, per Astra's own run on `03ff521`, a normal-play browser victory at
+309 kills, hp 9. The earlier author figure of 287 kills was not re-executed and is not
+adopted.
 
 Correction: the S1e author first reported "browser regression 19/19", but that number
 came from a stale `artifacts/browser-regression-results.json` (a pre-S1e run), not a

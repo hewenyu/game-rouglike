@@ -1,5 +1,10 @@
 # Validation evidence and boundaries
 
+Frozen candidate reviewed by all three parties:
+**8cb0e8f104d4150ceca8f8660ae6a6c62972e208** (see docs/reviews.md for the per-party
+sign-off). All reproduction commands below run from this repository; nothing depends on
+a `/tmp` path.
+
 ## Automated rules
 
 `npm test` runs 40 simulation tests (`tests/rules.test.ts`): automatic first kill,
