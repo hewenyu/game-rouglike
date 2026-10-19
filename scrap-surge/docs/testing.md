@@ -8,9 +8,9 @@ a `/tmp` path.
 The current source candidate is the F0 code checkpoint
 **42f4ff8f6163f6565ab4f939de147efa5a7b0564** (`a434f12` is the docs-only tip that
 records it); F0 scope and approval are in docs/reviews.md. F0 adds no gameplay rule, so
-the S1 numbers below still hold. The T2 browser-fixture revision is tests-only and its
-frozen SHA is recorded in docs/reviews.md after the commit lands rather than guessed
-here.
+the S1 numbers below still hold. The T2 browser-fixture revision is tests-only and was
+frozen at **5e050b221775f57744e39bfd20f5fbc4499360a6**; no source, data, package or
+visual file changed in it.
 
 ## Automated rules
 

@@ -391,3 +391,5 @@ Corrected T2 verification, run once with no retry: **23/23, exit 0**
 
 This is a single three-seed sample of a probabilistic, timing-sensitive fixture. It is
 not a stability claim, not a difficulty measurement and not user acceptance.
+
+T2 freeze checkpoint: **5e050b221775f57744e39bfd20f5fbc4499360a6** (tests + docs only).
