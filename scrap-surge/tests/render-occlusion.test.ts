@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { Renderer } from "../src/render";
 import { Game } from "../src/sim";
 import { BLAST, DT } from "../src/data";
-import type { Bullet } from "../src/sim";
+import type { Bullet, Enemy } from "../src/sim";
 
 type Matrix = [number, number, number, number, number, number];
 type DrawOp = {
@@ -15,6 +16,8 @@ type DrawOp = {
   y?: number;
   rx?: number;
   ry?: number;
+  w?: number;
+  h?: number;
   text?: string;
 };
 
@@ -90,7 +93,19 @@ class RecordingContext {
   closePath() {}
   setLineDash() {}
   strokeRect() {}
-  fillRect() {}
+  fillRect(x: number, y: number, w: number, h: number) {
+    if (!this.record) return;
+    const point = this.point(x, y);
+    const scale = this.scales();
+    this.ops.push({
+      kind: "fill",
+      fill: String(this.fillStyle),
+      x: point.x,
+      y: point.y,
+      w: w * scale.x,
+      h: h * scale.y,
+    });
+  }
   createRadialGradient() {
     return { addColorStop() {} };
   }
@@ -236,6 +251,44 @@ function visualGame() {
   return g;
 }
 
+function enemy(kind: Enemy["kind"], id: number, maxHp: number): Enemy {
+  const hp = maxHp / 2;
+  return {
+    x: 240 + id * 70,
+    y: 360,
+    id,
+    kind,
+    hp,
+    maxHp,
+    r:
+      kind === "boss"
+        ? 48
+        : kind === "chip"
+          ? 10
+          : kind === "splitter"
+            ? 20
+            : kind === "spitter"
+              ? 19
+              : kind === "can"
+                ? 24
+                : kind === "runner"
+                  ? 14
+                  : 17,
+    vx: 0,
+    vy: 0,
+    knockX: 0,
+    knockY: 0,
+    flash: 0,
+    age: 0.4,
+    born: 0,
+    attack: 0,
+    bowled: new Set(),
+    bossStage: kind === "boss" ? 2 : undefined,
+    volleys: kind === "boss" ? 0 : undefined,
+    tell: 0,
+  };
+}
+
 function snapshot(game: Game) {
   return JSON.stringify(game, (_key, value) => {
     if (value instanceof Map)
@@ -245,6 +298,109 @@ function snapshot(game: Game) {
     return value;
   });
 }
+
+function rects(ctx: RecordingContext) {
+  return ctx.ops.filter(
+    (op) => op.kind === "fill" && op.w !== undefined && op.h !== undefined,
+  );
+}
+
+test("expedition hurt bars add only bag, runner and chip at damaged health", () => {
+  for (const [index, kind] of (["bag", "runner", "chip"] as const).entries()) {
+    const rendered = rendererWith(new RecordingContext());
+    const e = enemy(kind, index + 1, 2);
+    const before = snapshot(e as unknown as Game);
+    rendered.enemy(e, "expedition20");
+    assert.equal(snapshot(e as unknown as Game), before, `${kind} mutated`);
+
+    const width = kind === "runner" ? 24 : 20;
+    assert.deepEqual(rects(rendered.ctx as unknown as RecordingContext), [
+      {
+        kind: "fill",
+        fill: INK,
+        x: e.x - width / 2,
+        y: e.y - e.r - 9,
+        w: width,
+        h: 3,
+      },
+      {
+        kind: "fill",
+        fill: "#a6d2af",
+        x: e.x - width / 2 + 1,
+        y: e.y - e.r - 8,
+        w: ((width - 2) * e.hp) / e.maxHp,
+        h: 1,
+      },
+    ]);
+
+    const full = rendererWith(new RecordingContext());
+    full.enemy(
+      { ...enemy(kind, index + 1, 2), hp: 2 },
+      "expedition20",
+    );
+    assert.deepEqual(rects(full.ctx as unknown as RecordingContext), []);
+  }
+});
+
+test("existing can, splitter and spitter hurt bars are unchanged", () => {
+  for (const [index, kind] of (
+    ["can", "splitter", "spitter"] as const
+  ).entries()) {
+    for (const mode of ["slice", "expedition20"] as const) {
+      const rendered = rendererWith(new RecordingContext());
+      const e = enemy(kind, index + 10, 2);
+      const before = snapshot(e as unknown as Game);
+      rendered.enemy(e, mode);
+      assert.equal(snapshot(e as unknown as Game), before, `${kind} mutated`);
+
+      const y = kind === "can" ? e.y - 34 : e.y - e.r - 12;
+      assert.deepEqual(rects(rendered.ctx as unknown as RecordingContext), [
+        {
+          kind: "fill",
+          fill: INK,
+          x: e.x - 20,
+          y,
+          w: 40,
+          h: 4,
+        },
+        {
+          kind: "fill",
+          fill:
+            mode === "expedition20" && kind === "spitter"
+              ? "#e5a04d"
+              : kind === "spitter"
+                ? "#e5a04d"
+                : kind === "splitter"
+                  ? "#e08a65"
+                  : "#a6d2af",
+          x: e.x - 19,
+          y: y + 1,
+          w: 19,
+          h: 2,
+        },
+      ]);
+    }
+  }
+});
+
+test("bag, runner and chip keep frozen slice rendering and get no new bars", () => {
+  const rendered = rendererWith(new RecordingContext());
+  let id = 20;
+  for (const kind of (["bag", "runner", "chip"] as const)) {
+    rendered.enemy(enemy(kind, id++, 2));
+    rendered.enemy({ ...enemy(kind, id++, 2), hp: 2 });
+  }
+  const ctx = rendered.ctx as unknown as RecordingContext;
+  assert.deepEqual(rects(ctx), []);
+  const hash = createHash("sha256")
+    .update(JSON.stringify(ctx.ops))
+    .digest("hex");
+  assert.equal(
+    hash,
+    "4ba5006bbeb0835ae7fc1d9ce8deecf1f41926250d2303ebfe1be15e02d80abf",
+    "default slice enemy drawing must remain byte-identical to the pre-bar behavior",
+  );
+});
 
 test("synthetic bullet matrix preserves player pass and draws each enemy once last", () => {
   const ctx = new RecordingContext();

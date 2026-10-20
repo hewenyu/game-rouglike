@@ -155,6 +155,47 @@ async function run(browser, kind) {
       if (state.phase === "shop" && state.wave === 2) {
         await driver.release();
         const before = state;
+        const layout = await page.evaluate(() => {
+          const cards = [...document.querySelectorAll(".weapon-card")];
+          const summary = [...document.querySelectorAll(".weapon-summary")];
+          const note = document.querySelector(".weapon-dps-note");
+          return {
+            viewportWidth: window.innerWidth,
+            documentScrollWidth: document.documentElement.scrollWidth,
+            cardOverflow: cards.some((card) => {
+              const r = card.getBoundingClientRect();
+              return r.left < 0 || r.right > window.innerWidth + 0.5;
+            }),
+            summaryMetrics: summary.map((row) => ({
+              clientWidth: row.clientWidth,
+              scrollWidth: row.scrollWidth,
+              width: row.getBoundingClientRect().width,
+              text: row.textContent?.replace(/\s+/g, " ").trim() ?? "",
+            })),
+            noteVisible: note
+              ? note.getBoundingClientRect().height > 0 &&
+                getComputedStyle(note).visibility !== "hidden"
+              : false,
+            noteText: note?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+          };
+        });
+        assert(layout.noteVisible, "shared theoretical-DPS note must be visible");
+        assert.match(layout.noteText, /单目标、散弹全中/);
+        assert.match(layout.noteText, /餐叉持续接触/);
+        if (mobile) {
+          assert.equal(
+            layout.documentScrollWidth,
+            layout.viewportWidth,
+            "390px shop must not overflow horizontally",
+          );
+          assert(!layout.cardOverflow, "390px shop cards must stay in viewport");
+          assert(
+            layout.summaryMetrics.every(
+              (row) => row.scrollWidth <= row.clientWidth + 1,
+            ),
+            `390px weapon labels must not clip: ${JSON.stringify(layout.summaryMetrics)}`,
+          );
+        }
         await page.screenshot({
           path: join(OUTPUT_DIR, `${kind}-shop-before.png`),
           fullPage: true,
@@ -192,6 +233,7 @@ async function run(browser, kind) {
         reports.push({
           kind,
           panel: "shop",
+          layout,
           startingId,
           offerIndex,
           beforeText,

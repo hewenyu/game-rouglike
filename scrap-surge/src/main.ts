@@ -144,7 +144,7 @@ function weaponStats(profile: EffectiveWeaponProfile) {
         : profile.sawOrbitRadius > 0
           ? `<span>环绕 <b>${profile.sawOrbitRadius}</b> / 接触 <b>${profile.sawContactRadius}</b></span>`
           : "";
-  return `<div class="weapon-summary"><span>攻击 <b>${profile.damage}</b></span><span>DPS <b>${dps.toFixed(1)}</b></span><span>${weaponEffectLabel(profile)}</span></div><div class="weapon-stats"><span>间隔 ${profile.interval.toFixed(2)}s</span><span>射程 ${profile.range}</span>${extra}</div>`;
+  return `<div class="weapon-summary"><span>攻击 <b>${profile.damage}</b></span><span class="weapon-dps">理论DPS <b>${dps.toFixed(1)}</b></span><span class="weapon-effect">${weaponEffectLabel(profile)}</span></div><div class="weapon-stats"><span>间隔 ${profile.interval.toFixed(2)}s</span><span>射程 ${profile.range}</span>${extra}</div>`;
 }
 function waveHpLabel(wave: number) {
   const index = clampedWave(wave);
@@ -155,6 +155,8 @@ function weaponEffectLabel(profile: EffectiveWeaponProfile) {
   if (profile.shots > 1) return `${profile.shots} 发`;
   if (profile.saws > 1) return `${profile.saws} 片锯`;
   if (profile.jumps > 0) return `链 ${profile.jumps + 1} 目标`;
+  if (profile.sawOrbitRadius > 0) return "环绕";
+  if (profile.blastRadius > 0) return "范围";
   return "单体";
 }
 function modIcon(id: ModId, tier = 1) {
@@ -307,9 +309,10 @@ function expeditionShop(g: Game) {
   overlay(
     `<section class="shop-panel expedition-shop"><div class="shop-heading"><div><div class="eyebrow">SHOP ${g.wave < 10 ? "0" : ""}${g.wave} / 20 · FULL TIDE MARKET</div><h2>这一波，添点<span>硬货。</span></h2><p>同名同阶自动合成，最高 IV；满槽仍可购买可合成武器。改装选择在别的停靠点，不占这里。</p></div><div class="shop-wallet"><span>废料</span><strong>${g.money}<small> ◈</small></strong><small>装备 ${g.guns.length} / ${g.slotCap}</small></div></div>
     <div class="shop-sticky"><span>废料 <b>${g.money}</b></span><span>装备 <b>${g.guns.length} / ${g.slotCap}</b></span><span>最高 <b>${gunTierLabel(maxTier)}</b></span><button id="next-compact" class="text-button">继续下海 ↓</button></div>
+    <p class="weapon-dps-note">理论DPS为面板估算：单目标、散弹全中；餐叉持续接触；不含多目标收益。</p>
     <div class="weapon-cards">${offered}</div>
     <div class="shop-tools"><span>买枪或合成。拆解返还累计投入的 35%。</span><button id="reroll" class="text-button" ${g.money < reroll ? "disabled" : ""}>换一批 ↻ ${reroll ? `${reroll} ◈` : "本次免费"}</button></div>
-    <div class="owned-heading"><h3>壳上的火力</h3><span>当前实战数值</span></div>
+    <div class="owned-heading"><h3>壳上的火力</h3><span>面板数值</span></div>
     <div class="owned-grid">${owned}</div>${g.guns.length < g.slotCap ? `<div class="empty-slots">还有 ${g.slotCap - g.guns.length} 个空槽可以买新武器；槽位是容量，不是免费枪。</div>` : ""}${g.guns.length === 6 ? `<div class="empty-slots">六个槽位已占。同名同阶仍可合成；无法腾出槽位时不能购入。</div>` : ""}
     <div class="wave-armor"><b>下一波 ${g.wave + 1} 装甲</b><span>${waveHpLabel(g.wave + 1)}</span><small>垃圾袋使用独立 HP 表；首领 HP 为独立表值。</small></div>
     <div class="shop-footer"><small>下一波回复 ${waveRecovery(g.mode, g.wave + 1)} 格生命 · 商店不计战斗时间</small><button id="next" class="primary">带着这批破烂下海 <b>→</b></button></div></section>`,

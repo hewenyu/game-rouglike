@@ -15,6 +15,29 @@ right foot and goes to the sky"): deaths, drops, pickups, weapons and explosions
 must feed each other in a real, readable chain rather than being simulated by
 fake counters or reduced to numeric stat inflation.
 
+## Current P1 structure (explicit goal)
+
+The latest user direction is six weapon slots from W1 with automatic
+same-ID/same-tier fusion through IV. The P1 accounting is frozen: the starting
+gun is free and paid 0, an 18-scrap purchase is paid 18, and two paid 30-scrap
+coils merge into one paid-60 weapon with the money charged once. No accounting
+change is required. The operation is `six slots + one incoming - positive fusion
+<= six`; a purported over-capacity-after-fusion defect is impossible.
+
+Presentation labels are panel estimates, not live combat measurements: cards
+use compact `理论DPS` plus one shared note for single-target/all-pellets/saw
+contact qualifications. The owned heading uses `面板数值`; shotgun, saw and
+rocket effect tags are `5 弹丸`, `环绕` and `范围`. These labels do not alter
+formulas or rules, and they must wrap without becoming a two-character vertical
+column on mobile.
+
+Expedition bag, runner and chip draw small read-only hurt bars. Can, splitter
+and spitter keep their existing bars, while default renderer calls retain the
+frozen slice behavior. No bar feeds back into combat or RNG.
+
+This is a structure and presentation freeze only. It does not approve item
+numbers, late balance or user feel.
+
 ## Wave-count target (user playtest, 2026-10-19)
 
 The user played the slice and gave the latest, highest-priority requirement: the
@@ -125,6 +148,26 @@ Planned P2 tests, to be written only when that scope is approved:
 - W5/W10/W15 draw meaningful nonweapon items with improved rarity weights, and W20
   completes without requiring another reward interaction.
 
+Items are mixable tags, not classes. The five candidate paths - speed, chain,
+HP/contact, firepower and pickup A/B - are recorded with provisional numbers and
+curses in `docs/growth-items-proposal.md`. Every omitted value there is an
+UNAPPROVED HYPOTHESIS, not approved balance. Some procs may stack, and it must not
+be assumed that every core item is unique. Rarity and repeatability remain
+orthogonal.
+
+Boss rewards at W5/W10/W15 draw higher-quality items from the same nonweapon
+pool; planned elites at W3/W7/W11/W14/W17/W19 use lower-quality weights and
+real kills/drops/pickups/sweeps. W20 is terminal. The planned 19 consolidated
+rest screens contain a weapon row, an item row and a stat-or-mechanic choice;
+chests do not add another modal.
+
+Income, drop and elite rates remain unapproved and must be seeded in a measured
+ledger. There is no confiscation, curse-only money, fake counter, hard
+six-generation cap or arbitrary boss-HP inflation. Positive feedback operates on
+finite actual enemies, settles each death once and uses bounded per-frame queue
+budgets, not a claimed sub-one loop gain. Weapons are the early baseline,
+scattered items form the middle and coherent items lead late.
+
 Scope stays gated: no one may unilaterally implement a 20-wave expansion. The
 20-wave requirement itself is the user's explicit goal, not a pending proposal. The
 approved implementation spec is `058951fc84994abb8ee24a2c587bb9232c1c1ccd`, and a
@@ -145,6 +188,11 @@ slot without that agreement.
 - Author self-checks are not independent review. The independent DeepSeek review
   must run in a separate context.
 - DeepSeek is the only writer in this directory while the role remains active.
+- One-shot agents use `fork_turns=none`, receive one bounded assignment and do not
+  follow up after their final answer. Independent DeepSeek review is never the
+  author of the reviewed change.
+- The current project documents are the shared source of truth; chat history is
+  context, not authoritative project state.
 
 ## Delivery gates
 

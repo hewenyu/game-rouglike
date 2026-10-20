@@ -35,6 +35,12 @@ autonomous, reversible work while Astra, Opus and DeepSeek explicitly agree on e
 step. That authorization is permission to proceed, not user acceptance: it must never
 be written up as the user approving the concept, the feel or the visuals.
 
+Current P1 starts with **six weapon slots** and automatically fuses equal same-ID
+weapons of the same tier through tier IV. P1's `1/2/4/8` tier ladder is structural,
+not approved late balance. The five growth sketches and every provisional number
+are non-approved hypotheses in `docs/growth-items-proposal.md`; they do not
+implement P2 or change the live P1 code.
+
 ## User clarification: positive-feedback builds
 
 The user explicitly requires "左脚踩右脚上天": build synergies should break through
@@ -62,6 +68,12 @@ weapon-only, items without coordinated synergy, and a coordinated item build. Ea
 must record actual boss encounter windows, damage, survival and engagement, not just
 the terminal win/loss. This is a validation contract; implementing a new item system
 still requires its own approved scope.
+
+Weapons are the early baseline, scattered items form the middle game and coherent
+items must lead the late game. The three cohorts above are validation controls,
+not three mandatory player classes. Items are mixable tags, not exclusive classes.
+No implementation phase beyond P1 is part of the current freeze; P2 phases remain
+pending and explicitly not done.
 
 ### Item rarity and repeatability (three-party decision, 2026-10-19)
 
@@ -105,11 +117,25 @@ mandatory chest choice or meta-progression is required unless a later three-part
 decision adds it. Item resale and curse removal are not approved and must not appear
 as side effects of the P2 work.
 
+Boss rewards at W5, W10 and W15 use higher-quality weights from the same
+nonweapon pool. Planned elites at W3, W7, W11, W14, W17 and W19 use lower-quality
+weights and real kills, drops, pickups and a sweep. W20 is terminal. Rarity and
+repeatability are orthogonal: items may be repeatable or unique by definition,
+and some proc effects may stack. Items are mixable tags, not exclusive classes.
+
 Reward and economy randomness use their own seeded stream, separate from combat
 randomness. Rarity draws, shop rerolls, elite/boss rewards and chest selections must
 not alter spawns, targeting, collisions or projectile outcomes. The current P1
 storefront's isolated stream is the precedent. Future reward work must add a paired-
 seed test that changes one stream's consumption without moving the other.
+
+The planned 19 consolidated rest screens contain a weapon row, an item row and a
+stat-or-mechanic choice, with chest handling inside that rest surface rather than
+an extra modal. Income, drop and elite-rarity rates remain unapproved seeds for a
+seeded ledger to be measured. They authorize no confiscation, curse-only money,
+fake counters, hard six-generation cap or arbitrary boss-HP inflation. Positive
+feedback must use finite actual enemies, settle each death once and retain queued
+per-frame work budgets rather than assuming loop gain below one.
 
 Planned P2 tests:
 

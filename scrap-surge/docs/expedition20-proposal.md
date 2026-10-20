@@ -6,6 +6,14 @@ Astra, Opus, author DeepSeek and independent DeepSeek approved implementation te
 `expedition20`; `?mode=slice` preserves the two-wave slice. Any later tuning or
 rule change needs three-party agreement.
 
+**HISTORICAL — SUPERSEDED BY P1:** the slot-growth ramp and manual tier-II
+upgrade plan in Sections 2.4-2.5 and 3.2 are retained as historical design text
+only. They do **not** describe current production. Current P1 starts with six
+weapon slots at W1 and automatically fuses same-ID/same-tier weapons through IV;
+there is no manual tier-II upgrade, no slot-growth voucher and no tier-II
+capacity ramp. The P1 fusion operation cannot exceed six slots:
+`6 slots + 1 incoming - 1 positive fusion <= 6`.
+
 Technical selection: TypeScript + Vite + Canvas stays. That already satisfies the
 "prefer Go and TypeScript" rule; there is no server-side need, so no Go backend or build
 rewrite is proposed.
@@ -98,12 +106,20 @@ Recovery remains capped at 10 and cannot revive a lost or won run.
 
 ### 2.4 Gun slots
 
+**HISTORICAL — SUPERSEDED BY P1.** Retained only as the original proposal:
+
 - Start with **2 slots**: the slinger plus **one empty slot**.
 - Slot growth **+1 after waves 2, 4, 7, 11** → 2,3,4,5,6.
 - The first full shop (after wave 2) therefore has **3 slots** and can buy two guns.
 - A slot is capacity, not a free gun.
 
+Current implementation: six slots from W1, with automatic same-ID/same-tier
+fusion through IV.
+
 ### 2.5 Tier II capacity ramp
+
+**HISTORICAL — SUPERSEDED BY P1.** No tier-II capacity ramp or manual upgrade
+exists in the current implementation.
 
 Tier II is not all unlocked at once. The number of tier-II guns the run may hold grows by
 shop: **W8 = 1, W10 = 2, W12 = 3, W14 = 4, W16 = 5, W18 = 6**. This is a live capacity
@@ -133,6 +149,10 @@ Reference: slinger tier II at W8 uses B=15 and the wave factor
 
 ### 3.2 Buying and upgrading (two explicit actions)
 
+**HISTORICAL — SUPERSEDED BY P1.** The current implementation uses automatic
+same-ID/same-tier fusion; the manual upgrade and tier-II capacity rules below
+are preserved for chronology and are not active behavior.
+
 - Four random cards are **new-gun purchases only**. Buying a card creates a tier-I
   stack of that card's type if a gun slot is available.
 - Upgrade and sell are **independent buttons on each owned slot**. They do not require
@@ -143,6 +163,9 @@ Reference: slinger tier II at W8 uses B=15 and the wave factor
 - At tier-II capacity, the upgrade button is disabled with the next opening wave number
   (for example, "opens after wave N"), or "capacity max" after W18, and **no money is
   deducted**.
+
+Current implementation: buying an equal same-ID/same-tier weapon fuses it one
+tier, through IV. Selling remains available from the owned-slot surface.
 
 ### 3.3 Selling
 

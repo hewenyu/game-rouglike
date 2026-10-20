@@ -1,5 +1,22 @@
 # Status
 
+P1 current structure: six weapon slots from W1, automatic same-ID/same-tier
+fusion through IV and damage-only tier scaling. The starting gun is paid 0; an
+18-scrap purchase is paid 18; two paid 30-scrap coils merge into one paid-60
+weapon with money charged once. No accounting change is required. Because an
+incoming weapon either occupies an empty slot or fuses positively, the state
+cannot exceed six slots: `6 + 1 - 1 <= 6`. The claimed over-capacity-after-fusion
+defect is rejected by this fresh adjudication. The next design questions are P2
+items and their measured role, not changes to this accounting.
+
+Cards use the compact nominal label `理论DPS`, with one shared shop note stating
+single-target, all-pellets and saw-contact qualifications. The owned-slot
+heading is `面板数值`; shotgun, saw and rocket effect tags are `5 弹丸`, `环绕`
+and `范围`. Labels wrap without forcing a two-character vertical column. Enemy
+hurt bars are render-only additions for expedition bag/runner/chip; can,
+splitter and spitter retain their exact previous bars, and the default slice
+renderer remains frozen.
+
 Render-order fix after `3305687` at
 `01a9bf13a69ceaeeca9263ec9def1d2ba212622a`, with completed three-party
 PLAYTEST-only review: every enemy projectile draws once above blasts and the chain
@@ -19,17 +36,35 @@ item rewards and economy assertions are recorded in `memory/goal.md` and
 `docs/design.md`, but no P2 item code, third mod slot, HP tuning or content
 expansion is part of this freeze.
 
-Current author evidence at this candidate source:
+Current repair evidence pending freeze:
 
 | Check | Result |
 | --- | --- |
-| Unit suite | **102/102** |
+| Unit suite | **105/105** |
 | Production build | **clean** |
+| Merge fixture on isolated `4192` | **2/2**, no page errors |
+| 390px layout after compact labels | **no document/card/summary overflow** |
+| Diff hygiene | `git diff --check` clean |
+
+The repair's final merge report is
+`/tmp/p1-compact-qa4-4192/report.json`, with desktop/touch before/after
+screenshots in the same directory. Keyboard and touch completed with no page
+errors, the I-to-II slinger purchase spent 18 scrap and displayed damage 40, and
+the final 390px screenshot confirms the shared DPS note plus compact labels fit.
+The DOM check also measured `documentScrollWidth === viewportWidth === 390`, no
+card overflow, and every summary row at equal `scrollWidth`/`clientWidth`
+(131px four-card rows, 61px owned row). This is a bounded presentation/merge
+check, not screenshot acceptance over every state or a full W20 run.
+
+The following prior evidence belongs to predecessor `c674b4f`, not to repairs
+made after it. It was not rerun after the final repair and is not relabelled:
+
+| Carried evidence from `c674b4f` | Result |
+| --- | --- |
 | First-shop ordinary input on `4190` | **6/6** (keyboard 3/3, touch 3/3), no page errors |
 | Input lifecycle on `4190` | **7/7** (keyboard 4/4, touch 3/3), no page errors |
-| First-merge desktop/touch fixture | **2/2**, no page errors |
+| Earlier first-merge desktop/touch fixture | **2/2**, no page errors |
 | Full slice comparator vs `19a66dd` | **0 differences**, 3,422 steps per seed 42/23/145 |
-| Diff hygiene | `git diff --check` clean |
 
 The four grouped invariant additions requested before freeze are present as
 distinct tests: atomic cascade behavior with paid aggregation, rejection that
@@ -60,10 +95,17 @@ Author artifacts:
   draw counts 2105, 2124 and 2123. This is fixed-input simulation evidence,
   not a browser or human sample.
 
-No P1 evidence establishes a full ordinary-input W20 victory, item-led late
-output, boss-window/damage/survival cohorts, physical-device performance,
-Safari compatibility, audio-mix acceptance or user feel. Independent review
-of this exact commit remains required; author runs do not satisfy it.
+No P1 evidence establishes a full ordinary-input W20 victory, current
+item-led late output (items are not implemented), boss-window/damage/survival
+cohorts, physical-device performance, Safari compatibility, audio-mix acceptance
+or user feel. Independent review of this exact commit remains required; author
+runs do not satisfy it.
+
+The comparator covers **3 seeds x 3,422 steps** only, with no weapon purchases.
+Its loadout is the starting slinger plus magnet and popcorn; it does not
+represent all loadouts, arbitrary input or browser play. The old next gate of
+waiting for user feedback is superseded by the currently authorized bounded
+redesign/repair. No current performance or W20 victory claim follows.
 
 ## Current test checkpoint: `b4c87e3` (2026-10-19)
 
@@ -83,8 +125,9 @@ false-positive for deadline coverage. The corrected
 and settles exactly one `lost` / `end`. Prior **89/89** and **91/91** counts
 remain historical and their logs are unchanged. Three-party bounded approval
 for the `b4c87e3` tests is complete, with no pending test-review claim. This
-docs-only checkpoint requires review after freeze. The next gate is user
-feedback from a full run, not another bot strategy or difficulty edit.
+docs-only checkpoint required review after freeze. Its old next gate of user
+feedback from a full run is historical after the user's authorized redesign and
+is not the current action.
 
 ## Simulation/input baseline: `db74a8c` (2026-10-19)
 
@@ -244,7 +287,7 @@ evidence is never overwritten; the chosen path is printed.
 
 ### Open boundaries
 
-No current evidence establishes a full ordinary-input W20 victory on `851cd13`.
+No current evidence establishes a full ordinary-input W20 victory.
 Physical-device performance, Safari, mobile ergonomics, rendered-frame rate,
 audio mix and user feel remain unverified. The 20-wave candidate has no user
 acceptance. No tuning, additional UI, push, merge or deployment is authorized

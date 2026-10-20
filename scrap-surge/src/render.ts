@@ -3,6 +3,7 @@ import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
 import {
   bossForWave,
   effectiveWeaponProfile,
+  type GameMode,
   type GunTier,
 } from "./expedition";
 const INK = "#273b35",
@@ -654,7 +655,7 @@ export class Renderer {
       }
       c.restore();
     }
-    for (const e of g.enemies) this.enemy(e);
+    for (const e of g.enemies) this.enemy(e, g.mode);
     for (const k of g.corpses) {
       const life = k.life / k.max;
       c.save();
@@ -1018,7 +1019,7 @@ export class Renderer {
     }
     c.restore();
   }
-  enemy(e: Enemy) {
+  enemy(e: Enemy, mode: GameMode = "slice") {
     const c = this.ctx;
     const stage =
       e.kind === "boss" && e.bossStage
@@ -1249,6 +1250,22 @@ export class Renderer {
       c.fillRect(e.x - 20, e.y - e.r - 12, 40, 4);
       c.fillStyle = e.kind === "spitter" ? "#e5a04d" : "#e08a65";
       c.fillRect(e.x - 19, e.y - e.r - 11, (38 * e.hp) / e.maxHp, 2);
+    }
+    if (
+      mode === "expedition20" &&
+      (e.kind === "bag" || e.kind === "runner" || e.kind === "chip") &&
+      e.hp < e.maxHp
+    ) {
+      const width = e.kind === "runner" ? 24 : 20;
+      c.fillStyle = INK;
+      c.fillRect(e.x - width / 2, e.y - e.r - 9, width, 3);
+      c.fillStyle = "#a6d2af";
+      c.fillRect(
+        e.x - width / 2 + 1,
+        e.y - e.r - 8,
+        (width - 2) * (e.hp / e.maxHp),
+        1,
+      );
     }
   }
 }

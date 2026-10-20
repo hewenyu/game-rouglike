@@ -739,16 +739,37 @@ h1 > i {
 }
 .weapon-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 2px 10px;
   min-height: 25px;
   font-size: 13px;
   font-weight: 800;
   color: #4d5e47;
 }
+.weapon-summary > span {
+  white-space: nowrap;
+}
+.owned-slot .weapon-summary {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.owned-slot .weapon-summary > span {
+  white-space: normal;
+}
 .weapon-summary b {
   font-size: 18px;
   color: var(--ink);
+}
+.weapon-dps-note {
+  margin: 9px 0 0;
+  padding: 7px 10px;
+  border-left: 3px solid #a7b583;
+  background: #fff2cf;
+  color: #5d6853;
+  font-size: 9px;
+  line-height: 1.55;
 }
 .weapon-cards {
   display: grid;

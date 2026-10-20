@@ -1,5 +1,50 @@
 # Validation evidence and boundaries
 
+## P1 label, hurt-bar and documentation repair (2026-10-19)
+
+This source changes presentation text/CSS and renderer bars only; it does not
+change simulation, RNG, combat, prices or accounting. Cards use the compact
+`理论DPS` label, while one shared shop note explains: single-target panel
+estimate, all shotgun pellets hitting, saw continuous contact, and no
+multi-target gain. The owned-slot heading is `面板数值`; effect tags stay
+compact (`5 弹丸`, `环绕`, `范围`). None of these labels changes a rule.
+
+Renderer evidence is a synthetic read-only matrix:
+
+- expedition bag, runner and chip draw the new small bar only when HP is below
+  max; their enemy objects are unchanged before and after rendering;
+- can, splitter and spitter draw exactly their prior two rectangles in both
+  modes and are likewise non-mutating;
+- bag, runner and chip with default/missing mode keep frozen slice draw-op
+  SHA-256 `4ba5006bbeb0835ae7fc1d9ce8deecf1f41926250d2303ebfe1be15e02d80abf`
+  and draw no new bar.
+
+This is renderer-level equivalence for that fixture, not screenshot acceptance
+or proof over every state. The author checks are `npm test` **105/105** and a
+clean `npm run build`. Normal-input browser first-shop/merge fixtures were not
+run as part of the final documentation edit, so their earlier 6/6 and 2/2 results
+remain historical and are not relabelled.
+
+The final repair merge report is `/tmp/p1-compact-qa4-4192/report.json`, with
+desktop/touch before/after screenshots alongside it. Both modes completed with
+no page errors. At 390px the final screenshot confirms the shared DPS note and
+compact labels; DOM checks measured `documentScrollWidth === viewportWidth ===
+390`, no card overflow, and every weapon-summary row at
+`scrollWidth == clientWidth` (131px four-card rows, 61px owned row). The fixture
+also observed the unchanged 18-scrap I-to-II fusion and damage 40. This is a
+bounded presentation/merge check, not full screenshot acceptance or a W20 run.
+
+The first-shop 6/6, lifecycle 7/7, earlier merge 2/2 and three-seed comparator
+below are carried evidence from predecessor `c674b4f`. They were not rerun after
+this repair and are not relabelled as current-source evidence.
+
+The slice comparator covers **3 seeds x 3,422 steps** only, with no weapon
+purchases. Its loadout is the starting slinger plus magnet and popcorn; it does
+not cover all loadouts, arbitrary inputs, item builds or browser behavior. The
+old next gate of waiting for user feedback is superseded by the user-authorized
+redesign. No full W20 victory, item-led late output or current performance claim
+follows.
+
 The simulation/input baseline is
 **db74a8cc95806976bcdaf6896b79a4ccdb48afcc**. Its three-party PLAYTEST review
 is historical evidence only. A render-order fix follows `3305687`; that fix is
@@ -23,7 +68,7 @@ P2 items, rarity/stackability, chests and item-led balance are not implemented.
 
 | Check | Result |
 | --- | --- |
-| `npm test` | **102/102** |
+| `npm test` | **105/105** |
 | `npm run build` | **clean** |
 | First-shop on `4190` | **6/6**, no page errors |
 | Input lifecycle on `4190` | **7/7**, no page errors |
@@ -100,8 +145,9 @@ deadline branch. The corrected fixture requires phase `fight`, HP above zero and
 a live boss at exactly `90s` with no `end` event, then one `lost` and one `end`
 step past `90s`. The bounded revision at `b4c87e3` completed three-party
 approval for these tests. No new pending test-review claim is needed; this
-docs-only revision is to be reviewed after its commit freezes. The next gate is
-user feedback from a full run, not a new bot strategy or difficulty edit.
+docs-only revision was to be reviewed after its commit froze. Its old next gate
+of user feedback from a full run is historical and was superseded by the
+user-authorized redesign; it is not the current action.
 
 The original rules assertions cover automatic first kill,
 one-time death settlement, multigeneration explosions, budgeted queue retention,

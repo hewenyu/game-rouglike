@@ -12,6 +12,10 @@ in this directory (implementation, tests, fixes). Astra, Opus and DeepSeek have
 equal standing: a decision is implemented only after all three explicitly agree,
 and silence or absence is not approval. Author self-checks are not independent
 review; independent review runs in a separate context against a named commit.
+One-shot agents start with `fork_turns=none`, receive one bounded assignment and
+do not follow up after their final answer. An independent DeepSeek reviewer is
+not the author of the reviewed change. Current project documents are the shared
+source of truth; chat history is context, not authoritative project state.
 The rejected nightfold/ prototype has been deleted under the user's direct
 authorization; do not recreate it. Do not modify the parent README.
 Simulation, rendering, input/lifecycle and audio remain separate. Visual quality
