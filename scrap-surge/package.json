@@ -15,6 +15,7 @@
     "test:astra:perf": "tsx tests/astra-perf.ts",
     "test:astra:ranged": "node tests/astra-ranged-run.mjs",
     "test:astra:heal-trace": "node tests/astra-heal-trace.cjs",
+    "test:p3:measure": "tsx tests/p3-measure.ts",
     "format": "prettier --write src tests vite.config.ts",
     "test:browser:regression": "node tests/browser-regression.mjs",
     "test:browser:p2-visuals": "node tests/browser-p2-visuals.mjs",
