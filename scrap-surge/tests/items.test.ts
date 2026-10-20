@@ -711,6 +711,32 @@ test("proc previews report current and projected existing-derived values", () =>
   );
 });
 
+test("proc previews keep damage dimensions separate from multipliers", () => {
+  const oneSiphon = itemProcPreview(itemCountsFromIds(["siphon-bag"]));
+  assert.deepEqual(oneSiphon.readoutsByItem["siphon-bag"], {
+    multiplier: 1.25,
+    radius: 193.75,
+  });
+
+  const twoSiphons = itemProcPreview(
+    itemCountsFromIds(["siphon-bag", "siphon-bag"]),
+  );
+  assert.deepEqual(twoSiphons.readoutsByItem["siphon-bag"], {
+    multiplier: 1.5,
+    radius: 232.5,
+  });
+
+  const projectedMagnet = itemProcPreview(
+    itemCountsFromIds(["siphon-bag", "magnetic-return"]),
+  );
+  assert.deepEqual(projectedMagnet.readoutsByItem["magnetic-return"], {
+    damage: 25,
+    radius: 375,
+    threshold: 8,
+    count: 10,
+  });
+});
+
 test("proc preview separates owned values from inactive dependency and weapon copies", () => {
   const h2 = itemProcPreview(itemCountsFromIds(["undertow-board"]));
   assert.equal(h2.activeByItem["undertow-board"], true);

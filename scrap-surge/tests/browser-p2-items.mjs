@@ -26,6 +26,8 @@ const CORE_PREFERENCE = [
   "magnetic-return",
   "milestone",
 ];
+const PREVIEW_ITEM_ID = "siphon-bag";
+const PREVIEW_REWARD_ID = "magnetic-return";
 const ITEM_ID = "thick-shell";
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const metrics = (page) => page.evaluate(() => window.scrapMetrics);
@@ -368,6 +370,107 @@ async function run(browser, kind) {
           `default detail must be an available W1 core: ${layout.detail?.id}`,
         );
         assert(/(当前效果|效果数值|机制强度)/.test(layout.detail?.text ?? ""));
+
+        const previewItemIndex = state.itemOffers.indexOf(PREVIEW_ITEM_ID);
+        const previewRewardIndex =
+          state.rewards?.items?.indexOf(PREVIEW_REWARD_ID) ?? -1;
+        assert.equal(
+          previewItemIndex,
+          0,
+          `seed ${SEED} must put ${PREVIEW_ITEM_ID} at shop index 0`,
+        );
+        assert.equal(
+          previewRewardIndex,
+          0,
+          `seed ${SEED} must put ${PREVIEW_REWARD_ID} at reward index 0`,
+        );
+        await scrollTo(page, ".shop-item-section");
+        await page
+          .locator(
+            `.shop-item-section .p2-item-card[data-item-card="${previewItemIndex}"]`,
+          )
+          .click({ position: { x: 8, y: 8 } });
+        assert.equal(
+          await page
+            .locator("#selected-item-detail")
+            .getAttribute("data-selected"),
+          PREVIEW_ITEM_ID,
+        );
+        await activate(
+          page,
+          mobile,
+          mobile
+            ? `#selected-item-detail [data-buy-item="${previewItemIndex}"]`
+            : `.shop-item-section .p2-item-card[data-item-card="${previewItemIndex}"] > .item-buy-row [data-buy-item="${previewItemIndex}"]`,
+        );
+        await page.waitForFunction(
+          (id) => window.scrapMetrics.inventory[id] >= 1,
+          PREVIEW_ITEM_ID,
+        );
+        const afterPreviewBuy = await metrics(page);
+        assert.equal(afterPreviewBuy.inventory[PREVIEW_ITEM_ID], 1);
+        assert.equal(afterPreviewBuy.inventory[PREVIEW_REWARD_ID], 0);
+        assert(
+          afterPreviewBuy.rewards.items.includes(PREVIEW_REWARD_ID),
+          "reward must remain unclaimed after buying the same-index shop card",
+        );
+
+        await scrollTo(page, ".reward-row");
+        await page
+          .locator(
+            `.reward-row .p2-item-card[data-item-card="${previewRewardIndex}"]`,
+          )
+          .click({ position: { x: 8, y: 8 } });
+        assert.equal(
+          await page
+            .locator("#selected-item-detail")
+            .getAttribute("data-selected"),
+          PREVIEW_REWARD_ID,
+        );
+        const previewDetail = await page
+          .locator("#selected-item-detail")
+          .innerText();
+        assert(
+          /当前：伤害 25 · 半径 375 · 触发 8 · 数量 10/.test(
+            previewDetail,
+          ),
+          `unclaimed reward must project actual siphon outputs: ${previewDetail}`,
+        );
+        assert(
+          /拾取范围 194 → 375/.test(previewDetail),
+          `unclaimed reward must project pickup radius: ${previewDetail}`,
+        );
+        await scrollTo(page, ".shop-item-section");
+        await page
+          .locator(
+            `.shop-item-section .p2-item-card[data-item-card="${previewItemIndex}"]`,
+          )
+          .click({ position: { x: 8, y: 8 } });
+        const siphonDetail = await page
+          .locator("#selected-item-detail")
+          .innerText();
+        assert(
+          /当前：伤害倍率 ×1\.25 · 半径 194/.test(siphonDetail),
+          `siphon multiplier must remain dimensionless: ${siphonDetail}`,
+        );
+        assert(
+          !/当前：伤害 1\.3/.test(siphonDetail),
+          `siphon multiplier must not be labeled as damage: ${siphonDetail}`,
+        );
+        assert(
+          !/点选查看效果 · 点选查看完整效果/.test(layout.noise),
+          "item cards must keep one selection instruction",
+        );
+        await page.screenshot({
+          path: join(
+            OUTPUT_DIR,
+            `${kind}-w1-after-item-buy-inspect-core.png`,
+          ),
+          fullPage: true,
+          animations: "disabled",
+        });
+
+        const beforeClaim = await metrics(page);
         await page.screenshot({
           path: join(OUTPUT_DIR, `${kind}-w1-core-before.png`),
           fullPage: true,
@@ -397,13 +500,21 @@ async function run(browser, kind) {
         );
         const after = await metrics(page);
         assert.equal(after.inventory[coreId], 1);
-        assert.equal(after.money, before.money);
+        assert.equal(after.money, beforeClaim.money);
         assert.deepEqual(after.rewards.items, []);
         procBaseline = {
           core: coreId,
-          before,
+          before: beforeClaim,
           after,
           layout,
+          preview: {
+            itemIndex: previewItemIndex,
+            rewardIndex: previewRewardIndex,
+            beforeBuy: before,
+            afterBuy: afterPreviewBuy,
+            detail: previewDetail,
+            siphonDetail,
+          },
         };
         await page.screenshot({
           path: join(OUTPUT_DIR, `${kind}-w1-core-claimed.png`),

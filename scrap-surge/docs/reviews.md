@@ -26,6 +26,31 @@ are the verifiable evidence. This is not one model roleplaying three.
 Author self-check is not independent review. The independent DeepSeek review must
 run in a separate context against a frozen commit.
 
+## Bounded R5 follow-up consent on `e478497` (2026-10-20)
+
+Root, fresh actual Opus task `p2_opus_repaired_review_once` and fresh actual
+independent DeepSeek task `p2_ds_repaired_review_once` explicitly agreed to one
+sole-author repair of exactly the R5 defects below. Their reviews of `e478497`
+passed R1-R4 and blocked on R5 only. That is consent for a bounded follow-up, not
+approval of unfinished code.
+
+- **Index scope:** sold state from a shop card at index N must not suppress
+  projection on an unclaimed reward or chest card at index N. Suppression applies
+  only to the actual `.shop-item-section`.
+- **Dimensionless siphon value:** `siphon-bag` exposes `1.25` as a separate
+  dimensionless multiplier and displays `伤害倍率 ×1.25`; it must not be rounded
+  into damage `1.3`. Final projected magnet damage remains `25`.
+- **Selection copy:** item cards show one `点选查看效果`, optionally with concrete
+  deltas; the duplicated `点选查看完整效果` instruction is removed.
+
+The follow-up is limited to `src/items.ts`, `src/main.ts`, related tests/package
+scripts, current testing/review/handoff docs, and top memory/status. It makes no
+formula, combat, simulation, renderer, audio, CSS, balance, dependency, push or
+merge change and uses no state/HP/timer/cheat injection. The ordinary-input
+regression is retained in `tests/browser-p2-items.mjs`. Fresh Opus and
+independent DeepSeek review of the resulting SHA remains required; author tests
+and browser evidence are not independent review.
+
 ## P2 repair consent on `27c3503` (2026-10-20)
 
 Root Astra proposed the bounded R1-R5 repair recorded at

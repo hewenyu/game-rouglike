@@ -988,6 +988,8 @@ export interface ItemProcPreview {
 
 export interface ItemProcReadout {
   readonly damage?: number;
+  // Dimensionless projectile-damage factor, never a damage amount.
+  readonly multiplier?: number;
   readonly radius?: number;
   readonly max?: number;
   readonly interval?: number;
@@ -1203,7 +1205,7 @@ export function itemProcPreview(
     )}`,
     `钱币转化率 ${coinRateMilli(counts["siphon-bag"]) / 10}%（燃料不减少）`,
     {
-      damage: before.pickupBulletDamageMultiplier,
+      multiplier: before.pickupBulletDamageMultiplier,
       radius: before.pickupRadius,
     },
   );

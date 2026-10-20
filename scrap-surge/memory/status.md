@@ -1,5 +1,24 @@
 # Status
 
+The current bounded follow-up repairs the three R5 preview defects that fresh
+actual Opus and independent DeepSeek reviews found after R1-R4 passed at
+`e478497`. Shop sold state now suppresses only its own `.shop-item-section`;
+same-index reward and chest cards still project the unclaimed item. `siphon-bag`
+uses a separate dimensionless readout (`伤害倍率 ×1.25`) instead of being
+rendered as damage `1.3`. Item cards keep one selection instruction, with
+concrete deltas where available. The repository's seed-1 ordinary-input browser
+fixture buys shop index 0, inspects unclaimed reward index 0 and asserts
+projected `magnetic-return` damage/radius plus the siphon multiplier.
+
+This is a presentation/test repair only. It changes no formula, combat,
+simulation, HP, wave, reward RNG, renderer, audio, CSS, balance, dependency or
+frozen-slice behavior and injects no state, timer or invulnerability. The old
+172-test and browser evidence remains attributed to `e478497`; exact final-tree
+evidence is **173/173** tests, clean build and clean diff check, plus the
+ordinary-input browser fixture **2/2** with zero page errors. The frozen
+follow-up SHA is recorded with the commit. Fresh Opus and independent DeepSeek
+review of that SHA, root integration review and user acceptance remain open.
+
 The frozen P2 repair candidate replaces the Stage D checkpoint with the bounded
 R1-R5 repair agreed by Astra, Opus and independent DeepSeek on `27c3503`.
 `src/sim.ts` now generates exactly three distinct expedition weapon offers and

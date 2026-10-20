@@ -1,15 +1,55 @@
 # Validation evidence and boundaries
 
+## R5 preview follow-up (2026-10-20)
+
+This follow-up repairs only the R5 defects found after R1-R4 passed at
+`e478497`. Shop sold-state no longer suppresses same-index reward/chest
+projection; `siphon-bag` reports a separate dimensionless multiplier; and each
+item card keeps one selection instruction. No formula, combat, simulation,
+rendering, audio, CSS, balance or dependency behavior changed.
+
+The ordinary-input browser fixture now retains the seed-1 regression: buy shop
+index 0 (`siphon-bag`), then inspect still-unclaimed reward index 0
+(`magnetic-return`). It asserts projected `伤害 25`, pickup `194 → 375`, siphon
+`伤害倍率 ×1.25`, one card instruction, and continues through the ordinary W1
+core claim and W2 `厚壳` purchase. No game state, HP, timer or invulnerability is
+injected.
+
+The exact follow-up tree passed `npm test` **173/173** and `npm run build` clean.
+The repository browser fixture passed **2/2** in ordinary keyboard and real CDP
+touch, with zero page errors. Both modes observed shop index 0 and reward index
+0, `siphon-bag` held 1 while unclaimed `magnetic-return` remained held 0 in the
+reward row, actual projected `伤害 25` / pickup `194 → 375`, and siphon
+`伤害倍率 ×1.25` / radius `194`. Both then completed the natural W1
+`scrap-popcorn` claim and W2 `厚壳` purchase with real popcorn accounting
+(25 consumed fuel, 50 admitted shots, 0 rejected).
+
+The successful report is `/tmp/ds-e478-r5-final2/report.json`
+(SHA-256 `c281ca0620b69dc8a424d4a9b7ca256e1796d736e180e371052e9b5dff8f0067`).
+Its keyboard focus screenshot is
+`keyboard-w1-after-item-buy-inspect-core.png`
+(SHA-256 `c8b043ed838d0a95e2fa0e48fffa6fb8d6fa1cf37495269916ae99435762aacd`);
+the touch counterpart hashes to
+`64f17071561ab1d97c9cf18675da28ae74cb7ee0760a0caf39eb9e41e4b35fc0`.
+The earlier `/tmp/ds-e478-r5-final/report.json` failed in both modes because the
+fixture exposed inconsistent radius rounding (`193.8` vs `194`). It is preserved
+as a failed fixture run, not relabeled. The later source keeps the precise
+`193.75` readout and displays radii consistently as whole numbers.
+
+These are author-run headless checks. They are not independent review and do not
+establish physical-device/Safari behavior, audio/visual acceptance, W16-W20
+performance, an ordinary-input W20 victory or user feel.
+
 ## P2 repair verification (2026-10-20)
 
 The repair candidate preserves simulation balance, HP, waves, audio and the
 frozen slice behavior. It makes expedition weapon offers exactly three distinct
 cards, prevalidates shared rerolls, removes reward-stream mutation from rerolls,
-fixes deterministic exact-repeat fallback, and keeps failures atomic. The item
-detail path now uses the shared pure proc-preview helper and shows only the
-selected item's own readout; held proc outputs are listed only when the selected
-item changes `powerFactor`. Mobile family labels are Chinese-only so all three
-cards fit at 390px without ellipsis.
+fixes deterministic exact-repeat fallback, and keeps failures atomic. Subsequent
+R5 follow-up keeps same-index reward projection independent from shop sold
+state, reports siphon's multiplier separately from damage, and keeps one
+selection instruction per card. Mobile family labels are Chinese-only so all
+three cards fit at 390px without ellipsis.
 
 | Check | Latest result |
 | --- | --- |

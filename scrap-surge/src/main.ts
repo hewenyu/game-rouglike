@@ -388,10 +388,13 @@ function itemDeltaMarkup(before: DerivedItemStats, after: DerivedItemStats) {
   }
   return additions.length
     ? additions.slice(0, 5).join(" · ")
-    : "点选查看完整效果";
+    : "";
 }
 function previewNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+function previewMultiplier(value: number) {
+  return `×${Number(value.toFixed(2))}`;
 }
 function previewReadout(
   before: ReturnType<typeof itemProcPreview>,
@@ -404,18 +407,32 @@ function previewReadout(
   const parts: string[] = [];
   const add = (
     label: string,
-    key: "damage" | "radius" | "interval" | "threshold" | "count" | "max",
+    key:
+      | "damage"
+      | "multiplier"
+      | "radius"
+      | "interval"
+      | "threshold"
+      | "count"
+      | "max",
   ) => {
     const from = a?.[key];
     const to = b?.[key];
+    const format =
+      key === "multiplier"
+        ? previewMultiplier
+        : key === "radius" || key === "max"
+          ? (value: number) => String(Math.round(value))
+          : previewNumber;
     if (from === undefined && to === undefined) return;
-    if (from === undefined) parts.push(`${label} ${previewNumber(to!)}`);
-    else if (to === undefined) parts.push(`${label} ${previewNumber(from)}`);
+    if (from === undefined) parts.push(`${label} ${format(to!)}`);
+    else if (to === undefined) parts.push(`${label} ${format(from)}`);
     else if (Math.abs(from - to) < 0.0001)
-      parts.push(`${label} ${previewNumber(to)}`);
-    else parts.push(`${label} ${previewNumber(from)} → ${previewNumber(to)}`);
+      parts.push(`${label} ${format(to)}`);
+    else parts.push(`${label} ${format(from)} → ${format(to)}`);
   };
   add("伤害", "damage");
+  add("伤害倍率", "multiplier");
   add("半径", "radius");
   add("上限半径", "max");
   add("间隔", "interval");
@@ -577,7 +594,7 @@ function itemCard(
     <h3>${definition.name}</h3>
     <div class="item-meta"><span>${definition.unique ? "唯一" : `最多 ${definition.cap} 份`}</span><span>持有 ${owned}${definition.unique ? "" : ` / ${definition.cap}`}</span><span>${definition.dependencies.allOf.length || definition.dependencies.anyOf.length ? "有前置" : "无前置"}</span></div>
     <p class="item-card-description">${definition.description}</p>
-    <div class="item-delta"><b>点选查看效果 · ${delta}</b></div>
+    <div class="item-delta"><b>点选查看效果${delta ? ` · ${delta}` : ""}</b></div>
     ${kind === "offer" ? `<div class="item-buy-row"><span class="item-price">${sold ? "已购入" : `${price} ◈`}</span><small>${sold ? "已结算" : stale ? "当前不可用" : g.money < price ? `还差 ${price - g.money} ◈` : warning || "购买并立即装备"}</small><button class="item-buy" data-buy-item="${index}" ${disabled ? "disabled" : ""}>${sold ? "✓" : "买下"}</button></div>` : ""}
     ${kind === "reward" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-core="${index}" ${stale ? "disabled" : ""}>${stale ? "不可选" : "选这件"}</button><small>免费领取 · 不花废料</small></div>` : ""}
     ${kind === "chest" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-chest="${index}" ${stale ? "disabled" : ""}>${stale ? "已拥有或达到上限" : "确认选择"}</button><small>领取后关闭宝箱</small></div>` : ""}
@@ -767,7 +784,9 @@ function expeditionShop(g: Game) {
         definition &&
         card.classList.contains("p2-item-card") &&
         g.itemEligibility(definition.id).eligible &&
-        !g.soldItems.has(cardIndex);
+        !(
+          card.closest(".shop-item-section") && g.soldItems.has(cardIndex)
+        );
       const projected = shouldProject
         ? itemCountsWith(g.inventory, definition.id)
         : g.inventory;
