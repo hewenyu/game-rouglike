@@ -1,5 +1,51 @@
 # Validation evidence and boundaries
 
+## P3A natural-simulation measurement (2026-10-20)
+
+The P3A diagnostic ran 21 preregistered cohort/seed simulations on frozen
+production source `447af109d4a07d218ae33466c75bc5b1266b092c`, using public game
+actions, fixed `1/60` steps and one hashed movement driver
+(`e5c398e9658bfc014014c753e2682fcf9e6fabe8019247ddef148ef530a7d202`) for every
+cohort. Policy SHA-256 is
+`e78ef5512c0a968bde0ebe080f4532bd78cfaf7c0ff08468d2f21de6640e2353`.
+The committed successful harness is
+`11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d`.
+`git diff 447af10..HEAD -- src` remained empty.
+
+The batch completed 21 primary runs plus one deterministic
+weapon-only/seed-1 replay, which matched the full canonical run record. Primary
+outcomes are **4 wins / 17 losses**: **15 boss-wave deadline losses with positive
+HP**, **2 zero-HP losses**, and no harness step-cap or integrity failures. The
+deadline losses use the actual boss-wave rule, `duration + 15 s`; they are not
+deaths during boss spawn. Boss encounter windows, damage samples and kill state
+remain separately reported.
+
+Weapon-only ended with six Tier-II guns on seed 1 and five Tier-II plus one
+Tier-III gun on seeds 42/145, with no Tier-IV. Seed 1 had six occupied slots,
+cash 153 to 765 across the W9-W14 rests, and no accepted reroll; the observed rows
+offered no useful full-slot fusion partner. This indicates a
+full-slot / missing Tier-I partner purchase bottleneck under the no-sales policy,
+not wallet scarcity or a failed DPS check. Any sale or partner-selection policy
+is a later three-party design decision.
+
+Report details are in `docs/data/p3-measurement/report.json` (SHA-256
+`8cd1eabe81f70d132c6edca8b0346cf439321dc5e8fc6e85993b4003ed3cbbbe`) and
+`docs/data/p3-measurement/report.md` (SHA-256
+`69b654047d35d2c8a834e652221d9309b60fec3ac4be4be14be57cf0336fc6b7`).
+The external trace is `/tmp/scrap-p3-measurement-447af10/runs.jsonl` (SHA-256
+`6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2`).
+The first harness attempt aborted before a cohort completed with
+`TypeError: Cannot read properties of undefined (reading 'everSpawned')`;
+harness commit `a5997bf` fixed its boss-bucket indexing. That failed attempt is
+preserved as a harness failure, not a cohort result.
+
+These are fixed three-seed diagnostic samples, not win-rate estimates, browser
+play, human difficulty, route viability, item-led damage attribution,
+performance or user acceptance. Item-led actual attribution remains missing
+because no public per-hit source ledger exists. P2 user acceptance was not given;
+full W20 browser play, late five-route evidence, renderer performance,
+audio/mobile/Safari behavior and user feel remain unverified.
+
 ## R5 preview follow-up (2026-10-20)
 
 This follow-up repairs only the R5 defects found after R1-R4 passed at

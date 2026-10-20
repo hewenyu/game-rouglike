@@ -1,0 +1,436 @@
+{
+  "generatedAt": "2026-10-20T10:06:09.692Z",
+  "sourceSHA": "447af109d4a07d218ae33466c75bc5b1266b092c",
+  "checkpointSHA": "6ba784466e9a3f814a8fb4700438c44f3825d633",
+  "policySHA256": "e78ef5512c0a968bde0ebe080f4532bd78cfaf7c0ff08468d2f21de6640e2353",
+  "driverSHA256": "e5c398e9658bfc014014c753e2682fcf9e6fabe8019247ddef148ef530a7d202",
+  "harnessSHA256": "11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d",
+  "sourceManifestSHA256": "7ba343896f610d805e462c877babc99bc8e44478fb355727f72c8b81a5bc3a92",
+  "reportPath": "/Users/laosijiyueban/.codex/worktrees/scrap-growth/game-rouglike/scrap-surge/docs/data/p3-measurement/report.json",
+  "reportSHA256": "8cd1eabe81f70d132c6edca8b0346cf439321dc5e8fc6e85993b4003ed3cbbbe",
+  "tracePath": "/tmp/scrap-p3-measurement-447af10/runs.jsonl",
+  "traceSHA256": "6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2",
+  "primaryRuns": 21,
+  "replayEqual": true,
+  "policy": {
+    "version": "P3A-1",
+    "status": "Preregistered finite diagnostic; hypotheses are not pass conditions or route-proof labels.",
+    "source": {
+      "frozenProductionSource": "447af109d4a07d218ae33466c75bc5b1266b092c",
+      "checkpointAtPreregistration": "6ba784466e9a3f814a8fb4700438c44f3825d633",
+      "sourceDiffMustBeEmpty": "git diff 447af109d4a07d218ae33466c75bc5b1266b092c..HEAD -- scrap-surge/src"
+    },
+    "mode": "expedition20",
+    "fixedTimestep": 0.016667,
+    "bossHpSample": {
+      "everySteps": 6,
+      "simulatedSeconds": 0.1,
+      "firstSpawnAlwaysSampled": true,
+      "disappearanceAlwaysSampled": true
+    },
+    "primarySeeds": [
+      1,
+      42,
+      145
+    ],
+    "cohorts": [
+      {
+        "id": "weapon-only",
+        "label": "weapon only",
+        "hypothesis": "Control: weapons and shared stat picks only; decline all items.",
+        "itemSelection": "none",
+        "itemPriorities": [],
+        "corePriorities": []
+      },
+      {
+        "id": "scattered",
+        "label": "uncurated legal items",
+        "hypothesis": "Control: take the first legal item or chest choice without coordination.",
+        "itemSelection": "first-legal",
+        "itemPriorities": [],
+        "corePriorities": []
+      },
+      {
+        "id": "speed",
+        "label": "speed",
+        "hypothesis": "Hypothesis only: movement speed and moving attack-speed convert into late output.",
+        "itemSelection": "priority",
+        "itemPriorities": [
+          {
+            "id": "worn-sandals",
+            "cohortCap": 3
+          },
+          {
+            "id": "surfboard",
+            "cohortCap": 2
+          },
+          {
+            "id": "tailwind-coil",
+            "cohortCap": 2
+          },
+          {
+            "id": "milestone",
+            "cohortCap": 1
+          }
+        ],
+        "corePriorities": [
+          "milestone"
+        ]
+      },
+      {
+        "id": "chain",
+        "label": "chain",
+        "hypothesis": "Hypothesis only: real-death explosions and root-local amplification form a chain route.",
+        "itemSelection": "priority",
+        "itemPriorities": [
+          {
+            "id": "volatile-trash",
+            "cohortCap": 1
+          },
+          {
+            "id": "wedge-ring",
+            "cohortCap": 3
+          },
+          {
+            "id": "big-bang",
+            "cohortCap": 1
+          },
+          {
+            "id": "short-fuse",
+            "cohortCap": 2
+          }
+        ],
+        "corePriorities": [
+          "volatile-trash"
+        ]
+      },
+      {
+        "id": "hp-contact",
+        "label": "HP/contact",
+        "hypothesis": "Hypothesis only: health, contact procs and pressure convert incoming contact into output.",
+        "itemSelection": "priority",
+        "itemPriorities": [
+          {
+            "id": "thick-shell",
+            "cohortCap": 3
+          },
+          {
+            "id": "undertow-board",
+            "cohortCap": 3
+          },
+          {
+            "id": "spike-shell",
+            "cohortCap": 2
+          },
+          {
+            "id": "pressure-valve",
+            "cohortCap": 1
+          }
+        ],
+        "corePriorities": []
+      },
+      {
+        "id": "item-amplified-firepower",
+        "label": "item-amplified firepower",
+        "hypothesis": "Hypothesis only: weapon modifiers and own proc power become the primary output.",
+        "itemSelection": "priority",
+        "itemPriorities": [
+          {
+            "id": "scrap-powder",
+            "cohortCap": 5
+          },
+          {
+            "id": "long-barrel",
+            "cohortCap": 3
+          },
+          {
+            "id": "bent-nail",
+            "cohortCap": 2
+          },
+          {
+            "id": "twin-trigger",
+            "cohortCap": 2
+          }
+        ],
+        "corePriorities": [
+          "twin-trigger"
+        ]
+      },
+      {
+        "id": "pickup-feedback",
+        "label": "pickup feedback",
+        "hypothesis": "Hypothesis only: fuel, pickup bullets and pickup radius close a kill-to-output loop.",
+        "itemSelection": "priority",
+        "itemPriorities": [
+          {
+            "id": "magnetic-return",
+            "cohortCap": 1
+          },
+          {
+            "id": "scrap-popcorn",
+            "cohortCap": 1
+          },
+          {
+            "id": "hooked-tip",
+            "cohortCap": 2
+          },
+          {
+            "id": "siphon-bag",
+            "cohortCap": 2
+          }
+        ],
+        "corePriorities": [
+          "magnetic-return",
+          "scrap-popcorn"
+        ]
+      }
+    ],
+    "runOrder": [
+      {
+        "cohort": "weapon-only",
+        "seed": 1
+      },
+      {
+        "cohort": "weapon-only",
+        "seed": 42
+      },
+      {
+        "cohort": "weapon-only",
+        "seed": 145
+      },
+      {
+        "cohort": "scattered",
+        "seed": 1
+      },
+      {
+        "cohort": "scattered",
+        "seed": 42
+      },
+      {
+        "cohort": "scattered",
+        "seed": 145
+      },
+      {
+        "cohort": "speed",
+        "seed": 1
+      },
+      {
+        "cohort": "speed",
+        "seed": 42
+      },
+      {
+        "cohort": "speed",
+        "seed": 145
+      },
+      {
+        "cohort": "chain",
+        "seed": 1
+      },
+      {
+        "cohort": "chain",
+        "seed": 42
+      },
+      {
+        "cohort": "chain",
+        "seed": 145
+      },
+      {
+        "cohort": "hp-contact",
+        "seed": 1
+      },
+      {
+        "cohort": "hp-contact",
+        "seed": 42
+      },
+      {
+        "cohort": "hp-contact",
+        "seed": 145
+      },
+      {
+        "cohort": "item-amplified-firepower",
+        "seed": 1
+      },
+      {
+        "cohort": "item-amplified-firepower",
+        "seed": 42
+      },
+      {
+        "cohort": "item-amplified-firepower",
+        "seed": 145
+      },
+      {
+        "cohort": "pickup-feedback",
+        "seed": 1
+      },
+      {
+        "cohort": "pickup-feedback",
+        "seed": 42
+      },
+      {
+        "cohort": "pickup-feedback",
+        "seed": 145
+      }
+    ],
+    "driver": {
+      "id": "shared-orbit-threat-pickup-v1",
+      "sameForEveryPrimaryCohort": true,
+      "readsOnly": [
+        "time",
+        "player",
+        "enemies",
+        "bullets",
+        "scraps",
+        "chests"
+      ],
+      "writes": "none; returns a normalized public step input vector"
+    },
+    "itemPolicy": {
+      "nativeItemCapsAlwaysApply": true,
+      "scattered": "Uncurated means choose the first legal offered array entry; it is not a guarantee of zero synergy.",
+      "priority": "Choose the first eligible, affordable offered item on the cohort list whose owned count is below both its native cap and cohort cap.",
+      "noMatch": "For priority cohorts, decline or skip rather than taking an off-route item.",
+      "weaponOnly": "Decline core rewards, chest choices and paid items; use the shared stat policy.",
+      "dependencyAndSlotRules": "All legality, dependency, uniqueness and price rules remain game-owned."
+    },
+    "sharedWeaponPreference": [
+      "slinger",
+      "shotgun",
+      "coil",
+      "rocket",
+      "saw",
+      "fist"
+    ],
+    "weaponSelection": {
+      "rule": "Among accepted, affordable offers, prefer an unowned type by shared rank; if all offered types are owned, prefer the lowest current tier by shared rank.",
+      "purchasesPerRest": "Keep buying the highest-ranked legal affordable weapon until the current row has no legal affordable offer."
+    },
+    "sharedStatPriority": [
+      "hpFlat",
+      "damage",
+      "power",
+      "as",
+      "move",
+      "pickup"
+    ],
+    "rewardPolicy": {
+      "order": [
+        "free core or frozen chest",
+        "one stat pick",
+        "one item purchase"
+      ],
+      "coreAndChest": "Priority cohorts take the first matching legal option; scattered takes the first legal array entry; weapon-only declines.",
+      "noSubstitution": true
+    },
+    "reserveAndSpend": {
+      "reserveCash": 0,
+      "order": [
+        "free reward",
+        "stat",
+        "useful affordable item offers",
+        "useful affordable weapon offers"
+      ],
+      "itemPurchasesPerRest": "Exhaust all useful legal affordable offers; no artificial one-item cap.",
+      "weaponPurchasesPerRest": "Exhaust all legal affordable offers, including fusion helpers; no artificial one-weapon cap.",
+      "sells": 0
+    },
+    "rerolls": {
+      "maxPerRest": 1,
+      "timing": "After exhausting the initial rows, reroll once only if no useful legal affordable item remains and the current actual reroll price is affordable.",
+      "afterReroll": "Exhaust useful legal affordable items and weapons in the new rows; do not reroll again at this rest.",
+      "stoppingRule": "Skip the one reroll if any useful legal affordable item remains, if game reroll validation rejects the attempt, or if its actual price exceeds cash."
+    },
+    "stepCaps": {
+      "perWave": [
+        1320,
+        1440,
+        1560,
+        1680,
+        2700,
+        1800,
+        1920,
+        1920,
+        2040,
+        3420,
+        2040,
+        2160,
+        2160,
+        2280,
+        3720,
+        2400,
+        2400,
+        2520,
+        2520,
+        5520
+      ],
+      "run": 47520,
+      "timeoutMeaning": "Harness-only finite guard. It is never written into Game time, HP, deadline or RNG."
+    },
+    "forbidden": [
+      "HP injection",
+      "clock or time jumping",
+      "RNG injection or replacement",
+      "inventory injection",
+      "wallet injection",
+      "enemy injection",
+      "browser or user-play claim",
+      "posthoc controller search",
+      "source patch when an action API is missing"
+    ],
+    "attribution": {
+      "directItemDamage": "Missing from the current public observation API; win/loss alone must not be called item-led damage attribution.",
+      "bossDamage": "Only sampled positive boss-HP decreases are observable; no per-source attribution is claimed."
+    },
+    "determinismReplay": {
+      "cohort": "weapon-only",
+      "seed": 1,
+      "compare": "canonical JSON hash of the complete run record and per-wave records"
+    },
+    "finiteOutcome": "Run exactly 21 primary simulations in runOrder, then one replay; no tuning iteration."
+  },
+  "sourceGuard": {
+    "files": [
+      {
+        "path": "src/audio.ts",
+        "sha256": "d10ee22564437837f703966dea9e98aec2372cd9f466044e34edd4af6f849b3f"
+      },
+      {
+        "path": "src/data.ts",
+        "sha256": "65148c4ec0a74a97929735729083bfe6cd1fe10197bf870e49da78fb7974988e"
+      },
+      {
+        "path": "src/expedition.ts",
+        "sha256": "a8fb25151b2e2046cac9ad5e193a8234f4648fcafc0ceb49f89e5b052c4ed8d8"
+      },
+      {
+        "path": "src/input.ts",
+        "sha256": "bd176cf5fa532f3668dd341564190847382b48adb8274274e208d55b84fd705f"
+      },
+      {
+        "path": "src/items.ts",
+        "sha256": "d239cf8f8ed2eb964f6407b5a7ca0d5eddc9c114ca7d8791b4e7b3cd56327545"
+      },
+      {
+        "path": "src/main.ts",
+        "sha256": "2530ab94f42e7ce37af5cb8cb814ed85b42529f14882e75cd2af5085537c5b05"
+      },
+      {
+        "path": "src/math.ts",
+        "sha256": "016c2ca843e12fc187e36684f491eb1d16df5347b42d5ab6ffe846ffb43b54ad"
+      },
+      {
+        "path": "src/render.ts",
+        "sha256": "133206b0b9ac378a603aa430547d8a2dbf6d9ab915331c2d2903f74b72b7d517"
+      },
+      {
+        "path": "src/sim.ts",
+        "sha256": "6aa084d7466153a9acfc6c0809fb7f21d7ee1a282a42b0574b65804ec1812a53"
+      },
+      {
+        "path": "src/style.css",
+        "sha256": "709386cc65ef36bec7764fd62ab192070e64cc25bbdcd138784828e74d7526f6"
+      }
+    ],
+    "manifestSHA256": "7ba343896f610d805e462c877babc99bc8e44478fb355727f72c8b81a5bc3a92"
+  },
+  "reportSchema": "p3a-measurement-v1"
+}

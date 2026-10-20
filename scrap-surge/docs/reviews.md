@@ -26,6 +26,41 @@ are the verifiable evidence. This is not one model roleplaying three.
 Author self-check is not independent review. The independent DeepSeek review must
 run in a separate context against a frozen commit.
 
+## P3A measurement completion at `a5997bf` (2026-10-20)
+
+The preregistered P3A harness ran on frozen production source
+`447af109d4a07d218ae33466c75bc5b1266b092c`: 21 primary cohort/seed simulations
+plus one deterministic replay, with no source, tuning, renderer, audio or
+dependency change. The batch produced 4 wins and 17 losses: 15 boss-wave deadline
+losses with positive HP and 2 zero-HP losses. The deadline losses crossed the
+game's actual `duration + 15 s` boss-wave limit without a boss kill; they are not
+"during boss spawn" deaths.
+
+The successful harness SHA-256 is
+`11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d`, policy is
+`e78ef5512c0a968bde0ebe080f4532bd78cfaf7c0ff08468d2f21de6640e2353`, and driver
+is `e5c398e9658bfc014014c753e2682fcf9e6fabe8019247ddef148ef530a7d202`.
+An earlier harness attempt failed before any cohort completed with
+`TypeError: Cannot read properties of undefined (reading 'everSpawned')`;
+harness-only commit `a5997bf` fixed the boss-bucket indexing. Both the failed
+attempt and the subsequent result remain in the record.
+
+The weapon-only control showed a full-slot / missing Tier-I partner purchase
+bottleneck: seed 1 ended with six Tier-II guns, 903 cash, 426 spent and no
+accepted reroll, while seeds 42/145 reached five Tier-II plus one Tier-III gun.
+None reached Tier-IV. This does not prove wallet scarcity or failed late DPS and
+does not authorize a sale, shop, fusion or balance change. It is input to a later
+three-party design decision if further measurement is requested.
+
+These are author-run finite simulation diagnostics. They are not independent
+reviews, browser/human victories, win-rate estimates, route-formation proof,
+per-hit item damage attribution, performance evidence or user acceptance. The
+bounded P2 checkpoint `6ba7844` remains independently checked only for its
+preview repair: root 173/build and normal 2/2; Opus 173/build and normal 2/2;
+independent DeepSeek 173/build and normal 2/2. P2 user acceptance was not given.
+Full W20 browser play, five late routes, render performance,
+audio/mobile/Safari and user feeling remain open gates.
+
 ## Bounded R5 follow-up consent on `e478497` (2026-10-20)
 
 Root, fresh actual Opus task `p2_opus_repaired_review_once` and fresh actual

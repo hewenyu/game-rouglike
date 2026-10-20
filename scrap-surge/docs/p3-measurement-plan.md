@@ -1,7 +1,8 @@
 # P3A measurement plan (preregistered)
 
-Status: frozen before the first P3A cohort run. This is simulation evidence, not
-browser play, human victory or route viability. Production source is frozen at
+Status: preregistered before the first P3A cohort run and followed by the recorded
+measurement below. This is simulation evidence, not browser play, human victory
+or route viability. Production source is frozen at
 `447af109d4a07d218ae33466c75bc5b1266b092c`; preregistration checkpoint is
 `6ba784466e9a3f814a8fb4700438c44f3825d633`.
 
@@ -36,9 +37,11 @@ source.
 - Per-wave step cap:
   `(duration + boss overtime allowance + 1 s sweep + 1 s harness margin) * 60`.
   Boss waves add 15 s; non-boss waves add 0 s. The per-wave caps in
-  `tests/p3-policy.ts` are authoritative.
-- Whole-run step cap: the sum of those per-wave caps. It is a harness timeout,
-  never a changed game deadline.
+  `tests/p3-policy.ts` are authoritative:
+  `1320, 1440, 1560, 1680, 2700, 1800, 1920, 1920, 2040, 3420, 2040, 2160,
+  2160, 2280, 3720, 2400, 2400, 2520, 2520, 5520`.
+- Whole-run step cap: the sum of those per-wave caps, `47520`. It is a harness
+  timeout, never a changed game deadline.
 - No injection: no HP, wallet, inventory, enemies, RNG, timers or success.
 - All purchases and claims use public APIs. All failures remain in the report.
 
@@ -97,6 +100,12 @@ hash and harness hash, plus:
 The public API does not expose a per-hit damage-source ledger. Item-led actual
 damage attribution is therefore **missing**, and a win alone never proves it.
 
+Terminal cause follows the game's actual rule: a boss wave lost with positive HP
+after crossing `duration + 15 s`, without a boss kill, is a deadline loss. A
+non-boss or pre-deadline zero-HP terminal is an HP loss. Boss-wave proximity alone
+is not called "during boss spawn", and a boss that was not encountered is not a
+failed DPS check.
+
 ## Preregistered checks
 
 1. Run exactly the 21 fixed cohort/seed pairs in listed order.
@@ -108,6 +117,13 @@ damage attribution is therefore **missing**, and a win alone never proves it.
    purchases, non-negative queue counters and per-rest cash conservation.
 5. Preserve any failure; no strategy iteration and no redefined success.
 
+The first harness attempt failed before any cohort completed with
+`TypeError: Cannot read properties of undefined (reading 'everSpawned')` from
+incorrect boss-bucket indexing. Commit
+`a5997bf` (`test(p3): fix boss bucket indexing before first run`) fixed only the
+harness, after which the frozen policy and driver were run once. The failed
+attempt remains recorded and is not treated as a cohort result.
+
 ## Outputs
 
 - `docs/data/p3-measurement/report.json`: concise machine report and policy.
@@ -118,3 +134,31 @@ damage attribution is therefore **missing**, and a win alone never proves it.
 
 The batch does not establish normal-input W20 victory, user play, route
 viability, render performance, phone/Safari support, audio mix or acceptance.
+
+## Recorded batch
+
+The successful harness is the committed `a5997bf` version, SHA-256
+`11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d`.
+It produced 21 primary runs plus one deterministic weapon-only/seed-1 replay;
+the replay matched the complete canonical record. All 21 primary runs completed
+without harness integrity failures or step-cap termination.
+
+Primary outcome: 4 won and 17 lost. Of the losses, 15 are deadline losses
+(positive HP at the boss-wave `duration + 15 s` limit, boss not killed) and two
+are zero-HP losses (weapon-only seed 145 and scattered seed 1).
+
+Weapon-only finished with six Tier-II guns on seed 1 and five Tier-II plus one
+Tier-III gun on seeds 42/145. It did not reach Tier-IV. Seed 1 had six occupied
+slots, 153-765 cash across the W9-W14 rests, and no accepted rerolls; the frozen
+shop offers gave it no useful full-slot fusion partner. This is a
+full-slot / missing Tier-I partner purchase bottleneck under the no-sales policy,
+not evidence of wallet scarcity or a failed DPS check. Adding a sale or
+partner-selection policy is a later three-party design question, not a current
+data repair or production change.
+
+Item-acquisition cohorts commonly spent useful affordable offers early and held
+cash later. Ending cash alone is not proof of scarcity; the report retains
+per-rest cash, offers, transactions, rerolls, acquisitions and boss windows.
+Route labels are acquisition-policy labels, not proof that a route formed or
+caused output. Scattered wins on seeds 42/145 do not establish coordinated route
+viability, and no run establishes item-led actual damage attribution.

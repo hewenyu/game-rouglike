@@ -1,5 +1,47 @@
 # Status
 
+The P3A finite natural-simulation diagnostic is complete on frozen production
+source `447af109d4a07d218ae33466c75bc5b1266b092c`. No `src/`, tuning, HP, wave,
+renderer, audio, dependency or rule change was made. The committed `a5997bf`
+harness ran 21 primary cohort/seed samples plus one deterministic
+weapon-only/seed-1 replay; the replay matched the full canonical record. Outcome:
+**4/21 wins, 17 losses**, comprising **15 deadline losses, 2 zero-HP losses and 4
+wins**. A positive-HP loss is not "during boss spawn": the 15 such runs crossed
+the actual boss-wave `duration + 15 s` limit without killing the boss. Weapon-only
+seed 1 was W15 at 60.0167 s, HP 12/14, boss not killed.
+
+P3A provenance is policy `e78ef5512c0a968bde0ebe080f4532bd78cfaf7c0ff08468d2f21de6640e2353`,
+driver `e5c398e9658bfc014014c753e2682fcf9e6fabe8019247ddef148ef530a7d202`,
+successful harness `11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d`,
+source manifest `7ba343896f610d805e462c877babc99bc8e44478fb355727f72c8b81a5bc3a92`,
+and trace `6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2`.
+The first harness attempt failed before any cohort completed with
+`TypeError: Cannot read properties of undefined (reading 'everSpawned')`; the
+harness-only fix is preserved as commit `a5997bf`, and the failed attempt is not
+reported as a cohort result. The tracked compact report is
+`docs/data/p3-measurement/report.json`; its bounded summary and detailed
+limitations are in `docs/data/p3-measurement/report.md` and
+`docs/p3-measurement-plan.md`.
+
+Weapon-only exposed a full-slot / missing Tier-I partner purchase bottleneck
+rather than a scarcity conclusion: seed 1 ended with six Tier-II guns, 903 cash,
+426 spent and no accepted reroll; seeds 42/145 ended with five Tier-II plus one
+Tier-III gun. None reached Tier-IV. A future sale or partner-selection policy is
+a next three-party design question, not a repair to this measurement or an
+authorized production tuning change. Item-led actual damage attribution remains
+missing because the public state exposes no per-hit source ledger; cohort wins
+and item counts do not prove it. P2 user acceptance was not given. Full W20
+browser play, five late-route viability, render performance, audio/mobile/Safari
+behavior and user feel remain open gates.
+
+P2's bounded checkpoint `6ba7844` had independent ordinary keyboard/CDP-touch
+preview verification: root 173 tests/build and normal 2/2,
+`/tmp/astra-p2-6ba7844/items/report.json`; Opus 173 tests/build and normal 2/2,
+`/tmp/opus-6ba-preview/report.json`; independent DeepSeek 173 tests/build and
+normal 2/2, `/tmp/ds-6ba-preview/report.json` (SHA-256
+`259c119f47084157a1cfe428f88a9d9bf6d6479d6022eaeff4509f1f771d8c82`). This is
+bounded P2 evidence, not P3 balance approval or user acceptance.
+
 The current bounded follow-up repairs the three R5 preview defects that fresh
 actual Opus and independent DeepSeek reviews found after R1-R4 passed at
 `e478497`. Shop sold state now suppresses only its own `.shop-item-section`;
