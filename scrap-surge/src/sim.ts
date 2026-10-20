@@ -1652,8 +1652,8 @@ export class Game {
       if (n > this.chainCount) this.chainCount = n;
       this.chainPeak = Math.max(this.chainPeak, this.chainCount);
       this.chainTimer = 0.8;
-      if (this.mode === "expedition20" && this.inventory["wedge-ring"] > 0) {
-        if (n % 4 === 0) {
+      if (this.mode === "expedition20") {
+        if (this.inventory["wedge-ring"] > 0 && n % 4 === 0) {
           this.rootSecondaryKills.set(chain, n);
         }
         if (this.inventory["big-bang"] > 0 && n % 8 === 0) {
@@ -1940,6 +1940,7 @@ export class Game {
       this.coinAccumulator = credit.remainder;
       this.earned += credit.earned;
       this.collected += fuel;
+      if (this.phase === "sweep") this.sweptFuelUnits += fuel;
     } else {
       this.money += rawCash;
       this.earned += rawCash;
@@ -1960,6 +1961,7 @@ export class Game {
         while (this.magnetFuelCharge >= ITEM_CONSTANTS.magnetFuelEvery) {
           this.magnetFuelCharge -= ITEM_CONSTANTS.magnetFuelEvery;
           const target = this.enemies.find((e) => e.hp > 0 && e.born <= 0);
+          const before = this.bullets.length;
           for (let i = 0; i < ITEM_CONSTANTS.magnetCaps; i++)
             this.shoot(
               this.player,
@@ -1972,7 +1974,7 @@ export class Game {
               550,
               derived.pickupBulletHoming && !!target,
             );
-          const newly = this.bullets.slice(-ITEM_CONSTANTS.magnetCaps);
+          const newly = this.bullets.slice(before);
           for (const bullet of newly) {
             bullet.pierce = derived.pickupBulletPierce;
             bullet.mod = "magnet";
@@ -2388,6 +2390,7 @@ export class Game {
         ]);
       } else if (gun.id === "shotgun") {
         const projectiles = profile.pellets * profile.shots;
+        const before = this.bullets.length;
         for (let n = 0; n < projectiles; n++) {
           const shot = Math.floor(n / profile.pellets);
           const pellet = n % profile.pellets;
@@ -2402,15 +2405,16 @@ export class Game {
             pellet === Math.floor(profile.pellets / 2) ? target.id : 0,
             520,
           );
-          const bullet = this.bullets.at(-1);
-          if (bullet && profile.pierce !== undefined)
-            bullet.pierce = profile.pierce;
         }
+        if (profile.pierce !== undefined)
+          for (const bullet of this.bullets.slice(before))
+            bullet.pierce = profile.pierce;
         incoming.set(
           target.id,
           (incoming.get(target.id) || 0) + profile.damage * projectiles,
         );
       } else {
+        const before = this.bullets.length;
         for (let n = 0; n < profile.shots; n++)
           this.shoot(
             muzzle,
@@ -2423,9 +2427,9 @@ export class Game {
             undefined,
             profile.blastRadius || undefined,
           );
-        const spawned = this.bullets.slice(-profile.shots);
         if (profile.pierce !== undefined)
-          for (const bullet of spawned) bullet.pierce = profile.pierce;
+          for (const bullet of this.bullets.slice(before))
+            bullet.pierce = profile.pierce;
         incoming.set(
           target.id,
           (incoming.get(target.id) || 0) + profile.damage * profile.shots,
@@ -2480,15 +2484,18 @@ export class Game {
     if (this.phase === "fight") {
       const l = Math.hypot(input.x, input.y);
       if (l) {
+        const derived =
+          this.mode === "expedition20" ? this.derivedItemStats() : null;
+        const speed = 230 * (derived?.moveFactor ?? 1);
         const beforeX = this.player.x,
           beforeY = this.player.y;
         this.player.x = clamp(
-          this.player.x + (input.x / Math.max(1, l)) * 230 * dt,
+          this.player.x + (input.x / Math.max(1, l)) * speed * dt,
           30,
           W - 30,
         );
         this.player.y = clamp(
-          this.player.y + (input.y / Math.max(1, l)) * 230 * dt,
+          this.player.y + (input.y / Math.max(1, l)) * speed * dt,
           30,
           H - 30,
         );
@@ -2911,7 +2918,6 @@ export class Game {
         canEndFight
       ) {
         if (this.mode === "expedition20") {
-          this.queueMetrics.chests.dropped += this.chests.length;
           this.cancelExpeditionWavePending();
         }
         this.phase = "sweep";
@@ -2946,7 +2952,17 @@ export class Game {
         deadline &&
         (this.mode === "slice" ? this.wave === 2 : isBossWave(this.wave))
       ) {
-        this.settleExpeditionLoss();
+        if (this.mode === "expedition20") this.settleExpeditionLoss();
+        else {
+          this.phase = "lost";
+          this.pendingBlasts = [];
+          this.scraps = [];
+          this.chests = [];
+          this.corpses = [];
+          this.trailPoints = [];
+          this.bullets = [];
+          this.event("end");
+        }
       }
     } else {
       this.sweepTime -= dt;
@@ -2975,6 +2991,10 @@ export class Game {
             this.effect("pickup", this.player, 0.25, "#eeb63c", 9);
             this.event("pickup", undefined, rawCash);
             s.value = 0;
+            // updateLooseScraps normally reaches collect() while sweeping.
+            // This fallback handles a late object not reached there; credit
+            // fuel in both paths without running fight-only pickup procs.
+            s.collected = true;
           } else this.collect(s);
         }
         this.scraps = [];
@@ -2991,7 +3011,9 @@ export class Game {
       (b) =>
         b.life > 0 && b.x > -30 && b.x < W + 30 && b.y > -30 && b.y < H + 30,
     );
-    this.scraps = this.scraps.filter((s) => s.value > 0);
+    this.scraps = this.scraps.filter((s) =>
+      this.mode === "expedition20" ? s.collected !== true : s.value > 0,
+    );
   }
   updateMilestoneTrail(dt: number) {
     for (const point of this.trailPoints) {

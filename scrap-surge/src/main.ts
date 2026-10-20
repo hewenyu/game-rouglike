@@ -466,12 +466,14 @@ function sync() {
 function updateHud() {
   if (!game) return;
   const g = game;
-  $("hp-label").textContent = `${g.player.hp} / 10`;
+  const maxHp = Math.max(1, Math.ceil(g.player.maxHp));
+  const hp = Math.max(0, Math.min(maxHp, Math.ceil(g.player.hp)));
+  $("hp-label").textContent = `${hp} / ${maxHp}`;
   $("hp").innerHTML = Array.from(
-    { length: 10 },
-    (_, i) => `<i class="${i < g.player.hp ? "full" : ""}"></i>`,
+    { length: maxHp },
+    (_, i) => `<i class="${i < hp ? "full" : ""}"></i>`,
   ).join("");
-  $("hp").setAttribute("aria-label", `生命 ${g.player.hp} / 10`);
+  $("hp").setAttribute("aria-label", `生命 ${hp} / ${maxHp}`);
   $("wave-label").textContent =
     g.mode === "expedition20"
       ? `WAVE ${String(g.wave).padStart(2, "0")} / 20`

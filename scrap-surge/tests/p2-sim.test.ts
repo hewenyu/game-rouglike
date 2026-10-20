@@ -372,6 +372,60 @@ test("P2 raw source cash and fuel survive cap merges and convert once", () => {
   assert.equal(g.collected, 2);
 });
 
+test("P2 sweep counts each collected fuel once and zero-value objects survive in expedition", () => {
+  const g = empty();
+  g.phase = "sweep";
+  g.sweepTime = 0;
+  g.scraps = [
+    { ...scrap(1, 0), rawCash: 0, fuelUnits: 5, collected: false },
+    { ...scrap(2, 7), rawCash: 7, fuelUnits: 1, collected: false },
+  ];
+  g.player.x = 1100;
+  g.player.y = 700;
+  step(g, 1);
+  assert.equal(g.sweptFuelUnits, 6);
+  assert.equal(g.collected, 6);
+  assert.equal(g.money, 1);
+  assert.equal(g.scraps.length, 0);
+
+  const late = empty();
+  late.phase = "sweep";
+  late.sweepTime = 0.5;
+  late.scraps = [
+    { ...scrap(3, 0), rawCash: 0, fuelUnits: 2, collected: false },
+  ];
+  late.player.x = 1100;
+  late.player.y = 700;
+  step(late, 1);
+  assert.equal(late.scraps.length, 1);
+  late.scraps.push({ ...scrap(5, 0), rawCash: 0, fuelUnits: 2 });
+  late.scraps = late.scraps.filter((s) => s.id !== 3);
+  step(late, 1);
+  assert.equal(late.scraps.length, 1);
+  assert.equal(late.scraps[0].value, 0);
+  assert.notEqual(late.scraps[0].collected, true);
+
+  const slice = new Game(123, "slice");
+  slice.scraps = [{ ...scrap(4, 0), collected: true }];
+  slice.waveTime = slice.duration - DT / 2;
+  step(slice, 1);
+  assert.equal(slice.scraps.length, 0);
+});
+
+test("P2 fight-boundary chests are collected once without a false drop", () => {
+  const g = empty();
+  const e = enemy(g, 500, 300, 1);
+  g.spawnChest(e, "elite");
+  g.waveTime = g.duration - DT / 2;
+  g.spawnTimer = 999;
+  step(g, 1);
+  assert.equal(g.phase, "sweep");
+  assert.equal(g.chests.length, 0);
+  assert.equal(g.frozenChest?.source, "elite");
+  assert.equal(g.queueMetrics.chests.processed, 1);
+  assert.equal(g.queueMetrics.chests.dropped, 0);
+});
+
 test("P2 zero-coin siphon still increments cash, fuel and collection exactly once", () => {
   const g = empty();
   g.inventory = inventory("siphon-bag", "siphon-bag", "siphon-bag");
@@ -441,6 +495,73 @@ test("P2 shotgun F4 fires pellets times volleys and tags every admitted projecti
   assert.equal(g.bullets.length, 10);
   const fired = [...g.bullets];
   assert.equal(new Set(fired.map((b) => b.id)).size, fired.length);
+});
+
+test("P2 expedition movement applies derived moveFactor and slice movement stays frozen", () => {
+  const expedition = empty();
+  expedition.inventory = inventory(
+    "worn-sandals",
+    "worn-sandals",
+    "worn-sandals",
+    "worn-sandals",
+    "worn-sandals",
+  );
+  expedition.enemies = [];
+  step(expedition, 1, 1, 0);
+  assert.ok(Math.abs(expedition.player.x - 600 - 230 * 1.6 * DT) < 1e-9);
+  assert.ok(Math.abs(expedition.derivedItemStats().moveFactor - 1.6) < 1e-12);
+
+  const slice = new Game(123, "slice");
+  slice.enemies = [];
+  slice.spawnTimer = 999;
+  step(slice, 1, 1, 0);
+  assert.ok(Math.abs(slice.player.x - 600 - 230 * DT) < 1e-9);
+});
+
+test("P2 C4 fires every eight secondary kills with C1 only", () => {
+  const g = empty();
+  g.inventory = inventory("volatile-trash", "big-bang");
+  g.wave = 8;
+  for (let i = 0; i < 8; i++) {
+    const e = enemy(g, 400 + i * 10, 300, 1);
+    g.hit(e, 99, g.player, "secondary", 0, 91);
+  }
+  assert.equal(g.inventory["wedge-ring"], 0);
+  assert.equal(g.chainCounts.get(91), 8);
+  assert.equal(
+    g.pendingBlasts.filter((blast) => blast.tier3 && blast.radius === 160)
+      .length,
+    1,
+  );
+});
+
+test("P2 pierce tagging only mutates admitted new bullets at the shared cap", () => {
+  const g = empty();
+  g.inventory = inventory("bent-nail", "twin-trigger");
+  g.guns = [
+    { id: "slinger", cooldown: 0, angle: 0, recoil: 0, tier: 1, paid: 0 },
+  ];
+  enemy(g, g.player.x, g.player.y + 120, 1000);
+  for (let i = 0; i < 419; i++)
+    g.bullets.push({ ...bonusBullet(5000 + i), pierce: 0 });
+  const prior = g.bullets[418];
+  g.weapons(DT);
+  assert.equal(g.bullets.length, 420);
+  assert.equal(prior.pierce, 0);
+  assert.equal(g.bullets.at(-1)?.pierce, 1);
+
+  const shotgun = empty();
+  shotgun.inventory = inventory("bent-nail", "twin-trigger");
+  shotgun.guns = [
+    { id: "shotgun", cooldown: 0, angle: 0, recoil: 0, tier: 1, paid: 0 },
+  ];
+  enemy(shotgun, shotgun.player.x, shotgun.player.y + 120, 1000);
+  for (let i = 0; i < 415; i++)
+    shotgun.bullets.push({ ...bonusBullet(9000 + i), pierce: 0 });
+  shotgun.weapons(DT);
+  assert.equal(shotgun.bullets.length, 420);
+  assert.equal(shotgun.bullets[414].pierce, 0);
+  assert.equal(shotgun.bullets.slice(415).filter((b) => b.pierce === 1).length, 5);
 });
 
 test("P2 H2 only triggers on accepted nonlethal contact and pressure changes both channels", () => {
