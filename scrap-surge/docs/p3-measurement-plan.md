@@ -137,11 +137,16 @@ viability, render performance, phone/Safari support, audio mix or acceptance.
 
 ## Recorded batch
 
-The successful harness is the committed `a5997bf` version, SHA-256
+The original successful harness is the committed `a5997bf` version, SHA-256
 `11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d`.
 It produced 21 primary runs plus one deterministic weapon-only/seed-1 replay;
 the replay matched the complete canonical record. All 21 primary runs completed
-without harness integrity failures or step-cap termination.
+without harness integrity failures or step-cap termination. The v2
+observation-only harness SHA-256 is
+`a1f43dd42131fbfffbd2ff8b7dce2e542973ca7a62d3a8d85d0e9dcc1c4dad43`; its fresh
+trace is `docs/data/p3-measurement-v2/generated/artifacts/runs.jsonl` (SHA-256
+`ee531e7d8516f7cffbd8cd7575e9cfd67bb646f99e66649f08082dbaf87b6c1e`). No policy
+or driver byte changed.
 
 Primary outcome: 4 won and 17 lost. Of the losses, 15 are deadline losses
 (positive HP at the boss-wave `duration + 15 s` limit, boss not killed) and two
@@ -149,12 +154,18 @@ are zero-HP losses (weapon-only seed 145 and scattered seed 1).
 
 Weapon-only finished with six Tier-II guns on seed 1 and five Tier-II plus one
 Tier-III gun on seeds 42/145. It did not reach Tier-IV. Seed 1 had six occupied
-slots, 153-765 cash across the W9-W14 rests, and no accepted rerolls; the frozen
-shop offers gave it no useful full-slot fusion partner. This is a
-full-slot / missing Tier-I partner purchase bottleneck under the no-sales policy,
-not evidence of wallet scarcity or a failed DPS check. Adding a sale or
-partner-selection policy is a later three-party design question, not a current
-data repair or production change.
+slots, 153-765 cash across the W9-W14 rests, and **14 accepted/free rerolls
+across 14 rests**. The earlier "no accepted rerolls" claim is a preserved v1
+reporting error; the corrected all-run total is 306 accepted rerolls, all free.
+Of 129 rest endings with six occupied slots and every gun at Tier II or higher,
+115 had no Tier-I offer in either row. In those states a different-ID Tier-I
+weapon cannot merge and has no empty slot. The other 14 such rests contained 20
+Tier-I offers, and all 20 were purchased after an earlier compatible purchase
+freed a slot. The 115 rows with no Tier-I helper remain the observed
+full-slot / missing partner condition under the no-sales policy, not evidence of
+wallet scarcity or a failed DPS check. Adding a sale or partner-selection policy
+is a later three-party design question, not a current data repair or production
+change.
 
 Item-acquisition cohorts commonly spent useful affordable offers early and held
 cash later. Ending cash alone is not proof of scarcity; the report retains

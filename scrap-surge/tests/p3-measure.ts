@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import { DT } from "../src/data";
 import { DURATIONS, gunPrice, rerollPrice } from "../src/expedition";
 import {
@@ -16,6 +13,12 @@ import {
 import { Game, type Event, type QueueMetrics } from "../src/sim";
 import { movementInput } from "./p3-driver";
 import {
+  assertSourceGuardUnchanged,
+  captureSourceGuard,
+  sha256,
+  type P3SourceGuardManifest,
+} from "./p3-source-guard";
+import {
   P3_COHORTS,
   P3_PER_WAVE_STEP_CAPS,
   P3_POLICY,
@@ -26,21 +29,8 @@ import {
 } from "./p3-policy";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const execFileAsync = promisify(execFile);
-const DEFAULT_DATA = resolve(ROOT, "docs/data/p3-measurement");
-const DEFAULT_ARTIFACTS = "/tmp/scrap-p3-measurement-447af10";
-const SOURCE_FILES = [
-  "src/audio.ts",
-  "src/data.ts",
-  "src/expedition.ts",
-  "src/input.ts",
-  "src/items.ts",
-  "src/main.ts",
-  "src/math.ts",
-  "src/render.ts",
-  "src/sim.ts",
-  "src/style.css",
-] as const;
+const DEFAULT_OUTPUT = resolve(ROOT, "docs/data/p3-measurement-v2/generated");
+const FROZEN_SOURCE = "447af109d4a07d218ae33466c75bc5b1266b092c";
 const BOSS_WAVES = [5, 10, 15, 20] as const;
 function bossIndex(wave: (typeof BOSS_WAVES)[number]) {
   return BOSS_WAVES.indexOf(wave);
@@ -48,6 +38,38 @@ function bossIndex(wave: (typeof BOSS_WAVES)[number]) {
 const HP_SAMPLE_STEPS = P3_POLICY.bossHpSample.everySteps;
 const ACTUAL_ITEM_ATTRIBUTION =
   "missing: the public read-only API exposes weapon/item projectile metadata and damage-source parameters but no per-hit source ledger";
+
+type WeaponOfferStatus =
+  | "purchased"
+  | "legal-unaffordable"
+  | "unaffordable-preview-rejected-no-space"
+  | "preview-rejected-no-space"
+  | "attempted-rejected"
+  | "not-attempted";
+
+type WeaponOfferRecord = {
+  round: "initial" | "reroll";
+  index: number;
+  id: string;
+  tier: number;
+  price: number;
+  affordable: boolean;
+  previewAccepted: boolean;
+  previewReason: "no-space" | null;
+  status: WeaponOfferStatus;
+  purchaseAttempted: boolean;
+  purchased: boolean;
+};
+
+type WeaponPreviewEvaluation = {
+  round: "initial" | "reroll";
+  index: number;
+  id: string;
+  price: number;
+  previewAccepted: boolean;
+  previewReason: "no-space" | null;
+  purchaseAttempted: boolean;
+};
 
 type RunTransaction = {
   order: number;
@@ -67,6 +89,9 @@ type RunTransaction = {
   accepted: boolean;
   legalityBefore: boolean;
   reason?: string;
+  offerRound?: "initial" | "reroll";
+  previewAccepted?: boolean;
+  previewReason?: "no-space" | null;
 };
 
 type RestRecord = {
@@ -82,6 +107,8 @@ type RestRecord = {
   refund: number;
   rerollSpend: number;
   rerollCount: number;
+  rerollAttempts: number;
+  rerollNotAttemptedReason: string | null;
   coreOffers: ItemId[];
   coreClaimed: ItemId | null;
   itemOffers: ReadonlyArray<{
@@ -91,6 +118,18 @@ type RestRecord = {
     affordable: boolean;
     usefulToCohort: boolean;
   }>;
+  initialWeaponOffers: WeaponOfferRecord[];
+  refreshedWeaponOffers: WeaponOfferRecord[];
+  weaponPreviewEvaluations: WeaponPreviewEvaluation[];
+  offerAudit: {
+    initialWeaponOfferCount: number;
+    refreshedWeaponOfferCount: number;
+    previewRejectedNoSpaceCount: number;
+    purchaseAttemptCount: number;
+    rejectedPurchaseCallCount: number;
+    allTierTwoPlusAtRestEnd: boolean;
+    allTierTwoPlusNoTierOneOffer: boolean;
+  };
   chestOffers: ItemId[];
   chestClaimed: ItemId | null;
   statOffers: StatRewardId[];
@@ -234,6 +273,11 @@ type RunRecord = {
     spent: number;
     refunds: number;
     rerolls: number;
+    acceptedRerolls: number;
+    freeAcceptedRerolls: number;
+    paidAcceptedRerolls: number;
+    rejectedRerollAttempts: number;
+    paidRerollSpend: number;
     reserve: number;
   };
   inventory: Record<ItemId, number>;
@@ -245,6 +289,18 @@ type RunRecord = {
     item: ItemId;
     cash: number;
   }>;
+  offerAudit: {
+    initialWeaponOffers: number;
+    refreshedWeaponOffers: number;
+    purchasedWeaponOffers: number;
+    purchasedWithPreviewNoSpace: number;
+    attemptedRejectedWeaponOffers: number;
+    notAttemptedWeaponOffers: number;
+    previewRejectedNoSpaceOffers: number;
+    allTierTwoPlusAtRestEndRests: number;
+    allTierTwoPlusNoTierOneOfferRests: number;
+    interpretation: string;
+  };
   missingCore: readonly string[];
   routeLabelEvidence: string;
   actualItemDamageAttribution: string;
@@ -293,12 +349,13 @@ const QUEUE_KEYS = [
   "fx",
 ] as const;
 
-function sha256(value: string | Buffer) {
-  return createHash("sha256").update(value).digest("hex");
-}
-
 function json(value: unknown) {
   return JSON.stringify(value, null, 2);
+}
+
+function portablePath(path: string) {
+  const value = relative(ROOT, path);
+  return value && !value.startsWith("..") ? value.replaceAll("\\", "/") : path;
 }
 
 function cloneInventory(game: Game): Record<ItemId, number> {
@@ -547,22 +604,6 @@ function waveOutput(
   };
 }
 
-function sourceGuard() {
-  return Promise.all(
-    SOURCE_FILES.map(async (path) => {
-      const content = await readFile(resolve(ROOT, path));
-      return { path, sha256: sha256(content) };
-    }),
-  ).then((files) =>
-    Object.freeze({
-      files,
-      manifestSHA256: sha256(
-        files.map((file) => `${file.path}\0${file.sha256}`).join("\n"),
-      ),
-    }),
-  );
-}
-
 function collectIntegrityFailures(
   game: Game,
   transactions: readonly RunTransaction[],
@@ -601,15 +642,6 @@ function collectIntegrityFailures(
   }
 }
 
-function assertSourcePreregistrationUnchanged(
-  preregistration: Awaited<ReturnType<typeof sourceGuard>>,
-  final: Awaited<ReturnType<typeof sourceGuard>>,
-) {
-  if (final.manifestSHA256 !== preregistration.manifestSHA256)
-    throw new Error("production source changed across a diagnostic batch");
-  return final;
-}
-
 function emptyBoss(wave: (typeof BOSS_WAVES)[number]): BossRecord {
   return {
     wave,
@@ -635,7 +667,7 @@ type RunOptions = {
   sourceSHA: string;
   policySHA256: string;
   driverSHA256: string;
-  sourceFiles: Awaited<ReturnType<typeof sourceGuard>>["files"];
+  sourceManifestSHA256: string;
 };
 
 async function simulate(options: RunOptions): Promise<RunRecord> {
@@ -808,6 +840,8 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
       refund: 0,
       rerollSpend: 0,
       rerollCount: 0,
+      rerollAttempts: 0,
+      rerollNotAttemptedReason: null,
       coreOffers: [...game.pendingRewardChoices],
       coreClaimed: null,
       itemOffers: game.itemOffers.map((id, index) => ({
@@ -817,6 +851,18 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
         affordable: game.money >= game.itemOfferPrice(index),
         usefulToCohort: isUsefulToCohort(policy, game, id),
       })),
+      initialWeaponOffers: [],
+      refreshedWeaponOffers: [],
+      weaponPreviewEvaluations: [],
+      offerAudit: {
+        initialWeaponOfferCount: 0,
+        refreshedWeaponOfferCount: 0,
+        previewRejectedNoSpaceCount: 0,
+        purchaseAttemptCount: 0,
+        rejectedPurchaseCallCount: 0,
+        allTierTwoPlusAtRestEnd: false,
+        allTierTwoPlusNoTierOneOffer: false,
+      },
       chestOffers: [...(game.frozenChest?.itemIds ?? [])],
       chestClaimed: null,
       statOffers: [...game.pendingStatChoices],
@@ -835,6 +881,81 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
     };
     const restTransactionStart = transactions.length;
     let spent = 0;
+    const offerRounds: Array<{
+      round: "initial" | "reroll";
+      ids: readonly string[];
+      tiers: readonly number[];
+      prices: readonly number[];
+      previews: readonly {
+        accepted: boolean;
+        reason: "no-space" | null;
+      }[];
+      initialCash: number;
+    }> = [];
+
+    const weaponRowSnapshot = (initialCash: number) => ({
+      ids: [...game.offers],
+      tiers: game.offers.map(
+        (id) => game.guns.find((gun) => gun.id === id)?.tier ?? 1,
+      ),
+      prices: game.offers.map((id) => gunPrice(id, game.wave)),
+      previews: game.offers.map((_, index) => {
+        const preview = game.expeditionPurchasePreview(index);
+        return {
+          accepted: preview.accepted,
+          reason: preview.reason,
+        };
+      }),
+      initialCash,
+    });
+    offerRounds.push({
+      round: "initial",
+      ...weaponRowSnapshot(rest.cashStart),
+    });
+
+    const materializeWeaponOffers = (
+      round: "initial" | "reroll",
+    ): WeaponOfferRecord[] => {
+      const snapshot = offerRounds.find((entry) => entry.round === round);
+      if (!snapshot) return [];
+      const restTransactions = transactions.slice(restTransactionStart);
+      return snapshot.ids.map((id, index) => {
+        const price = snapshot.prices[index]!;
+        const affordable = snapshot.initialCash >= price;
+        const purchaseCalls = restTransactions.filter(
+          (entry) =>
+            entry.kind === "weapon-purchase" &&
+            entry.offerRound === round &&
+            entry.requestedIndex === index,
+        );
+        const purchase = purchaseCalls.find((entry) => entry.accepted);
+        const rejectedPurchase = purchaseCalls.find((entry) => !entry.accepted);
+        const previewAccepted = snapshot.previews[index]?.accepted ?? false;
+        const previewReason = snapshot.previews[index]?.reason ?? null;
+        let status: WeaponOfferStatus;
+        if (purchase) status = "purchased";
+        else if (rejectedPurchase) status = "attempted-rejected";
+        else if (previewReason === "no-space") {
+          status = affordable
+            ? "preview-rejected-no-space"
+            : "unaffordable-preview-rejected-no-space";
+        } else if (!affordable) status = "legal-unaffordable";
+        else status = "not-attempted";
+        return {
+          round,
+          index,
+          id,
+          tier: snapshot.tiers[index]!,
+          price,
+          affordable,
+          previewAccepted,
+          previewReason,
+          status,
+          purchaseAttempted: purchaseCalls.length > 0,
+          purchased: purchase !== undefined,
+        };
+      });
+    };
 
     const core = pickFreeCore(policy, game);
     if (core) {
@@ -942,7 +1063,7 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
       }
     };
 
-    const exhaustWeapons = () => {
+    const exhaustWeapons = (round: "initial" | "reroll") => {
       while (true) {
         const weapon = weaponCandidate(game);
         if (!weapon) return;
@@ -968,6 +1089,9 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
           accepted,
           legalityBefore: true,
           reason: accepted ? undefined : "public buy rejected",
+          offerRound: round,
+          previewAccepted: weapon.preview.accepted,
+          previewReason: weapon.preview.reason,
         });
         if (!accepted) return;
         rest.spend.weapon += before - after;
@@ -976,13 +1100,14 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
     };
 
     exhaustItems();
-    exhaustWeapons();
+    exhaustWeapons("initial");
     if (!itemCandidate(policy, game) && !weaponCandidate(game)) {
       const price = rerollPrice(game.shopRerollIndex);
       if (game.money >= price) {
         const before = game.money;
         const accepted = game.reroll();
         const after = game.money;
+        rest.rerollAttempts = 1;
         rest.rerollCount = accepted ? 1 : 0;
         rest.rerollSpend = accepted ? before - after : 0;
         spent += rest.rerollSpend;
@@ -1004,10 +1129,20 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
           reason: accepted ? undefined : "public reroll rejected",
         });
         if (accepted) {
+          offerRounds.push({
+            round: "reroll",
+            ...weaponRowSnapshot(after),
+          });
           exhaustItems();
-          exhaustWeapons();
-        }
+          exhaustWeapons("reroll");
+        } else rest.rerollNotAttemptedReason = "public reroll rejected";
+      } else {
+        rest.rerollNotAttemptedReason =
+          "actual reroll price exceeds pre-reroll cash";
       }
+    } else {
+      rest.rerollNotAttemptedReason =
+        "useful legal affordable item or weapon remained";
     }
 
     rest.transactions = transactions.slice(restTransactionStart);
@@ -1025,6 +1160,44 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
       affordable: game.money >= game.itemOfferPrice(index),
       usefulToCohort: isUsefulToCohort(policy, game, id),
     }));
+    rest.initialWeaponOffers = materializeWeaponOffers("initial");
+    rest.refreshedWeaponOffers = materializeWeaponOffers("reroll");
+    rest.weaponPreviewEvaluations = [
+      ...rest.initialWeaponOffers,
+      ...rest.refreshedWeaponOffers,
+    ].map((entry) => ({
+      round: entry.round,
+      index: entry.index,
+      id: entry.id,
+      price: entry.price,
+      previewAccepted: entry.previewAccepted,
+      previewReason: entry.previewReason,
+      purchaseAttempted: entry.purchaseAttempted,
+    }));
+    rest.offerAudit = {
+      initialWeaponOfferCount: rest.initialWeaponOffers.length,
+      refreshedWeaponOfferCount: rest.refreshedWeaponOffers.length,
+      previewRejectedNoSpaceCount: [
+        ...rest.initialWeaponOffers,
+        ...rest.refreshedWeaponOffers,
+      ].filter((entry) => entry.previewReason === "no-space").length,
+      purchaseAttemptCount: [
+        ...rest.initialWeaponOffers,
+        ...rest.refreshedWeaponOffers,
+      ].filter((entry) => entry.purchaseAttempted).length,
+      rejectedPurchaseCallCount: rest.transactions.filter(
+        (entry) => entry.kind === "weapon-purchase" && !entry.accepted,
+      ).length,
+      allTierTwoPlusAtRestEnd:
+        game.guns.length === game.slotCap &&
+        game.guns.every((gun) => (gun.tier ?? 1) >= 2),
+      allTierTwoPlusNoTierOneOffer:
+        game.guns.length === game.slotCap &&
+        game.guns.every((gun) => (gun.tier ?? 1) >= 2) &&
+        ![...rest.initialWeaponOffers, ...rest.refreshedWeaponOffers].some(
+          (entry) => entry.tier === 1,
+        ),
+    };
     rest.usableItemOffers = rest.itemOffers.filter(
       (entry) => entry.legal && entry.usefulToCohort,
     ).length;
@@ -1210,11 +1383,50 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
     popcornBudgetSkippedPickups: game.popcornBudgetSkippedPickups,
     queueCounters: queueSnapshot(game),
   };
-  const sourceManifest = sha256(
-    options.sourceFiles
-      .map((file) => `${file.path}\0${file.sha256}`)
-      .join("\n"),
+  const sourceManifest = options.sourceManifestSHA256;
+  const allRerolls = transactions.filter((entry) => entry.kind === "reroll");
+  const acceptedRerolls = allRerolls.filter((entry) => entry.accepted);
+  const paidAcceptedRerolls = acceptedRerolls.filter(
+    (entry) => entry.price > 0,
   );
+  const allWeaponOffers = rests.flatMap((rest) => [
+    ...rest.initialWeaponOffers,
+    ...rest.refreshedWeaponOffers,
+  ]);
+  const offerAudit = {
+    initialWeaponOffers: rests.reduce(
+      (sum, rest) => sum + rest.initialWeaponOffers.length,
+      0,
+    ),
+    refreshedWeaponOffers: rests.reduce(
+      (sum, rest) => sum + rest.refreshedWeaponOffers.length,
+      0,
+    ),
+    purchasedWeaponOffers: allWeaponOffers.filter((entry) => entry.purchased)
+      .length,
+    purchasedWithPreviewNoSpace: allWeaponOffers.filter(
+      (entry) => entry.purchased && entry.previewReason === "no-space",
+    ).length,
+    attemptedRejectedWeaponOffers: allWeaponOffers.filter(
+      (entry) => entry.status === "attempted-rejected",
+    ).length,
+    notAttemptedWeaponOffers: allWeaponOffers.filter(
+      (entry) =>
+        entry.status === "not-attempted" ||
+        entry.status === "legal-unaffordable",
+    ).length,
+    previewRejectedNoSpaceOffers: allWeaponOffers.filter(
+      (entry) => entry.previewReason === "no-space",
+    ).length,
+    allTierTwoPlusAtRestEndRests: rests.filter(
+      (rest) => rest.offerAudit.allTierTwoPlusAtRestEnd,
+    ).length,
+    allTierTwoPlusNoTierOneOfferRests: rests.filter(
+      (rest) => rest.offerAudit.allTierTwoPlusNoTierOneOffer,
+    ).length,
+    interpretation:
+      "Offer rows, prices and public preview results are observed at row creation. With six occupied slots and every weapon at Tier II or higher, no Tier-I offer can merge and there is no empty slot; only a same-ID/same-tier fusion can free a slot. Rows without any Tier-I offer cannot supply a missing partner regardless of cash or future shop luck. This does not prove wallet scarcity or a failed DPS check.",
+  };
 
   const terminalReason: RunRecord["terminalReason"] =
     game.phase === "won"
@@ -1265,6 +1477,16 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
       ),
       refunds: transactions.reduce((sum, entry) => sum + entry.refund, 0),
       rerolls: 0,
+      acceptedRerolls: acceptedRerolls.length,
+      freeAcceptedRerolls: acceptedRerolls.filter((entry) => entry.price === 0)
+        .length,
+      paidAcceptedRerolls: paidAcceptedRerolls.length,
+      rejectedRerollAttempts: allRerolls.filter((entry) => !entry.accepted)
+        .length,
+      paidRerollSpend: paidAcceptedRerolls.reduce(
+        (sum, entry) => sum + entry.price,
+        0,
+      ),
       reserve: game.money,
     },
     inventory,
@@ -1275,6 +1497,7 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
       paid: gun.paid ?? 0,
     })),
     acquisitions,
+    offerAudit,
     missingCore,
     routeLabelEvidence:
       "Cohort labels describe preregistered acquisition policies; they do not prove a route formed or caused output.",
@@ -1307,12 +1530,13 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
 }
 
 type Manifest = {
+  schema: "p3a-measurement-v2";
   generatedAt: string;
   sourceSHA: string;
   checkpointSHA: string;
   policySHA256: string;
   driverSHA256: string;
-  sourceGuard: Awaited<ReturnType<typeof sourceGuard>>;
+  sourceGuard: P3SourceGuardManifest;
   policy: typeof P3_POLICY;
   runs: RunRecord[];
   summary: {
@@ -1329,7 +1553,7 @@ type Manifest = {
 
 async function readSourceSHA() {
   const raw = process.env.SOURCE_SHA?.trim();
-  return raw || "447af109d4a07d218ae33466c75bc5b1266b092c";
+  return raw || FROZEN_SOURCE;
 }
 
 async function main() {
@@ -1340,7 +1564,7 @@ async function main() {
     P3_RUN_STEP_CAP,
     P3_PER_WAVE_STEP_CAPS.reduce((a, b) => a + b, 0),
   );
-  const sourceFiles = await sourceGuard();
+  const sourceFiles = await captureSourceGuard(ROOT, FROZEN_SOURCE);
   const policyContent = await readFile(resolve(ROOT, "tests/p3-policy.ts"));
   const driverContent = await readFile(resolve(ROOT, "tests/p3-driver.ts"));
   const harnessContent = await readFile(resolve(ROOT, "tests/p3-measure.ts"));
@@ -1348,25 +1572,12 @@ async function main() {
   const driverSHA256 = sha256(driverContent);
   const harnessSHA256 = sha256(harnessContent);
   const sourceSHA = await readSourceSHA();
-  const sourceDiff = await execFileAsync(
-    "git",
-    ["diff", "--exit-code", "--name-only", `${sourceSHA}..HEAD`, "--", "src"],
-    { cwd: ROOT },
-  ).catch((error: unknown) => {
-    const failure = error as {
-      code?: number;
-      stdout?: string;
-      stderr?: string;
-    };
-    if (failure.code === 1 && !failure.stdout?.trim()) {
-      return { stdout: "", stderr: "" };
-    }
-    throw error;
-  });
-  if (sourceDiff.stdout.trim())
-    throw new Error(`frozen source diff is non-empty:\n${sourceDiff.stdout}`);
-  const sourceAtPreregistration = await sourceGuard();
-  assertSourcePreregistrationUnchanged(sourceFiles, sourceAtPreregistration);
+  if (sourceSHA !== FROZEN_SOURCE)
+    throw new Error(
+      `SOURCE_SHA must identify the frozen source ${FROZEN_SOURCE}, got ${sourceSHA}`,
+    );
+  const sourceAtPreregistration = await captureSourceGuard(ROOT, FROZEN_SOURCE);
+  assertSourceGuardUnchanged(sourceFiles, sourceAtPreregistration);
 
   const runs: RunRecord[] = [];
   for (const entry of P3_POLICY.runOrder) {
@@ -1380,7 +1591,7 @@ async function main() {
       sourceSHA,
       policySHA256,
       driverSHA256,
-      sourceFiles: sourceFiles.files,
+      sourceManifestSHA256: sourceFiles.contentManifestSHA256,
     });
     runs.push(run);
     console.log(
@@ -1396,12 +1607,12 @@ async function main() {
     sourceSHA,
     policySHA256,
     driverSHA256,
-    sourceFiles: sourceFiles.files,
+    sourceManifestSHA256: sourceFiles.contentManifestSHA256,
   };
   const replay = await simulate(replayOptions);
-  const sourceAtEnd = assertSourcePreregistrationUnchanged(
+  const sourceAtEnd = assertSourceGuardUnchanged(
     sourceFiles,
-    await sourceGuard(),
+    await captureSourceGuard(ROOT, FROZEN_SOURCE),
   );
   const original = runs[0]!;
   const replayEqual =
@@ -1428,6 +1639,7 @@ async function main() {
   }
 
   const report: Manifest = {
+    schema: "p3a-measurement-v2",
     generatedAt: new Date().toISOString(),
     sourceSHA,
     checkpointSHA: P3_POLICY.source.checkpointAtPreregistration,
@@ -1450,10 +1662,10 @@ async function main() {
 
   const dataDir = process.env.P3_DATA_DIR
     ? resolve(process.env.P3_DATA_DIR)
-    : DEFAULT_DATA;
+    : resolve(DEFAULT_OUTPUT, "data");
   const artifactDir = process.env.P3_ARTIFACT_DIR
     ? resolve(process.env.P3_ARTIFACT_DIR)
-    : DEFAULT_ARTIFACTS;
+    : resolve(DEFAULT_OUTPUT, "artifacts");
   await mkdir(dataDir, { recursive: true });
   await mkdir(artifactDir, { recursive: true });
   const reportPath = resolve(dataDir, "report.json");
@@ -1473,9 +1685,9 @@ async function main() {
     driverSHA256,
     harnessSHA256,
     sourceManifestSHA256: report.sourceGuard.manifestSHA256,
-    reportPath,
+    reportPath: portablePath(reportPath),
     reportSHA256: reportHash,
-    tracePath,
+    tracePath: portablePath(tracePath),
     traceSHA256: traceHash,
     primaryRuns: runs.length - 1,
     replayEqual,

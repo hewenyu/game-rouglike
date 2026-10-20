@@ -23,16 +23,41 @@ reported as a cohort result. The tracked compact report is
 limitations are in `docs/data/p3-measurement/report.md` and
 `docs/p3-measurement-plan.md`.
 
-Weapon-only exposed a full-slot / missing Tier-I partner purchase bottleneck
-rather than a scarcity conclusion: seed 1 ended with six Tier-II guns, 903 cash,
-426 spent and no accepted reroll; seeds 42/145 ended with five Tier-II plus one
-Tier-III gun. None reached Tier-IV. A future sale or partner-selection policy is
-a next three-party design question, not a repair to this measurement or an
-authorized production tuning change. Item-led actual damage attribution remains
-missing because the public state exposes no per-hit source ledger; cohort wins
-and item counts do not prove it. P2 user acceptance was not given. Full W20
-browser play, five late-route viability, render performance, audio/mobile/Safari
-behavior and user feel remain open gates.
+The evidence repair preserves the original v1 raw trace gzip at
+`docs/data/p3-measurement-v2/artifacts/runs-447af10.jsonl.gz` (raw SHA-256
+`6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2`) and records
+a fresh v2 trace at `docs/data/p3-measurement-v2/generated/artifacts/runs.jsonl`
+(SHA-256 `ee531e7d8516f7cffbd8cd7575e9cfd67bb646f99e66649f08082dbaf87b6c1e`).
+The v2 harness is
+`a1f43dd42131fbfffbd2ff8b7dce2e542973ca7a62d3a8d85d0e9dcc1c4dad43`; its
+source manifest is
+`148b63298d86f30bf952696723f2e55546fc3008bb0f8becb9710f74db650075`
+(file list `04edc9c1fe390df6b0011e0ef6fbb8ac3cd036f3b90dcd32697a51e03b54f79c`,
+content `7ba343896f610d805e462c877babc99bc8e44478fb355727f72c8b81a5bc3a92`).
+The production source guard compares the exact `git show` file list and bytes at
+the frozen commit with the disk tree and requires clean `src` status. The full
+batch is observation-only: 22 records matched the original trace after removing
+only the newly added observation fields. The final verification tree passes
+**178/178** tests (the 173 baseline tests plus five source-guard tests), the
+production build is clean, and `git diff --check` is clean.
+
+The old v1 report's reroll and weapon-offer claims are historical and false.
+The corrected v2 trace contains **306 accepted rerolls**, all free: weapon-only
+seed 1 had 14 accepted/free rerolls across 14 rests. Weapon-only seed 1 ended
+with six Tier-II guns, 903 cash and 426 spent; seeds 42/145 ended with five
+Tier-II plus one Tier-III gun. None reached Tier-IV. The offer audit found 129
+rest endings with six occupied slots and every gun at Tier II or higher.
+Fourteen of those rests contained a Tier-I offer; **all 20 such offers were
+actually purchased** because an earlier compatible purchase freed a slot before
+the row was exhausted. The other 115 rests had no Tier-I offer in either row.
+This is an observed full-slot / missing Tier-I partner
+condition, not wallet scarcity or a failed DPS check. A future sale or
+partner-selection policy is a next three-party design question, not a repair to
+this measurement or an authorized production tuning change. Item-led actual
+damage attribution remains missing because the public state exposes no per-hit
+source ledger; cohort wins and item counts do not prove it. P2 user acceptance
+was not given. Full W20 browser play, five late-route viability, render
+performance, audio/mobile/Safari behavior and user feel remain open gates.
 
 P2's bounded checkpoint `6ba7844` had independent ordinary keyboard/CDP-touch
 preview verification: root 173 tests/build and normal 2/2,

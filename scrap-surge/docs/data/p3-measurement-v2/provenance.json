@@ -1,0 +1,55 @@
+{
+  "schema": "p3a-measurement-v2-provenance",
+  "originalRaw": {
+    "path": "docs/data/p3-measurement-v2/artifacts/runs-447af10.jsonl.gz",
+    "sha256": "6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2",
+    "bytes": 2569387
+  },
+  "observedTrace": {
+    "path": "docs/data/p3-measurement-v2/generated/artifacts/runs.jsonl",
+    "sha256": "ee531e7d8516f7cffbd8cd7575e9cfd67bb646f99e66649f08082dbaf87b6c1e",
+    "bytes": 3350479,
+    "generatedProvenance": "docs/data/p3-measurement-v2/generated/data/provenance.json"
+  },
+  "reportPath": "docs/data/p3-measurement-v2/report.json",
+  "reportSHA256": "b837259bf072dc8520445709d83f2e3f51237d0576c36b76f66a490544801c23",
+  "compatibility": {
+    "comparedRecords": 22,
+    "ignoredObservationFields": [
+      "acceptedRerolls",
+      "freeAcceptedRerolls",
+      "initialWeaponOffers",
+      "offerAudit",
+      "offerRound",
+      "paidAcceptedRerolls",
+      "paidRerollSpend",
+      "previewAccepted",
+      "previewReason",
+      "refreshedWeaponOffers",
+      "rejectedRerollAttempts",
+      "rerollAttempts",
+      "rerollNotAttemptedReason",
+      "weaponPreviewEvaluations"
+    ]
+  },
+  "rerollTotals": {
+    "attempts": 306,
+    "accepted": 306,
+    "freeAccepted": 306,
+    "paidAccepted": 0,
+    "rejected": 0,
+    "paidSpend": 0
+  },
+  "offerTotals": {
+    "initial": 918,
+    "refreshed": 918,
+    "purchased": 182,
+    "attemptedRejected": 0,
+    "notAttempted": 782,
+    "previewRejectedNoSpace": 872,
+    "allTierTwoPlusAtRestEndRests": 129,
+    "allTierTwoPlusNoTierOneOfferRests": 115,
+    "tierOneOffersAtAllTierTwoPlusRests": 20,
+    "purchasedTierOneOffersAtAllTierTwoPlusRests": 20
+  }
+}

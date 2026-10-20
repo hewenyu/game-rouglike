@@ -8,9 +8,14 @@ actions, fixed `1/60` steps and one hashed movement driver
 (`e5c398e9658bfc014014c753e2682fcf9e6fabe8019247ddef148ef530a7d202`) for every
 cohort. Policy SHA-256 is
 `e78ef5512c0a968bde0ebe080f4532bd78cfaf7c0ff08468d2f21de6640e2353`.
-The committed successful harness is
+The original successful v1 harness is
 `11456c85c3f0b7f50a47951c6c0214fbaaa218ab43b63bcb466d4a0208b1635d`.
-`git diff 447af10..HEAD -- src` remained empty.
+The v2 observation-only harness is
+`a1f43dd42131fbfffbd2ff8b7dce2e542973ca7a62d3a8d85d0e9dcc1c4dad43`.
+`git diff 447af10..HEAD -- src` remained empty and the source guard verified the
+exact frozen file list, bytes and clean `src` status. The final verification tree
+passes **178/178** tests (173 baseline plus five source-guard tests); the
+production build and `git diff --check` are clean.
 
 The batch completed 21 primary runs plus one deterministic
 weapon-only/seed-1 replay, which matched the full canonical run record. Primary
@@ -22,18 +27,25 @@ remain separately reported.
 
 Weapon-only ended with six Tier-II guns on seed 1 and five Tier-II plus one
 Tier-III gun on seeds 42/145, with no Tier-IV. Seed 1 had six occupied slots,
-cash 153 to 765 across the W9-W14 rests, and no accepted reroll; the observed rows
-offered no useful full-slot fusion partner. This indicates a
-full-slot / missing Tier-I partner purchase bottleneck under the no-sales policy,
-not wallet scarcity or a failed DPS check. Any sale or partner-selection policy
-is a later three-party design decision.
+cash 153 to 765 across the W9-W14 rests, and **14 accepted/free rerolls across
+14 rests**. The old "no accepted rerolls" statement was false; across all 21
+primary runs the corrected count is 306 accepted rerolls, all free. Of 129 rest
+endings with six occupied slots and every gun at Tier II or higher, 115 had no
+Tier-I offer in either row. The other 14 contained 20 Tier-I offers; all 20 were
+purchased because an earlier compatible purchase freed a slot before the row was
+exhausted. This is an observed full-slot / missing Tier-I partner condition, not
+wallet scarcity or a failed DPS check. Any sale or partner-selection policy is a
+later three-party design decision.
 
-Report details are in `docs/data/p3-measurement/report.json` (SHA-256
-`8cd1eabe81f70d132c6edca8b0346cf439321dc5e8fc6e85993b4003ed3cbbbe`) and
-`docs/data/p3-measurement/report.md` (SHA-256
-`69b654047d35d2c8a834e652221d9309b60fec3ac4be4be14be57cf0336fc6b7`).
-The external trace is `/tmp/scrap-p3-measurement-447af10/runs.jsonl` (SHA-256
-`6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2`).
+Report details are in `docs/data/p3-measurement-v2/report.json` (SHA-256
+`b837259bf072dc8520445709d83f2e3f51237d0576c36b76f66a490544801c23`) and
+`docs/data/p3-measurement-v2/report.md` (SHA-256
+`6372f09ddefd22ccc542eae71b3ed5a1a2d6b5888e67b91f588a56a83d1beac9`).
+The preserved original raw trace is gzip-compressed at
+`docs/data/p3-measurement-v2/artifacts/runs-447af10.jsonl.gz` (raw SHA-256
+`6df30a864a262b0e858c2d826b18600d22df59eaa03feff90d41d819519f8bc2`). The fresh
+v2 trace is `docs/data/p3-measurement-v2/generated/artifacts/runs.jsonl`
+(SHA-256 `ee531e7d8516f7cffbd8cd7575e9cfd67bb646f99e66649f08082dbaf87b6c1e`).
 The first harness attempt aborted before a cohort completed with
 `TypeError: Cannot read properties of undefined (reading 'everSpawned')`;
 harness commit `a5997bf` fixed its boss-bucket indexing. That failed attempt is

@@ -45,12 +45,19 @@ An earlier harness attempt failed before any cohort completed with
 harness-only commit `a5997bf` fixed the boss-bucket indexing. Both the failed
 attempt and the subsequent result remain in the record.
 
-The weapon-only control showed a full-slot / missing Tier-I partner purchase
-bottleneck: seed 1 ended with six Tier-II guns, 903 cash, 426 spent and no
-accepted reroll, while seeds 42/145 reached five Tier-II plus one Tier-III gun.
-None reached Tier-IV. This does not prove wallet scarcity or failed late DPS and
-does not authorize a sale, shop, fusion or balance change. It is input to a later
-three-party design decision if further measurement is requested.
+The v1 report's "no accepted reroll" and weapon-offer summary was false and is
+retained here as historical error. The v2 observation-only repair preserves the
+original v1 raw and records 306 accepted rerolls, all free; weapon-only seed 1
+had 14 accepted/free rerolls across 14 rests. Weapon-only seed 1 still ended with
+six Tier-II guns, 903 cash and 426 spent, while seeds 42/145 reached five
+Tier-II plus one Tier-III gun. None reached Tier-IV. Of 129 rest endings with six
+occupied slots and every gun at Tier II or higher, 115 had no Tier-I offer in
+either row; the other 14 contained 20 Tier-I offers and all 20 were purchased
+after an earlier compatible purchase freed a slot. This does not prove wallet
+scarcity or failed late DPS and does not authorize a sale, shop, fusion or
+balance change. It is input to a later three-party design decision if further
+measurement is requested. The final observation-repair tree passes **178/178**
+tests and a clean production build.
 
 These are author-run finite simulation diagnostics. They are not independent
 reviews, browser/human victories, win-rate estimates, route-formation proof,
