@@ -91,13 +91,13 @@ function panels(game: Game) {
   if (game.phase === "shop") {
     for (let priority = 0; priority < 3; priority++)
       for (let index = 0; index < game.offers.length; index++) {
-        if (game.guns.length >= game.slotCap) break;
-        if (!game.guns.some((gun) => gun.id === game.offers[index]))
-          game.buy(index);
+        const preview = game.expeditionPurchasePreview(index);
+        if (!preview.accepted) continue;
+        const owned = game.guns.some(
+          (gun) => gun.id === game.offers[index] && (gun.tier ?? 1) < 4,
+        );
+        if (owned || game.guns.length < game.slotCap) game.buy(index);
       }
-    for (const id of ["coil", "rocket", "slinger", "shotgun", "saw", "fist"])
-      for (let index = 0; index < game.guns.length; index++)
-        if (game.guns[index].id === id) game.upgrade(index);
     game.nextWave();
   }
 }

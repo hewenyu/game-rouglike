@@ -46,7 +46,7 @@ const report = {
     bossRadius: 170,
     deadzone: 0.32,
     pollMs: 80,
-    upgradeOrder: ["coil", "rocket", "slinger", "shotgun", "saw", "fist"],
+    buyOrder: ["coil", "rocket", "slinger", "shotgun", "saw", "fist"],
     reroll: false,
     sale: false,
     capSeconds: 1100,
@@ -174,8 +174,8 @@ try {
         }
         report.checks.push(`W${state.wave} choice locked and continue enabled`);
       } else {
-        // Fill legal slots with different offered weapons, then explicitly
-        // upgrade owned slots. These are normal shop button clicks only.
+        // Fill legal slots with different offered weapons. These are normal
+        // shop button clicks only.
         for (let round = 0; round < 3; round++) {
           let changed = false;
           const now = await metrics();
@@ -190,15 +190,6 @@ try {
             }
           }
           if (!changed) break;
-        }
-        for (const id of report.strategy.upgradeOrder) {
-          const now = await metrics();
-          for (let i = 0; i < now.guns.length; i++)
-            if (now.guns[i] === id) {
-              const button = page.locator(`[data-upgrade="${i}"]`);
-              if ((await button.count()) && (await button.isEnabled()))
-                await button.click();
-            }
         }
       }
       const after = await metrics();

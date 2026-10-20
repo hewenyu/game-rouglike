@@ -141,11 +141,6 @@ async function panel(page, s, driver, keepPlayerKeys = false) {
       }
       if ((await metrics(page)).guns.length === before) break;
     }
-    for (let i = 0; i < 6; i++) {
-      const upgrade = page.locator(`[data-upgrade="${i}"]`);
-      if (!(await upgrade.count()) || !(await upgrade.isEnabled())) continue;
-      await upgrade.click();
-    }
   }
   await page.locator("#next").click();
   await page.waitForFunction(

@@ -1,4 +1,4 @@
-import type { ModId, WeaponId } from "./data";
+import { WEAPONS, type ModId, type WeaponId } from "./data";
 
 export type Formation = "ring" | "stream" | "two-cluster";
 export type Stop = "full" | "quick" | "auto" | "end";
@@ -67,6 +67,28 @@ export const HP_MULT = [1, 1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9, 2.1, 2.3, 2.5, 2.
 export const BASE_HP = { bag: 17, runner: 19, can: 75, splitter: 40, chip: 8, spitter: 55 } as const;
 export type ExpeditionEnemyKind = "bag" | "runner" | "can" | "splitter" | "chip" | "spitter";
 export const MIX_KINDS: readonly ExpeditionEnemyKind[] = ["bag", "runner", "can", "splitter", "spitter"];
+export type GunTier = 1 | 2 | 3 | 4;
+export type EffectiveWeaponProfile = {
+  tier: GunTier;
+  damage: number;
+  interval: number;
+  range: number;
+  pellets: number;
+  jumps: number;
+  jumpRange: number;
+  shots: number;
+  saws: number;
+  blastRadius: number;
+  sawOrbitRadius: number;
+  sawContactRadius: number;
+};
+export type PurchasePreview = {
+  accepted: boolean;
+  reason: "no-space" | null;
+  tier: GunTier;
+  incomingTier: GunTier;
+  merged: boolean;
+};
 
 export const STOP_AFTER: readonly (Stop | null)[] = [
   "quick", "full", "quick", "full", "quick", "full", "auto", "full", "quick",
@@ -116,14 +138,107 @@ export const BOSS_STAGES: Record<number, {
   20: { stage: 4, hp: 6400, value: 60, interval: 1.75, radial: 12, armor: "#263536", core: "#fffaf0", name: "罐头大王 IV", en: "CAN KING IV" },
 };
 
-export const GUN_TIER = {
-  slinger: { damage: 1, hits: 2 },
-  shotgun: { damage: 1.4, hits: 7 },
-  saw: { damage: 1, hits: 2 },
-  coil: { damage: 1.4, hits: 7 },
-  rocket: { damage: 1, hits: 2 },
-  fist: { damage: 2, hits: 1 },
-} as const;
+export const GUN_TIER_DAMAGE_MULT = [1, 2, 4, 8] as const;
+const WEAPON_BEHAVIOR = {
+  slinger: {
+    pellets: 1,
+    jumps: 0,
+    jumpRange: 0,
+    shots: 1,
+    saws: 1,
+    blastRadius: 0,
+    sawOrbitRadius: 0,
+    sawContactRadius: 0,
+  },
+  shotgun: {
+    pellets: 5,
+    jumps: 0,
+    jumpRange: 0,
+    shots: 1,
+    saws: 1,
+    blastRadius: 0,
+    sawOrbitRadius: 0,
+    sawContactRadius: 0,
+  },
+  saw: {
+    pellets: 1,
+    jumps: 0,
+    jumpRange: 0,
+    shots: 1,
+    saws: 1,
+    blastRadius: 0,
+    sawOrbitRadius: 83,
+    sawContactRadius: 24,
+  },
+  coil: {
+    pellets: 1,
+    jumps: 4,
+    jumpRange: 170,
+    shots: 1,
+    saws: 1,
+    blastRadius: 0,
+    sawOrbitRadius: 0,
+    sawContactRadius: 0,
+  },
+  rocket: {
+    pellets: 1,
+    jumps: 0,
+    jumpRange: 0,
+    shots: 1,
+    saws: 1,
+    blastRadius: 92,
+    sawOrbitRadius: 0,
+    sawContactRadius: 0,
+  },
+  fist: {
+    pellets: 1,
+    jumps: 0,
+    jumpRange: 0,
+    shots: 1,
+    saws: 1,
+    blastRadius: 0,
+    sawOrbitRadius: 0,
+    sawContactRadius: 0,
+  },
+} as const satisfies Record<
+  WeaponId,
+  {
+    pellets: number;
+    jumps: number;
+    jumpRange: number;
+    shots: number;
+    saws: number;
+    blastRadius: number;
+    sawOrbitRadius: number;
+    sawContactRadius: number;
+  }
+>;
+
+export function gunTier(tier?: number): GunTier {
+  return Math.max(1, Math.min(4, Math.floor(tier ?? 1))) as GunTier;
+}
+
+export function gunTierLabel(tier?: number) {
+  return ["", "I", "II", "III", "IV"][gunTier(tier)];
+}
+
+// One read-only profile is used by simulation, rendering and the shop UI.
+// Tier changes damage only. Rate, range and per-shot/count geometry stay fixed.
+export function effectiveWeaponProfile(
+  id: WeaponId,
+  tier?: number,
+): EffectiveWeaponProfile {
+  const normalized = gunTier(tier);
+  const base = WEAPONS[id];
+  const behavior = WEAPON_BEHAVIOR[id];
+  return {
+    tier: normalized,
+    damage: base.damage * GUN_TIER_DAMAGE_MULT[normalized - 1],
+    interval: base.interval,
+    range: base.range,
+    ...behavior,
+  };
+}
 
 export function enemyHp(kind: ExpeditionEnemyKind, wave: number) {
   const i = clampedWave(wave);
@@ -137,16 +252,12 @@ export function gunPrice(id: WeaponId, wave: number) {
   return Math.ceil((WEAPON_BASE_PRICE[id] * (wave + 4)) / 5);
 }
 
-export function tier2Price(id: WeaponId, wave: number) {
-  return Math.ceil((WEAPON_BASE_PRICE[id] * 4 * (wave + 4)) / 5);
-}
-
 export function rerollPrice(index: number) {
   return index === 0 ? 0 : 4 + index * 2;
 }
 
 export function gunSlotCap(wave: number) {
-  return 2 + [2, 4, 7, 11].filter((opening) => wave >= opening).length;
+  return wave >= 1 ? 6 : 0;
 }
 
 export function waveRecovery(mode: GameMode, destinationWave: number) {
@@ -155,14 +266,6 @@ export function waveRecovery(mode: GameMode, destinationWave: number) {
     destinationWave <= 20
     ? 4
     : 3;
-}
-
-export function tier2Capacity(wave: number) {
-  return wave >= 18 ? 6 : wave >= 16 ? 5 : wave >= 14 ? 4 : wave >= 12 ? 3 : wave >= 10 ? 2 : wave >= 8 ? 1 : 0;
-}
-
-export function tier2OpeningWave(wave: number) {
-  return [8, 10, 12, 14, 16, 18].find((opening) => opening > wave) ?? null;
 }
 
 export function stopAfter(wave: number): Stop | null {

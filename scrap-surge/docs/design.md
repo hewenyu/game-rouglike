@@ -41,6 +41,87 @@ The user explicitly requires "左脚踩右脚上天": build synergies should bre
 the baseline, not be balanced into near-equivalence. Strong completed builds may
 clear mobs with little movement; that is not automatically a QA failure.
 
+### Weapon baseline, item-led late game (three-party decision, 2026-10-19)
+
+Weapons are the baseline output that bridges the early inability to kill. Items must
+amplify weapons (attack speed, pierce, multishot, conversions and similar effects)
+and add real proc damage. Late-game output must be item-led; weapons alone are not
+sufficient. A "firepower build" therefore means a coordinated set of item-amplified
+weapons, not six Tier-IV guns by themselves.
+
+P1's `1/2/4/8` Tier-I-IV damage ladder is a provisional foundation, not approved
+late balance. Astra, Opus and independent DeepSeek explicitly agree on this reading.
+Opus's W1-W5 weapon-viability, W6-W12 item-assembly and W13-W20 item-led pacing is a
+working hypothesis, not fixed difficulty. The theoretical risk that six Tier-IV
+guns provide 48 baseline guns' worth of output still needs economic-feasibility and
+actual-DPS checks. Do not raise enemy HP merely to suppress a dominant gun-only route,
+and do not add content as an unapproved substitute for measurement.
+
+Future validation compares three cohorts on the same frozen source and seeds:
+weapon-only, items without coordinated synergy, and a coordinated item build. Each
+must record actual boss encounter windows, damage, survival and engagement, not just
+the terminal win/loss. This is a validation contract; implementing a new item system
+still requires its own approved scope.
+
+### Item rarity and repeatability (three-party decision, 2026-10-19)
+
+The newest user requirement establishes that repeated purchases of the same item are
+sometimes correct and sometimes wrong: common stackable items should be able to
+repeat, while certain advanced or unique items must not. Rarity must describe a real
+drop and shop distribution, not merely tint an icon. Boss rewards must give better
+item chances than ordinary elite rewards.
+
+Rarity and stackability are separate metadata. Common does not automatically mean
+stackable, and advanced does not automatically mean unique. Each item must state its
+own repeat rule and, when stackable, any meaningful acquisition or effect cap. The
+old proposal that classified every mechanism or core item as unique is superseded;
+that blanket rule is not approved.
+
+A unique item that is already owned is filtered out before future shop or chest offers
+are generated. It cannot reappear and must not be replaced by a compensation claim or
+a cash substitute. A stackable item can appear repeatedly within its explicit cap.
+
+Shops and boss chests draw items from the same shared nonweapon pool. Boss chests
+apply higher rarity weights than ordinary elite rewards. Shops apply a wave-adjusted
+rarity distribution that improves late-game item chances; this is not yet an arbitrary
+per-wave guarantee. Boss chests do not become a second weapon shop.
+
+Rarity effects must differ in more than color or label. Their intended distinctions
+can include proc strength, support breadth or build-defining interaction, but the
+specific effects and numbers remain to be reviewed. This section records future P2
+direction only: P1 must not implement items, rarity weights, stack formulas, chest
+curves or reward-content changes, and exact numeric rates require separate three-party
+approval after economic and combat measurement.
+
+Offer generation respects the actual legal pool after filtering. If fewer than three
+eligible items remain, show only those items; do not manufacture duplicates merely to
+fill a three-card row. A paid reroll that cannot produce a useful legal offer is
+disabled or skipped without charging. Free or demonstrably useful rerolls are handled
+separately so a valid free action is not removed by the guard.
+
+W5, W10 and W15 grant meaningful nonweapon item rewards, not only currency or a
+weapon. W20 is terminal and may end on the victory summary alone; no final shop,
+mandatory chest choice or meta-progression is required unless a later three-party
+decision adds it. Item resale and curse removal are not approved and must not appear
+as side effects of the P2 work.
+
+Reward and economy randomness use their own seeded stream, separate from combat
+randomness. Rarity draws, shop rerolls, elite/boss rewards and chest selections must
+not alter spawns, targeting, collisions or projectile outcomes. The current P1
+storefront's isolated stream is the precedent. Future reward work must add a paired-
+seed test that changes one stream's consumption without moving the other.
+
+Planned P2 tests:
+
+- the same seed yields the same reward offers across different combat RNG consumption,
+  while adding shop/reward draws leaves combat unchanged;
+- owned uniques are filtered without a cash substitute or forced duplicate;
+- legal pools smaller than three show only the available cards, and an incapable paid
+  reroll does not spend currency;
+- repeatable items obey their cap and unique items never repeat;
+- W5/W10/W15 draw meaningful nonweapon item rewards, and W20 requires no extra reward
+  interaction to complete.
+
 Two free, stackable shop modifications create real feedback: enemy death -> scrap ->
 pickup projectiles -> enemy death and explosions -> more scrap. Secondary kills do
 trigger more explosions. Each enemy settles death once; explosion work uses a queue

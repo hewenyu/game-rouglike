@@ -14,6 +14,69 @@ revision **5e050b221775f57744e39bfd20f5fbc4499360a6** remain historical evidence
 All repository reproduction commands below run from this repository and do not
 depend on a `/tmp` path. `/tmp` paths appear only as raw evidence locations.
 
+## P1 freeze validation (candidate based on `19a66dd`, 2026-10-19)
+
+This candidate implements six expedition slots, automatic same-ID/same-tier
+merging through IV, damage-only tier profiles, atomic purchase previews and
+committed purchase-result display. It is a structural P1 freeze candidate only:
+P2 items, rarity/stackability, chests and item-led balance are not implemented.
+
+| Check | Result |
+| --- | --- |
+| `npm test` | **102/102** |
+| `npm run build` | **clean** |
+| First-shop on `4190` | **6/6**, no page errors |
+| Input lifecycle on `4190` | **7/7**, no page errors |
+| Paired desktop/touch browser merge fixture | **2/2**, no page errors |
+| Full slice comparator vs `19a66dd` | **0 differences**, 3,422 steps × 3 seeds |
+
+The added unit groups are deliberately separate:
+
+- A six-slot cascade buys an incoming I through an equal I, II and III arm to
+  IV, checks summed paid value and max cooldown, and preserves the equal arm
+  not consumed. It does not claim six I items collapse into one IV.
+- A rejected full-slot purchase leaves guns, offers, `sold`,
+  `purchaseRecords`, money and events untouched.
+- Twenty legal buy/sell cycles use genuine `0.35 * paid` refunds and prove no
+  scrap creation or duplicate card.
+- A tier-IV weapon fires a real projectile with damage 160 and a real
+  collision settles the hit. The profile-only test remains separate.
+
+Run the browser fixture with:
+
+```sh
+BASE_URL=http://127.0.0.1:4190 node tests/browser-first-shop.mjs
+BASE_URL=http://127.0.0.1:4190 node tests/browser-input-lifecycle.mjs
+BASE_URL=http://127.0.0.1:4190 node tests/browser-merge-purchase.mjs
+```
+
+The merge fixture writes a fresh report and desktop/touch before/after
+screenshots under `artifacts/merge-purchase-<timestamp>/` by default, or to
+`OUTPUT_DIR`. It drives W1/W2 with ordinary keyboard or CDP touch and clicks
+the offered copy of the starting slinger. It asserts the pre-buy
+`合成至 II / 攻击 40`, the post-buy committed `合成 II / 攻击 40`, the one
+owned II weapon, the 18-scrap spend and the `攻击 40` owned profile. The
+authored run is at `/tmp/astra-growth-merge-1792469184/`; its report and four
+screenshots are author evidence, not independent review.
+
+The `19a66dd` comparator is outside the repository at
+`/tmp/astra-19a66dd-compare/compare.ts`, with raw output in
+`result.jsonl`. It loads the old checkout's `Game` and the candidate `Game`
+side by side, drives the fixed orbit input through the full slice, applies the
+same two quick choices, and compares phase, wave, time, player, enemies,
+bullets, scrap, pending blasts, chain state, events and combat/shop draw
+counts on every step. Seeds 42/23/145 each matched for 3,422 steps and ended
+`won`; kills were 280/280, 289/289 and 290/290, HP 4/4 on all three, and
+combat draws were 2105, 2124 and 2123. This is fixed-input simulation evidence,
+not an arbitrary-input, browser or human equivalence proof.
+
+The first-shop and lifecycle runs above were repeated on stable dev server
+`4190` after the source stopped changing. An earlier lifecycle run was
+invalidated by an HMR reload (`Execution context was destroyed`); the later
+stable run is the bounded 7/7 result. No full ordinary-input W20 victory,
+item-led boss cohort, physical-device performance, Safari, audio-mix or user
+acceptance is established by these checks.
+
 ## Automated rules
 
 Current `npm test` at test checkpoint

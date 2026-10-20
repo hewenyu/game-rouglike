@@ -56,7 +56,6 @@ const report = {
     },
     deadzone: 0.32,
     pollMs: 80,
-    upgradeOrder: ["rocket", "coil", "slinger"],
     buyOrder: ["rocket", "coil", "slinger"],
     allowDuplicates: true,
     rerollMax: 2,
@@ -205,7 +204,7 @@ try {
           `W${state.wave} choice locked and continue enabled`,
         );
       } else {
-        // Fill legal weapon slots in the registered priority, then upgrade them.
+        // Fill legal weapon slots in the registered priority.
         for (let roll = 0; roll <= 2; roll++) {
           for (const id of report.strategy.buyOrder) {
             const current = await metrics();
@@ -220,15 +219,6 @@ try {
           const reroll = page.locator("#reroll");
           if (!(await reroll.isEnabled())) break;
           await reroll.click();
-        }
-        for (const id of report.strategy.upgradeOrder) {
-          const current = await metrics();
-          for (let index = 0; index < current.guns.length; index++)
-            if (current.guns[index] === id) {
-              const button = page.locator(`[data-upgrade="${index}"]`);
-              if ((await button.count()) && (await button.isEnabled()))
-                await button.click();
-            }
         }
       }
       const after = await metrics();

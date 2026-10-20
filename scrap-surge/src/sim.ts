@@ -4,27 +4,29 @@ import {
   BAG_HP,
   BOSS_STAGES,
   DURATIONS,
-  GUN_TIER,
   MIX_KINDS,
   POCKETS,
   POCKET_MIX,
   RATES,
   MIX,
   bossForWave,
+  effectiveWeaponProfile,
   enemyHp,
   gunPrice,
   gunSlotCap,
+  gunTier,
+  gunTierLabel,
   isBossWave,
   quickKind,
   rerollPrice,
   stopAfter,
-  tier2Capacity,
-  tier2Price,
   waveRecovery,
   type ExpeditionBranch,
   type ExpeditionEnemyKind,
+  type GunTier,
   type Formation,
   type GameMode,
+  type PurchasePreview,
   type Stop,
 } from "./expedition";
 export type Phase =
@@ -69,6 +71,7 @@ export type Bullet = Vec & {
   hitIds?: Set<number>;
   mod?: ModId;
   tier?: number;
+  blastRadius?: number;
 };
 export type Scrap = Vec & {
   id: number;
@@ -121,9 +124,16 @@ export type Gun = {
   cooldown: number;
   angle: number;
   recoil: number;
-  tier?: 1 | 2;
+  tier?: GunTier;
   paid?: number;
 };
+type PurchaseNode = {
+  tier: GunTier;
+  sourceIndices: number[];
+  cooldown: number;
+  paid: number;
+};
+type PurchasePlan = PurchasePreview & { result: Gun[]; cooldown: number };
 export type WakePoint = Vec & {
   id: number;
   life: number;
@@ -161,6 +171,7 @@ export type Event = {
     | "spitter-tell"
     | "mod-cue"
     | "tier-fire"
+    | "merge"
     | "ring"
     | "end";
   kind?: WeaponId;
@@ -236,6 +247,15 @@ export class Game {
   pocketIndex = 0;
   offers: WeaponId[] = ["shotgun", "coil", "saw", "rocket"];
   sold = new Set<number>();
+  purchaseRecords = new Map<
+    number,
+    {
+      tier: GunTier;
+      incomingTier: GunTier;
+      merged: boolean;
+      damage: number;
+    }
+  >();
   freeRerolls = 1;
   shopRerollIndex = 0;
   quickOptions: (ModId | ExpeditionBranch)[] = [];
@@ -341,12 +361,6 @@ export class Game {
   }
   get slotCap() {
     return this.mode === "expedition20" ? gunSlotCap(this.wave) : 6;
-  }
-  get tier2Cap() {
-    return this.mode === "expedition20" ? tier2Capacity(this.wave) : 0;
-  }
-  get tier2Count() {
-    return this.guns.filter((g) => (g.tier ?? 1) === 2).length;
   }
   get pendingBoss() {
     if (this.mode !== "expedition20" || !isBossWave(this.wave)) return false;
@@ -734,43 +748,153 @@ export class Game {
       this.phase !== "shop" ||
       this.sold.has(index) ||
       index < 0 ||
-      index >= this.offers.length ||
-      this.guns.length >= this.slotCap
+      index >= this.offers.length
     )
       return false;
     const id = this.offers[index],
       price = gunPrice(id, this.wave);
     if (this.money < price) return false;
+    const preview = this.expeditionPurchasePreview(index);
+    if (!preview.accepted) return false;
     this.money -= price;
-    this.guns.push({
-      id,
-      cooldown: this.guns.length * 0.08,
-      angle: 0,
-      recoil: 0,
-      tier: 1,
-      paid: price,
-    });
+    this.guns = preview.result;
     this.sold.add(index);
+    this.purchaseRecords.set(index, {
+      tier: preview.tier,
+      incomingTier: preview.incomingTier,
+      merged: preview.merged,
+      damage: effectiveWeaponProfile(id, preview.incomingTier).damage,
+    });
+    if (preview.merged)
+      this.events.push({
+        type: "merge",
+        kind: id,
+        value: price,
+        tier: preview.incomingTier,
+      });
     this.event("buy", id);
     return true;
   }
-  upgrade(index: number) {
-    if (this.mode !== "expedition20" || this.phase !== "shop") return false;
-    const gun = this.guns[index];
-    if (!gun || (gun.tier ?? 1) !== 1) return false;
-    if (this.tier2Count >= this.tier2Cap) return false;
-    const price = tier2Price(gun.id, this.wave);
-    if (this.money < price) return false;
-    this.money -= price;
-    gun.tier = 2;
-    gun.paid = (gun.paid ?? 0) + price;
-    this.events.push({
-      type: "tier",
-      kind: gun.id,
-      value: price,
-      tier: 2,
-    });
-    return true;
+  expeditionPurchasePreview(index: number): PurchasePlan {
+    const id = this.offers[index];
+    const price = id ? gunPrice(id, this.wave) : 0;
+    const incomingCooldown = this.guns.length * 0.08;
+    const existingNodes: PurchaseNode[] = this.guns
+      .map((gun, slotIndex) => ({ gun, slotIndex }))
+      .filter(({ gun }) => gun.id === id)
+      .map(({ gun, slotIndex }) => ({
+        tier: gunTier(gun.tier),
+        sourceIndices: [slotIndex],
+        cooldown: gun.cooldown,
+        paid: gun.paid ?? 0,
+      }));
+    let incomingNode: PurchaseNode = {
+      tier: 1,
+      sourceIndices: [],
+      cooldown: incomingCooldown,
+      paid: price,
+    };
+    let mergedNode: PurchaseNode | null = null;
+    let incomingTier: GunTier = 1;
+    const consumedSlots = new Set<number>();
+    while (incomingNode.tier < 4) {
+      const tier = incomingNode.tier;
+      const partner = existingNodes
+        .filter(
+          (node) =>
+            node.tier === incomingNode.tier &&
+            !consumedSlots.has(node.sourceIndices[0]!),
+        )
+        .sort(
+          (a, b) =>
+            (a.sourceIndices[0] ?? Number.POSITIVE_INFINITY) -
+            (b.sourceIndices[0] ?? Number.POSITIVE_INFINITY),
+        )[0];
+      if (!partner) break;
+      consumedSlots.add(partner.sourceIndices[0]!);
+      const allConsumed = [
+        ...new Set([...incomingNode.sourceIndices, ...partner.sourceIndices]),
+      ];
+      mergedNode = {
+        tier: (incomingNode.tier + 1) as GunTier,
+        sourceIndices: allConsumed,
+        cooldown: Math.max(incomingNode.cooldown, partner.cooldown),
+        paid: incomingNode.paid + partner.paid,
+      };
+      incomingNode = mergedNode;
+      incomingTier = mergedNode.tier;
+    }
+    const survivors = existingNodes
+      .filter(
+        (node) =>
+          !mergedNode?.sourceIndices.includes(node.sourceIndices[0]!),
+      )
+      .map((node) => {
+        const source = node.sourceIndices[0]!;
+        return {
+          order: source,
+          gun: { ...this.guns[source]!, id, tier: node.tier },
+        };
+      });
+    if (mergedNode) {
+      const survivorIndex = Math.min(
+        ...mergedNode.sourceIndices.filter(Number.isFinite),
+      );
+      survivors.push({
+        order: survivorIndex,
+        gun: {
+          ...this.guns[survivorIndex]!,
+          id,
+          tier: mergedNode.tier,
+          cooldown: mergedNode.cooldown,
+          paid: mergedNode.paid,
+        },
+      });
+    } else {
+      survivors.push({
+        order: Number.POSITIVE_INFINITY,
+        gun: {
+          id,
+          cooldown: incomingNode.cooldown,
+          angle: 0,
+          recoil: 0,
+          tier: 1,
+          paid: incomingNode.paid,
+        },
+      });
+    }
+    const untouched = this.guns
+      .map((gun, slotIndex) => ({ order: slotIndex, gun }))
+      .filter(({ gun }) => gun.id !== id);
+    const result = [...untouched, ...survivors]
+      .sort((a, b) => a.order - b.order)
+      .map(({ gun }) => gun);
+    const merged = mergedNode !== null;
+    if (result.length > this.slotCap)
+      return {
+        accepted: false,
+        tier: result.reduce<GunTier>(
+          (best, gun) => (gun.tier! > best ? gun.tier! : best),
+          1,
+        ),
+        incomingTier,
+        merged,
+        result,
+        cooldown: incomingNode.cooldown,
+        reason: "no-space",
+      };
+    return {
+      accepted: true,
+      tier: result.reduce<GunTier>(
+        (best, gun) => (gun.tier! > best ? gun.tier! : best),
+        1,
+      ),
+      incomingTier,
+      merged,
+      result,
+      cooldown: incomingNode.cooldown,
+      reason: null,
+    };
   }
   sell(index: number) {
     if (this.mode !== "expedition20" || this.phase !== "shop") return false;
@@ -779,10 +903,6 @@ export class Game {
     this.money += refund;
     this.guns.splice(index, 1);
     return true;
-  }
-  upgradePrice(index: number) {
-    const gun = this.guns[index];
-    return gun ? tier2Price(gun.id, this.wave) : 0;
   }
   sellPrice(index: number) {
     const gun = this.guns[index];
@@ -855,6 +975,7 @@ export class Game {
       this.shopRerollIndex++;
       this.refillExpeditionOffers();
       this.sold.clear();
+      this.purchaseRecords.clear();
       return true;
     }
     if (this.phase !== "shop" || (!this.freeRerolls && this.money < 6))
@@ -868,6 +989,7 @@ export class Game {
     }
     this.offers = pool.slice(0, 4);
     this.sold.clear();
+    this.purchaseRecords.clear();
     return true;
   }
   refillExpeditionOffers() {
@@ -901,6 +1023,7 @@ export class Game {
       this.shopRerollIndex = 0;
       this.refillExpeditionOffers();
       this.sold.clear();
+      this.purchaseRecords.clear();
     } else if (this.stop === "quick") {
       this.phase = "quick";
       const kind = quickKind(this.wave);
@@ -975,6 +1098,9 @@ export class Game {
     this.corpses = [];
     this.fx = [];
     this.scraps = [];
+    // Wave transitions remove uncollected scrap in expedition mode. That
+    // boundary is unchanged from the existing run; future chest pickups will
+    // require a separate persisted/reachable pickup path.
     this.pendingBlasts = [];
     this.wakePoints = [];
     this.chainCounts.clear();
@@ -1235,6 +1361,7 @@ export class Game {
     speed = 600,
     homing = false,
     life?: number,
+    blastRadius?: number,
   ) {
     // F0: the 420-bullet cap is the only rejection reason, so a rejected shot is
     // attributed to its side and never reaches `shots` (which stays success-only).
@@ -1256,6 +1383,7 @@ export class Game {
       r: kind === "rocket" ? 8 : kind === "enemy" ? 7 : 5,
       homing,
       life: life ?? (kind === "enemy" ? 5 : 1.3),
+      blastRadius,
     });
     if (isEnemy) this.shootAcceptedEnemy++;
     else this.shootAcceptedPlayer++;
@@ -1443,27 +1571,28 @@ export class Game {
         incoming.set(b.target, (incoming.get(b.target) || 0) + b.damage);
     for (let index = 0; index < this.guns.length; index++) {
       const gun = this.guns[index],
-        info = WEAPONS[gun.id];
+        profile = effectiveWeaponProfile(gun.id, gun.tier);
       gun.cooldown -= dt;
       gun.recoil = Math.max(0, gun.recoil - dt * 7);
       if (gun.cooldown > 0) continue;
       if (gun.id === "saw") {
-        const saws = gun.tier === 2 ? 2 : 1;
-        for (let n = 0; n < saws; n++) {
+        for (let n = 0; n < profile.saws; n++) {
           const a = this.time * 4 + (index * Math.PI) / 2 + n * Math.PI,
             p = {
-              x: this.player.x + Math.cos(a) * 83,
-              y: this.player.y + Math.sin(a) * 83,
+              x: this.player.x + Math.cos(a) * profile.sawOrbitRadius,
+              y: this.player.y + Math.sin(a) * profile.sawOrbitRadius,
             };
           for (const e of this.enemies)
-            if (e.hp > 0 && dist(e, p) < e.r + 24) this.hit(e, info.damage, p);
+            if (e.hp > 0 && dist(e, p) < e.r + profile.sawContactRadius)
+              this.hit(e, profile.damage, p);
         }
-        gun.cooldown = info.interval;
+        gun.cooldown = profile.interval;
         continue;
       }
       const enemies = this.enemies
         .filter(
-          (e) => e.hp > 0 && e.born <= 0 && dist(e, this.player) <= info.range,
+          (e) =>
+            e.hp > 0 && e.born <= 0 && dist(e, this.player) <= profile.range,
         )
         .sort((a, b) => dist(a, this.player) - dist(b, this.player));
       const target = enemies.find((e) => e.hp > (incoming.get(e.id) || 0));
@@ -1484,21 +1613,25 @@ export class Game {
         target.y + target.vy * lead - mount.y,
         target.x + target.vx * lead - mount.x,
       );
-      gun.cooldown = info.interval;
+      gun.cooldown = profile.interval;
       gun.recoil = 1;
       const muzzle = {
         x: mount.x + Math.cos(gun.angle) * 24,
         y: mount.y + Math.sin(gun.angle) * 24,
       };
       this.event("fire", gun.id);
-      if (this.mode === "expedition20" && gun.tier === 2) {
-        this.events.push({ type: "tier-fire", kind: gun.id, tier: 2 });
+      if (this.mode === "expedition20" && profile.tier > 1) {
+        this.events.push({
+          type: "tier-fire",
+          kind: gun.id,
+          tier: profile.tier,
+        });
       }
       if (gun.id === "coil") {
         const chain: Vec[] = [mount],
           seen = new Set<number>();
         let current: Vec = target;
-        const targets = gun.tier === 2 ? 7 : 5;
+        const targets = profile.jumps + 1;
         for (let n = 0; n < targets; n++) {
           const e =
             n === 0
@@ -1509,7 +1642,7 @@ export class Game {
                       e.hp > 0 &&
                       e.born <= 0 &&
                       !seen.has(e.id) &&
-                      dist(e, current) < 170,
+                      dist(e, current) < profile.jumpRange,
                   )
                   .sort((a, b) => dist(a, current) - dist(b, current))[0];
           if (!e) break;
@@ -1517,65 +1650,61 @@ export class Game {
           chain.push({ ...e });
           this.hit(
             e,
-            info.damage * (gun.tier === 2 ? GUN_TIER.coil.damage : 1),
+            profile.damage,
             current,
           );
           current = e;
         }
         this.effect("arc", mount, 0.2, "#9becce", 4, undefined, chain);
       } else if (gun.id === "fist") {
-        const lethal =
-          target.hp <=
-          info.damage * (gun.tier === 2 ? GUN_TIER.fist.damage : 1);
+        const lethal = target.hp <= profile.damage;
         this.hit(
           target,
-          info.damage * (gun.tier === 2 ? GUN_TIER.fist.damage : 1),
+          profile.damage,
           this.player,
           "weapon",
-          gun.tier === 2 ? 800 : 650,
+          650,
           0,
           true,
         );
-        if (lethal && gun.tier === 2) {
-          const remnant = this.corpses.at(-1);
-          if (remnant) remnant.r *= 1.25;
-        }
         this.effect("punch", target, 0.22, "#ef896b", 30, undefined, [
           mount,
           { ...target },
         ]);
       } else if (gun.id === "shotgun") {
-        const pellets = gun.tier === 2 ? GUN_TIER.shotgun.hits : 5;
-        const damage =
-          info.damage * (gun.tier === 2 ? GUN_TIER.shotgun.damage : 1);
-        for (let n = -(pellets - 1) / 2; n <= (pellets - 1) / 2; n++)
+        for (
+          let n = -(profile.pellets - 1) / 2;
+          n <= (profile.pellets - 1) / 2;
+          n++
+        )
           this.shoot(
             muzzle,
-            gun.angle + n * (gun.tier === 2 ? 0.1 : 0.13),
-            damage,
+            gun.angle + n * 0.13,
+            profile.damage,
             "cap",
             n === 0 ? target.id : 0,
             520,
           );
-        incoming.set(target.id, (incoming.get(target.id) || 0) + damage);
+        incoming.set(
+          target.id,
+          (incoming.get(target.id) || 0) + profile.damage,
+        );
       } else {
-        const shots =
-          gun.tier === 2 && (gun.id === "slinger" || gun.id === "rocket")
-            ? 2
-            : 1;
-        for (let n = 0; n < shots; n++)
+        for (let n = 0; n < profile.shots; n++)
           this.shoot(
             muzzle,
-            gun.angle + (shots > 1 ? (n - 0.5) * 0.08 : 0),
-            info.damage,
+            gun.angle + (profile.shots > 1 ? (n - 0.5) * 0.08 : 0),
+            profile.damage,
             gun.id === "rocket" ? "rocket" : "cap",
             target.id,
             gun.id === "rocket" ? 390 : 650,
             gun.id === "rocket",
+            undefined,
+            profile.blastRadius || undefined,
           );
         incoming.set(
           target.id,
-          (incoming.get(target.id) || 0) + info.damage * shots,
+          (incoming.get(target.id) || 0) + profile.damage * profile.shots,
         );
       }
     }
@@ -1905,7 +2034,9 @@ export class Game {
               b.hitIds ??= new Set();
               b.hitIds.add(e.id);
             }
-            if (b.kind === "rocket") this.explode(b, 92, b.damage);
+            if (b.kind === "rocket") {
+              this.explode(b, b.blastRadius ?? 92, b.damage);
+            }
             else
               this.hit(
                 e,

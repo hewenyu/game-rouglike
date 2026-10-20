@@ -149,8 +149,7 @@ async function checkpoint(s, tag) {
     guns: s.guns,
     gunTiers: s.gunTiers,
     slotCap: s.slotCap,
-    tier2Cap: s.tier2Cap,
-    tier2Count: s.tier2Count,
+    gunProfiles: s.gunProfiles,
     mods: s.mods,
     modTiers: s.modTiers,
     branch: s.branch,
@@ -306,28 +305,19 @@ async function panel(s) {
       path: join(ATTEMPT_DIR, `shop-${String(s.wave).padStart(2, "0")}-open.png`),
       animations: "disabled",
     });
-    // Slot capacity is capacity, not free guns. Buy distinct unowned cards
-    // while affordable, then make an explicit tier-II upgrade when available.
+    // Slot capacity is capacity, not free guns. Buy cards while affordable;
+    // same-weapon cards can merge even when all six slots are occupied.
     for (let round = 0; round < 3; round++) {
       const now = await metrics();
-      const owned = new Set(now.guns);
       let bought = false;
       for (let i = 0; i < now.offers.length; i++) {
-        if (now.guns.length >= now.slotCap) break;
-        const id = now.offers[i];
-        if (owned.has(id)) continue;
         const button = page.locator(`[data-buy="${i}"]`);
         if ((await button.isEnabled().catch(() => false))) {
           await button.click();
-          owned.add(id);
           bought = true;
         }
       }
       if (!bought) break;
-    }
-    for (let attempt = 0; attempt < 6; attempt++) {
-      const upgraded = await clickFirst("[data-upgrade]");
-      if (!upgraded) break;
     }
     const after = await metrics();
     await checkpoint(after, `shop-${s.wave}-acting`);
@@ -340,8 +330,7 @@ async function panel(s) {
       moneyAfter: after.money,
       spent: before.money - after.money,
       guns: after.guns.map((id, i) => `${id}:${after.gunTiers[i]}`),
-      tier2Count: after.tier2Count,
-      tier2Cap: after.tier2Cap,
+      gunProfiles: after.gunProfiles,
     });
     if (!(await page.locator("#next").isEnabled()))
       throw new Error(`shop at wave ${s.wave} cannot continue`);

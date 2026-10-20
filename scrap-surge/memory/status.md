@@ -7,6 +7,64 @@ readout with unchanged geometry, 3px INK outline. Tests cover a synthetic shape
 matrix and the first 60 rendered steps; this is bounded nonmutation evidence, not
 full slice equivalence.
 
+## P1 freeze candidate based on `19a66dd` (2026-10-19)
+
+This is the bounded P1 structural candidate, not an item-system implementation,
+late-balance approval or user acceptance. It changes expedition weapons to six
+slots from W1, same-ID/same-tier automatic merging through IV, damage-only tier
+scaling, atomic full-slot purchase previews, committed purchase-result records,
+and the associated storefront/HUD presentation. Slice behavior remains separate
+and is pinned by the comparator below. P2 item rarity, stackability, chests, boss
+item rewards and economy assertions are recorded in `memory/goal.md` and
+`docs/design.md`, but no P2 item code, third mod slot, HP tuning or content
+expansion is part of this freeze.
+
+Current author evidence at this candidate source:
+
+| Check | Result |
+| --- | --- |
+| Unit suite | **102/102** |
+| Production build | **clean** |
+| First-shop ordinary input on `4190` | **6/6** (keyboard 3/3, touch 3/3), no page errors |
+| Input lifecycle on `4190` | **7/7** (keyboard 4/4, touch 3/3), no page errors |
+| First-merge desktop/touch fixture | **2/2**, no page errors |
+| Full slice comparator vs `19a66dd` | **0 differences**, 3,422 steps per seed 42/23/145 |
+| Diff hygiene | `git diff --check` clean |
+
+The four grouped invariant additions requested before freeze are present as
+distinct tests: atomic cascade behavior with paid aggregation, rejection that
+leaves guns/offers/sold/events/records/money untouched, repeated buy/sell with
+no scrap creation or duplicate card, and a real IV projectile collision. The
+existing profile test is not relabeled as satisfying actual IV firing. The
+cascade is a six-slot scenario whose incoming I merges through one equal arm
+to IV while preserving the other equal arms; it is not a claim that six I
+items collapse into one IV.
+
+Author artifacts:
+
+- First-shop: stdout from
+  `BASE_URL=http://127.0.0.1:4190 node tests/browser-first-shop.mjs`; all six
+  runs reached `shop` with empty `errors`.
+- Lifecycle: stdout from
+  `BASE_URL=http://127.0.0.1:4190 node tests/browser-input-lifecycle.mjs`;
+  keyboard and touch both reached W7 interlude/W8 movement.
+- Merge fixture: `/tmp/astra-growth-merge-1792469184/report.json`, with
+  `keyboard-shop-before.png`, `keyboard-shop-after.png`,
+  `touch-shop-before.png` and `touch-shop-after.png` in the same directory.
+  It uses ordinary inputs and verifies the sold card's committed
+  `合成 II / 攻击 40`, the owned II profile, and the 18-scrap transaction.
+- Slice comparator: `/tmp/astra-19a66dd-compare/compare.ts` and
+  `/tmp/astra-19a66dd-compare/result.jsonl`. Each seed matched on every
+  observed state/event/RNG field for 3,422 steps and ended `won`; old/new
+  kills were 280/280, 289/289 and 290/290, HP 4/4 on all three, and combat
+  draw counts 2105, 2124 and 2123. This is fixed-input simulation evidence,
+  not a browser or human sample.
+
+No P1 evidence establishes a full ordinary-input W20 victory, item-led late
+output, boss-window/damage/survival cohorts, physical-device performance,
+Safari compatibility, audio-mix acceptance or user feel. Independent review
+of this exact commit remains required; author runs do not satisfy it.
+
 ## Current test checkpoint: `b4c87e3` (2026-10-19)
 
 `npm test` passes **93/93**: 89 original rules assertions, 2 render-order

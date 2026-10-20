@@ -1,6 +1,10 @@
 import { Game, type Bullet, type Enemy, type Gun } from "./sim";
 import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
-import { bossForWave } from "./expedition";
+import {
+  bossForWave,
+  effectiveWeaponProfile,
+  type GunTier,
+} from "./expedition";
 const INK = "#273b35",
   SAND = "#e8c696",
   CREAM = "#fff1c8",
@@ -305,7 +309,7 @@ export class Renderer {
     recoil = 0,
     scale = 1,
     plate = false,
-    tier: 1 | 2 = 1,
+    tier: GunTier = 1,
   ) {
     const c = this.ctx;
     c.save();
@@ -686,9 +690,9 @@ export class Renderer {
       true,
     );
     g.guns.forEach((gun, i) => {
+      const profile = effectiveWeaponProfile(gun.id, gun.tier);
       if (gun.id === "saw") {
-        const saws = gun.tier === 2 ? 2 : 1;
-        for (let n = 0; n < saws; n++) {
+        for (let n = 0; n < profile.saws; n++) {
           const a = g.time * 4 + (i * Math.PI) / 2 + n * Math.PI;
           this.gun(
             gun.id,
@@ -698,7 +702,7 @@ export class Renderer {
             0,
             1,
             true,
-            gun.tier ?? 1,
+            profile.tier,
           );
         }
       } else {
@@ -711,7 +715,7 @@ export class Renderer {
           gun.recoil,
           0.95,
           true,
-          gun.tier ?? 1,
+          profile.tier,
         );
       }
     });

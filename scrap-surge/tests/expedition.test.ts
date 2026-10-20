@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../src/sim";
-import { DT, BLAST, W, H } from "../src/data";
+import { DT, BLAST, W, H, WEAPONS } from "../src/data";
 import { dist } from "../src/math";
 import {
   BAG_HP,
@@ -13,12 +13,12 @@ import {
   POCKET_MIX,
   RATES,
   STOP_AFTER,
+  effectiveWeaponProfile,
   enemyHp,
   gunPrice,
   gunSlotCap,
+  gunTierLabel,
   rerollPrice,
-  tier2Capacity,
-  tier2Price,
   waveRecovery,
 } from "../src/expedition";
 import type { Enemy } from "../src/sim";
@@ -84,21 +84,11 @@ test("expedition wave schedule and stops match the approved table", () => {
   assert.deepEqual(RATES.slice(0, 3), [3.1, 3.4, 3.7]);
 });
 
-test("expedition starts with two slots and follows the slot and tier-II ramps", () => {
-  assert.equal(gunSlotCap(1), 2);
-  assert.equal(gunSlotCap(2), 3);
-  assert.equal(gunSlotCap(4), 4);
-  assert.equal(gunSlotCap(7), 5);
-  assert.equal(gunSlotCap(11), 6);
-  assert.deepEqual(
-    [8, 10, 12, 14, 16, 18].map(tier2Capacity),
-    [1, 2, 3, 4, 5, 6],
-  );
-  assert.equal(tier2Capacity(7), 0);
-  assert.equal(tier2Capacity(20), 6);
+test("P1 expedition starts with six slots from wave one", () => {
+  assert.deepEqual([1, 2, 4, 7, 11, 20].map(gunSlotCap), [6, 6, 6, 6, 6, 6]);
   const g = exp();
   assert.equal(g.guns.length, 1);
-  assert.equal(g.slotCap, 2);
+  assert.equal(g.slotCap, 6);
   assert.equal(g.guns[0].paid, 0);
   assert.equal(g.guns[0].tier, 1);
 });
@@ -209,36 +199,27 @@ test("expedition enemy HP rows and chip fuel cap match the ledger", () => {
   }
 });
 
-test("expedition prices, tier-II 144 case and reroll ladder are exact", () => {
+test("P1 expedition price and reroll ladder are exact; manual tier-II pricing is gone", () => {
   assert.equal(gunPrice("slinger", 8), 36);
-  assert.equal(tier2Price("slinger", 8), 144);
   assert.equal(gunPrice("shotgun", 2), 27);
   assert.equal(gunPrice("coil", 2), 30);
   assert.deepEqual([0, 1, 2, 3, 4].map(rerollPrice), [0, 6, 8, 10, 12]);
 });
 
-test("expedition shop buys only into current slot capacity and supports selected-slot upgrade/sell", () => {
+test("P1 shop starts with five empty slots and sell uses cumulative-paid refund", () => {
   const g = empty();
   g.wave = 1;
   g.phase = "shop";
   g.money = 1000;
   g.offers = ["shotgun", "coil", "saw", "rocket"];
+  const shotgunPrice = gunPrice("shotgun", 1);
   assert(g.buy(0));
   assert.equal(g.guns.length, 2);
-  assert(!g.buy(1));
-  g.wave = 2;
+  assert.equal(g.guns[1].paid, shotgunPrice);
   assert(g.buy(1));
   assert.equal(g.guns.length, 3);
-  g.wave = 8;
-  const before = g.money;
-  const price = g.upgradePrice(0);
-  assert.equal(price, tier2Price("slinger", 8));
-  assert(g.upgrade(0));
-  assert.equal(g.guns[0].tier, 2);
-  assert.equal(g.money, before - price);
-  const tierEvent = [...g.events].reverse().find((e) => e.type === "tier");
-  assert.equal(tierEvent?.kind, "slinger");
-  assert.equal(tierEvent?.tier, 2);
+  g.wave = 2;
+  assert.equal(g.sellPrice(0), 0);
   const refund = g.sellPrice(1);
   const cash = g.money;
   assert(g.sell(1));
@@ -246,31 +227,340 @@ test("expedition shop buys only into current slot capacity and supports selected
   assert.equal(g.guns.length, 2);
 });
 
-test("expedition tier-II capacity counts duplicates and blocks no-charge upgrades", () => {
+test("P1 same-ID I+I merges to II with max cooldown and summed paid", () => {
   const g = empty();
-  g.wave = 8;
+  g.wave = 1;
   g.phase = "shop";
   g.money = 1000;
   g.guns = [
-    { id: "slinger", cooldown: 0, angle: 0, recoil: 0, tier: 2, paid: 0 },
-    { id: "shotgun", cooldown: 0, angle: 0, recoil: 0, tier: 1, paid: 0 },
+    { id: "slinger", cooldown: 0.7, angle: 0, recoil: 0, tier: 1, paid: 15 },
+    { id: "shotgun", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 27 },
   ];
-  assert.equal(g.tier2Count, 1);
-  let spent = 0;
-  assert(!g.upgrade(1));
-  assert.equal(spent, 0);
-  g.guns[0].tier = 1;
-  const p8 = g.upgradePrice(0);
-  assert(g.upgrade(0));
-  spent += p8;
-  assert(!g.upgrade(0));
-  g.wave = 10;
-  const p10 = g.upgradePrice(1);
-  assert(g.upgrade(1));
-  spent += p10;
-  assert.equal(g.tier2Count, 2);
-  assert(!g.upgrade(0));
-  assert.equal(g.money, 1000 - spent);
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  const price = gunPrice("slinger", 1);
+  const preview = g.expeditionPurchasePreview(0);
+  assert(preview.accepted);
+  assert.equal(preview.tier, 2);
+  assert.equal(preview.incomingTier, 2);
+  assert.equal(preview.cooldown, 0.7);
+  assert(g.buy(0));
+  assert.equal(g.guns.length, 2);
+  assert.equal(g.money, 1000 - price);
+  assert.deepEqual(
+    g.guns.map((gun) => [gun.id, gun.tier]),
+    [
+      ["slinger", 2],
+      ["shotgun", 1],
+    ],
+  );
+  assert.equal(g.guns[0].cooldown, 0.7);
+  assert.equal(g.guns[0].paid, 15 + price);
+  assert.equal(g.sellPrice(0), Math.floor(0.35 * (15 + price)));
+  assert(
+    g.events.some(
+      (event) =>
+        event.type === "merge" &&
+        event.kind === "slinger" &&
+        event.tier === 2,
+    ),
+  );
+});
+
+test("P1 purchase records keep the committed result and clear on reroll or a new shop", () => {
+  const g = empty();
+  g.wave = 1;
+  g.phase = "shop";
+  g.money = 1000;
+  g.guns = [
+    { id: "slinger", cooldown: 0.2, angle: 0, recoil: 0, tier: 1, paid: 15 },
+  ];
+  g.offers = ["slinger", "coil", "saw", "fist"];
+
+  assert(g.buy(0));
+  assert.deepEqual(g.purchaseRecords.get(0), {
+    tier: 2,
+    incomingTier: 2,
+    merged: true,
+    damage: effectiveWeaponProfile("slinger", 2).damage,
+  });
+
+  assert(g.reroll());
+  assert.equal(g.purchaseRecords.size, 0);
+
+  g.wave = 2;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  assert(g.buy(0));
+  assert.equal(g.purchaseRecords.size, 1);
+  g.openStop();
+  assert.equal(g.phase, "shop");
+  assert.equal(g.purchaseRecords.size, 0);
+});
+
+test("P1 equal tiers merge one step, lower tiers coexist, and IV never fuses", () => {
+  const g = empty();
+  g.wave = 1;
+  g.phase = "shop";
+  g.money = 100000;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  let paid = 0;
+  for (const [inputTier, expectedTier] of [[1, 2], [3, 4]] as const) {
+    g.guns = [
+      {
+        id: "slinger" as const,
+        cooldown: 0,
+        angle: 0,
+        recoil: 0,
+        tier: inputTier,
+        paid,
+      },
+    ];
+    g.sold.clear();
+    assert(g.buy(0));
+    if (inputTier === 1) {
+      assert.equal(g.guns.length, 1);
+      assert.equal(g.guns[0].tier, expectedTier);
+      paid = g.guns[0].paid!;
+      assert.equal(paid, gunPrice("slinger", 1));
+    } else {
+      // A III+I does not merge; only equal tiers fuse.
+      assert.equal(g.guns.length, 2);
+    }
+  }
+  g.guns = Array.from({ length: 2 }, () => ({
+    id: "slinger" as const,
+    cooldown: 0,
+    angle: 0,
+    recoil: 0,
+    tier: 4 as const,
+    paid: 0,
+  }));
+  g.sold.clear();
+  assert(g.buy(0));
+  assert.equal(g.guns.length, 3);
+  assert.equal(g.guns.filter((gun) => gun.tier === 4).length, 2);
+  assert.equal(g.guns.filter((gun) => gun.tier === 1).length, 1);
+  assert.equal(gunTierLabel(3), "III");
+  assert.equal(gunTierLabel(4), "IV");
+});
+
+test("P1 full-slot merge is atomic and rejects when cascade cannot fit six", () => {
+  const g = empty();
+  g.phase = "shop";
+  g.money = 1000;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  g.guns = [
+    { id: "slinger", cooldown: 0.9, angle: 0, recoil: 0, tier: 4, paid: 300 },
+    { id: "shotgun", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "saw", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "coil", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "rocket", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "fist", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+  ];
+  const before = structuredClone(g.guns);
+  const preview = g.expeditionPurchasePreview(0);
+  assert.equal(preview.accepted, false);
+  assert.equal(preview.reason, "no-space");
+  assert.equal(g.buy(0), false);
+  assert.equal(g.money, 1000);
+  assert.deepEqual(g.guns, before);
+});
+
+test("P1 rejected full-slot purchase leaves every observable untouched", () => {
+  const g = empty();
+  g.phase = "shop";
+  g.wave = 2;
+  g.money = 1000;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  g.guns = [
+    { id: "slinger", cooldown: 0.9, angle: 0, recoil: 0, tier: 4, paid: 300 },
+    { id: "shotgun", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "saw", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "coil", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "rocket", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "fist", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+  ];
+  g.sold.clear();
+  g.purchaseRecords.clear();
+  g.events = [];
+  const gunsBefore = structuredClone(g.guns);
+  const offersBefore = [...g.offers];
+  const soldBefore = new Set(g.sold);
+  const recordsBefore = structuredClone(g.purchaseRecords);
+  const moneyBefore = g.money;
+  const eventsBefore = structuredClone(g.events);
+
+  assert.equal(g.buy(0), false);
+  assert.deepEqual(g.guns, gunsBefore);
+  assert.deepEqual(g.offers, offersBefore);
+  assert.deepEqual(g.sold, soldBefore);
+  assert.deepEqual(g.purchaseRecords, recordsBefore);
+  assert.equal(g.money, moneyBefore);
+  assert.deepEqual(g.events, eventsBefore);
+});
+
+test("P1 full slots accept a merge that frees a slot and use pre-purchase cooldown", () => {
+  const g = empty();
+  g.phase = "shop";
+  g.money = 1000;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  g.guns = [
+    { id: "slinger", cooldown: 0.9, angle: 0, recoil: 0, tier: 2, paid: 50 },
+    { id: "slinger", cooldown: 0.4, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "slinger", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "shotgun", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "saw", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+    { id: "coil", cooldown: 0.1, angle: 0, recoil: 0, tier: 1, paid: 20 },
+  ];
+  const incoming = g.guns.length * 0.08;
+  const preview = g.expeditionPurchasePreview(0);
+  assert(preview.accepted);
+  assert.equal(preview.incomingTier, 3);
+  assert.equal(preview.cooldown, 0.9);
+  assert(g.buy(0));
+  assert.equal(g.guns.length, 5);
+  const merged = g.guns.find((gun) => gun.id === "slinger" && gun.tier === 3)!;
+  assert.equal(merged.cooldown, Math.max(0.9, 0.4, 0.1, incoming));
+  assert(g.guns.some((gun) => gun.id === "slinger" && gun.tier === 1));
+});
+
+test("P1 six-slot cascade merges incoming I through one arm and leaves its equal partners", () => {
+  const g = empty();
+  g.phase = "fight";
+  g.stop = "full";
+  g.wave = 2;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  g.guns = [
+    { id: "slinger", cooldown: 0.9, angle: 0, recoil: 0, tier: 1, paid: 0 },
+    { id: "slinger", cooldown: 0.8, angle: 0, recoil: 0, tier: 1, paid: 10 },
+    { id: "slinger", cooldown: 0.7, angle: 0, recoil: 0, tier: 2, paid: 20 },
+    { id: "slinger", cooldown: 0.6, angle: 0, recoil: 0, tier: 2, paid: 30 },
+    { id: "slinger", cooldown: 0.5, angle: 0, recoil: 0, tier: 3, paid: 40 },
+    { id: "slinger", cooldown: 0.4, angle: 0, recoil: 0, tier: 3, paid: 50 },
+  ];
+  const before = structuredClone(g.guns);
+  g.openStop();
+  g.money = 10000;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  const price = gunPrice("slinger", 2);
+  const preview = g.expeditionPurchasePreview(0);
+  assert(preview.accepted);
+  assert.equal(preview.tier, 4);
+  assert.equal(preview.incomingTier, 4);
+  assert.equal(preview.merged, true);
+  assert.equal(preview.cooldown, 0.9);
+  assert.deepEqual(g.guns, before);
+  assert.equal(preview.result.length, 4);
+  assert.deepEqual(
+    preview.result.map((gun) => gun.tier),
+    [4, 1, 2, 3],
+  );
+  assert.equal(preview.result[0].paid, 0 + 10 + 20 + 30 + price);
+  assert.deepEqual(
+    preview.result.slice(1).map((gun) => gun.paid),
+    [10, 30, 50],
+  );
+
+  const money = g.money;
+  assert(g.buy(0));
+  assert.equal(g.money, money - price);
+  assert.equal(g.guns.length, 4);
+  assert.deepEqual(g.purchaseRecords.get(0), {
+    tier: 4,
+    incomingTier: 4,
+    merged: true,
+    damage: effectiveWeaponProfile("slinger", 4).damage,
+  });
+  assert.deepEqual(g.guns[0], {
+    id: "slinger",
+    cooldown: 0.9,
+    angle: 0,
+    recoil: 0,
+    tier: 4,
+    paid: 0 + 10 + 20 + 30 + price,
+  });
+  assert.deepEqual(
+    g.events.filter((event) => event.type === "merge"),
+    [{ type: "merge", kind: "slinger", value: price, tier: 4 }],
+  );
+});
+
+test("P1 repeated buy/sell cycles cannot create scrap or duplicate cards", () => {
+  const g = empty();
+  g.wave = 2;
+  g.money = 1000;
+  const starting = 1000;
+  const price = gunPrice("coil", 2);
+  const refund = Math.floor(0.35 * price);
+
+  for (let i = 0; i < 20; i++) {
+    // Re-enter a full shop legally instead of clearing the sold-card guard by
+    // hand. Each cycle buys one coil and sells it again.
+    g.phase = "fight";
+    g.stop = "full";
+    g.openStop();
+    // openStop resets offers; restore the deterministic card layout without
+    // touching money, sold state or records beyond a normal new shop reset.
+    g.offers = ["slinger", "coil", "saw", "fist"];
+    const cash = g.money;
+    assert(g.buy(1));
+    const bought = g.guns.find(
+      (gun) => gun.id === "coil" && gun.paid === price,
+    )!;
+    assert.equal(bought.paid, price);
+    assert.equal(g.money, cash - price);
+    const slot = g.guns.indexOf(bought);
+    assert(g.sell(slot));
+    assert.equal(g.money, cash - price + refund);
+    assert.equal(g.guns.filter((gun) => gun.id === "coil").length, 0);
+  }
+  assert(g.money < starting);
+  assert(g.money >= 0);
+});
+
+test("P1 IV weapon's real projectile carries IV damage and kills through collision", () => {
+  const g = empty();
+  g.phase = "fight";
+  g.wave = 2;
+  g.money = 1000;
+  g.offers = ["slinger", "coil", "saw", "fist"];
+  g.guns = [
+    { id: "slinger", cooldown: 0, angle: 0, recoil: 0, tier: 4, paid: 100 },
+  ];
+  g.player.x = 300;
+  const target = enemy(g, g.player.x + 200, g.player.y, 10000);
+  g.weapons(DT);
+  const projectile = g.bullets[0];
+  assert.equal(g.bullets.length, 1);
+  assert(projectile);
+  assert.equal(projectile.damage, 160);
+  assert(
+    g.events.some(
+      (event) =>
+        event.type === "tier-fire" && event.kind === "slinger" && event.tier === 4,
+    ),
+  );
+  // Move the real projectile onto the real enemy so collision, not the fire
+  // helper, settles the IV hit.
+  projectile.x = target.x + 2;
+  projectile.y = target.y;
+  g.weapons = () => {};
+  g.step(DT, { x: 0, y: 0 });
+  assert.equal(target.hp, 10000 - 160);
+});
+
+test("P1 central weapon profiles apply 1/2/4/8 damage only and preserve counts/rate", () => {
+  for (const id of Object.keys(WEAPONS) as (keyof typeof WEAPONS)[]) {
+    const base = effectiveWeaponProfile(id, 1);
+    for (const tier of [1, 2, 3, 4] as const) {
+      const profile = effectiveWeaponProfile(id, tier);
+      assert.equal(profile.damage, base.damage * [1, 2, 4, 8][tier - 1]);
+      assert.equal(profile.interval, base.interval);
+      assert.equal(profile.pellets, base.pellets);
+      assert.equal(profile.jumps, base.jumps);
+      assert.equal(profile.shots, base.shots);
+      assert.equal(profile.saws, base.saws);
+    }
+  }
 });
 
 test("expedition offers always include an unowned type when one exists", () => {
@@ -1079,18 +1369,19 @@ test("expedition magnet tier III presents a full-arena warm sweep", () => {
   );
 });
 
-test("expedition tier-II saw orbits a second blade and tier-II fist keeps one doubled hit", () => {
+test("expedition tiers double damage without changing saw or fist geometry", () => {
   const saw = empty();
   saw.wave = 8;
+  saw.time = 0;
   saw.guns = [
     { id: "saw", cooldown: 0, angle: 0, recoil: 0, tier: 2, paid: 0 },
   ];
   const first = enemy(saw, saw.player.x + 83, saw.player.y, 100);
-  const second = enemy(saw, saw.player.x - 83, saw.player.y, 100);
+  const offOrbit = enemy(saw, saw.player.x - 83, saw.player.y, 100);
   saw.weapons(DT);
-  assert(saw.hits >= 2);
-  assert(first.hp <= 76);
-  assert(second.hp <= 76);
+  assert.equal(saw.hits, 1);
+  assert.equal(first.hp, 52);
+  assert.equal(offOrbit.hp, 100);
 
   const fist = empty();
   fist.guns = [

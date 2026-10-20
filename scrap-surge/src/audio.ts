@@ -98,8 +98,8 @@ export class Sound {
         setTimeout(() => this.tone(130, 55, 0.3, 0.16, "sawtooth"), 100);
       }
     }
-    if (e.type === "tier") {
-      if (e.tier !== 2 && e.tier !== 3) return;
+    if (e.type === "tier" || e.type === "merge") {
+      if (!e.tier || e.tier < 2) return;
       const tier = e.tier;
       this.tone(420 + tier * 110, 690 + tier * 180, 0.16, 0.16, "triangle");
       setTimeout(
@@ -123,9 +123,10 @@ export class Sound {
       if (t - this.lastTierFire < 0.04) return;
       this.lastTierFire = t;
       const up = e.kind === "coil" || e.kind === "rocket";
+      const tier = Math.max(2, Math.min(4, e.tier ?? 2));
       this.tone(
-        up ? 620 : 360,
-        up ? 1050 : 190,
+        (up ? 620 : 360) + tier * 50,
+        (up ? 1050 : 190) + tier * 60,
         0.1,
         0.09,
         e.kind === "shotgun" ? "sawtooth" : "triangle",

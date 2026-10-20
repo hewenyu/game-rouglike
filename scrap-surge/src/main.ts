@@ -5,16 +5,21 @@ import { Input } from "./input";
 import { Sound } from "./audio";
 import { DT, WEAPONS, MODS, type WeaponId, type ModId } from "./data";
 import {
+  BAG_HP,
   BRANCHES,
+  HP_MULT,
   bossForWave,
+  clampedWave,
+  effectiveWeaponProfile,
+  gunTierLabel,
   modTierLabel,
   nextModDescription,
   quickKind,
   rerollPrice,
   stopAfter,
-  tier2OpeningWave,
   waveRecovery,
   type ExpeditionBranch,
+  type EffectiveWeaponProfile,
   type GameMode,
 } from "./expedition";
 const params = new URLSearchParams(location.search);
@@ -100,11 +105,15 @@ function note(text: string) {
   setTimeout(() => $("toast").classList.remove("show"), 2200);
 }
 function overlay(html: string) {
-  $("overlay").innerHTML = html;
-  $("overlay").hidden = false;
+  const root = $("overlay");
+  root.innerHTML = html;
+  root.hidden = false;
   $("overlay")
     .querySelector<HTMLButtonElement>("button")
     ?.focus({ preventScroll: true });
+  // Replacing the innerHTML during a click can leave the scroll container
+  // anchored to the removed button. Start each shop/stop at its heading.
+  root.scrollTop = 0;
 }
 function close() {
   $("overlay").hidden = true;
@@ -123,6 +132,30 @@ function icon(id: WeaponId) {
     fist: '<path d="m12 42 9-13 9 26 9-26 9 26 9-13" fill="none"/><rect x="53" y="23" width="44" height="40" rx="12"/><path d="M60 43h30M65 26v12m11-12v12m10-12v12"/>',
   };
   return `<svg viewBox="0 0 120 85" aria-hidden="true" fill="${WEAPONS[id].color}" stroke="#273b35" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">${shapes[id]}</svg>`;
+}
+function weaponStats(profile: EffectiveWeaponProfile) {
+  const direct = profile.damage * Math.max(profile.pellets, profile.shots, profile.saws);
+  const dps = direct / profile.interval;
+  const extra =
+    profile.blastRadius > 0
+      ? `<span>爆炸半径 <b>${profile.blastRadius}</b></span>`
+      : profile.jumpRange > 0
+        ? `<span>跳距 <b>${profile.jumpRange}</b></span>`
+        : profile.sawOrbitRadius > 0
+          ? `<span>环绕 <b>${profile.sawOrbitRadius}</b> / 接触 <b>${profile.sawContactRadius}</b></span>`
+          : "";
+  return `<div class="weapon-summary"><span>攻击 <b>${profile.damage}</b></span><span>DPS <b>${dps.toFixed(1)}</b></span><span>${weaponEffectLabel(profile)}</span></div><div class="weapon-stats"><span>间隔 ${profile.interval.toFixed(2)}s</span><span>射程 ${profile.range}</span>${extra}</div>`;
+}
+function waveHpLabel(wave: number) {
+  const index = clampedWave(wave);
+  return `装甲敌人 HP ×${HP_MULT[index]} · 垃圾袋 HP ${BAG_HP[index]}`;
+}
+function weaponEffectLabel(profile: EffectiveWeaponProfile) {
+  if (profile.pellets > 1) return `${profile.pellets} 弹丸`;
+  if (profile.shots > 1) return `${profile.shots} 发`;
+  if (profile.saws > 1) return `${profile.saws} 片锯`;
+  if (profile.jumps > 0) return `链 ${profile.jumps + 1} 目标`;
+  return "单体";
 }
 function modIcon(id: ModId, tier = 1) {
   const extra =
@@ -224,56 +257,61 @@ function shop() {
   };
 }
 function expeditionShop(g: Game) {
-  const owned = g.guns
+  const maxTier = g.guns.reduce(
+    (best, gun) => Math.max(best, gun.tier ?? 1),
+    1,
+  );
+  const ownedSlots = g.guns
     .map((gun, index) => {
       const tier = gun.tier ?? 1;
-      const upgradePrice = g.upgradePrice(index);
-      const canUpgrade =
-        tier === 1 && g.tier2Cap > 0 && g.tier2Count < g.tier2Cap;
-      const opening = tier2OpeningWave(g.wave);
-      const capacityNote =
-        tier >= 2
-          ? "已强化 II"
-          : g.tier2Cap === 0
-            ? opening
-              ? `II 商店开放于第 ${opening} 波后`
-              : "II 尚未开放"
-            : g.tier2Count >= g.tier2Cap
-              ? g.wave >= 18
-                ? "II 容量已满"
-                : `II 容量满 · 第 ${opening} 波后开放`
-              : g.money < upgradePrice
-                ? "废料不足"
-                : `强化 II · ${upgradePrice} ◈`;
+      const profile = effectiveWeaponProfile(gun.id, tier);
       return `<div class="owned-slot">
-        <div class="owned-weapon">${icon(gun.id)}<div><strong>${WEAPONS[gun.id].name}</strong><small>TIER ${modTierLabel(tier)} · ${WEAPONS[gun.id].desc}</small></div></div>
+        <div class="owned-weapon">${icon(gun.id)}<div><strong>${WEAPONS[gun.id].name} ${gunTierLabel(tier)}</strong><small>${WEAPONS[gun.id].desc}</small>${weaponStats(profile)}</div></div>
         <div class="slot-actions">
-          <button data-upgrade="${index}" ${canUpgrade && g.money >= upgradePrice ? "" : "disabled"}>${capacityNote}</button>
           <button data-sell="${index}" ${g.guns.length <= 1 ? "disabled" : ""}>拆解 +${g.sellPrice(index)} ◈</button>
         </div>
       </div>`;
-    })
-    .join("");
+    });
+  const owned = ownedSlots.join("");
   const offered = g.offers
     .map((id, index) => {
       const w = WEAPONS[id],
         sold = g.sold.has(index),
+        record = sold ? g.purchaseRecords.get(index) : undefined,
         price = Math.ceil((w.price * (g.wave + 4)) / 5),
         afford = g.money >= price,
-        full = g.guns.length >= g.slotCap;
+        preview = sold ? null : g.expeditionPurchasePreview(index),
+        full = preview?.reason === "no-space";
+      const previewText = record
+        ? record.merged
+          ? `合成 ${gunTierLabel(record.incomingTier)}`
+          : `购入 ${gunTierLabel(record.incomingTier)}`
+        : preview!.merged
+          ? `合成至 ${gunTierLabel(preview!.incomingTier)}`
+          : preview!.incomingTier > 1
+            ? `购入 ${gunTierLabel(preview!.incomingTier)}`
+            : "买下来 +";
+      const resultNote = record
+        ? `攻击 ${record.damage}`
+        : full
+          ? "无空槽且无法合成"
+          : `攻击 ${effectiveWeaponProfile(id, preview!.incomingTier).damage}`;
       return `<button class="weapon-card ${sold ? "sold" : ""}" data-buy="${index}" ${sold || !afford || full ? "disabled" : ""}>
-        <div class="card-tag">${w.en}</div>${icon(id)}<h3>${w.name}</h3><p>${w.desc}</p>
-        <div class="card-price"><b>${sold ? "已挂上壳" : `${price} ◈`}</b><span>${sold ? "✓" : full ? "槽位已满" : !afford ? "还差废料" : "买下来 +"}</span></div>
+        <div class="card-tag">${w.en}</div>${icon(id)}<h3>${w.name}</h3><p>${w.desc}</p>${weaponStats(effectiveWeaponProfile(id, 1))}
+        <div class="weapon-preview">${previewText}<small>${resultNote}</small></div>
+        <div class="card-price"><b>${sold ? "已挂上壳" : `${price} ◈`}</b><span>${sold ? "✓" : full ? "无空槽" : !afford ? "还差废料" : "买下来 +"}</span></div>
       </button>`;
     })
     .join("");
   const reroll = rerollPrice(g.shopRerollIndex);
   overlay(
-    `<section class="shop-panel expedition-shop"><div class="shop-heading"><div><div class="eyebrow">SHOP ${g.wave < 10 ? "0" : ""}${g.wave} / 20 · FULL TIDE MARKET</div><h2>这一波，添点<span>硬货。</span></h2><p>购买新武器，或直接强化壳上任意一把。改装选择在别的停靠点，不占这里。</p></div><div class="shop-wallet"><span>废料</span><strong>${g.money}<small> ◈</small></strong><small>槽位 ${g.guns.length} / ${g.slotCap} · 强化容量 ${g.tier2Count} / ${g.tier2Cap}</small></div></div>
+    `<section class="shop-panel expedition-shop"><div class="shop-heading"><div><div class="eyebrow">SHOP ${g.wave < 10 ? "0" : ""}${g.wave} / 20 · FULL TIDE MARKET</div><h2>这一波，添点<span>硬货。</span></h2><p>同名同阶自动合成，最高 IV；满槽仍可购买可合成武器。改装选择在别的停靠点，不占这里。</p></div><div class="shop-wallet"><span>废料</span><strong>${g.money}<small> ◈</small></strong><small>装备 ${g.guns.length} / ${g.slotCap}</small></div></div>
+    <div class="shop-sticky"><span>废料 <b>${g.money}</b></span><span>装备 <b>${g.guns.length} / ${g.slotCap}</b></span><span>最高 <b>${gunTierLabel(maxTier)}</b></span><button id="next-compact" class="text-button">继续下海 ↓</button></div>
     <div class="weapon-cards">${offered}</div>
-    <div class="shop-tools"><span>四张卡只购买新武器。强化和拆解在下方独立操作。</span><button id="reroll" class="text-button" ${g.money < reroll ? "disabled" : ""}>换一批 ↻ ${reroll ? `${reroll} ◈` : "本次免费"}</button></div>
-    <div class="owned-heading"><h3>壳上的火力</h3><span>点任意槽位自己的按钮，无选中状态</span></div>
-    <div class="owned-grid">${owned}</div>${g.guns.length < g.slotCap ? `<div class="empty-slots">还有 ${g.slotCap - g.guns.length} 个空槽可以买新武器；槽位是容量，不是免费枪。</div>` : ""}
+    <div class="shop-tools"><span>买枪或合成。拆解返还累计投入的 35%。</span><button id="reroll" class="text-button" ${g.money < reroll ? "disabled" : ""}>换一批 ↻ ${reroll ? `${reroll} ◈` : "本次免费"}</button></div>
+    <div class="owned-heading"><h3>壳上的火力</h3><span>当前实战数值</span></div>
+    <div class="owned-grid">${owned}</div>${g.guns.length < g.slotCap ? `<div class="empty-slots">还有 ${g.slotCap - g.guns.length} 个空槽可以买新武器；槽位是容量，不是免费枪。</div>` : ""}${g.guns.length === 6 ? `<div class="empty-slots">六个槽位已占。同名同阶仍可合成；无法腾出槽位时不能购入。</div>` : ""}
+    <div class="wave-armor"><b>下一波 ${g.wave + 1} 装甲</b><span>${waveHpLabel(g.wave + 1)}</span><small>垃圾袋使用独立 HP 表；首领 HP 为独立表值。</small></div>
     <div class="shop-footer"><small>下一波回复 ${waveRecovery(g.mode, g.wave + 1)} 格生命 · 商店不计战斗时间</small><button id="next" class="primary">带着这批破烂下海 <b>→</b></button></div></section>`,
   );
   $("overlay")
@@ -282,14 +320,7 @@ function expeditionShop(g: Game) {
       (b) =>
         (b.onclick = () => {
           if (g.buy(Number(b.dataset.buy))) expeditionShop(g);
-        }),
-    );
-  $("overlay")
-    .querySelectorAll<HTMLButtonElement>("[data-upgrade]")
-    .forEach(
-      (b) =>
-        (b.onclick = () => {
-          if (g.upgrade(Number(b.dataset.upgrade))) expeditionShop(g);
+          else note("这笔购买无法结算。");
         }),
     );
   $("overlay")
@@ -302,6 +333,9 @@ function expeditionShop(g: Game) {
     );
   $("reroll").onclick = () => {
     if (g.reroll()) expeditionShop(g);
+  };
+  $("next-compact").onclick = () => {
+    $("next").scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
   $("next").onclick = () => {
     g.nextWave();
@@ -463,8 +497,8 @@ function updateHud() {
           ? boss
             ? `${bossForWave(g.wave)?.name ?? "首领"}来了！`
             : g.wave === 1
-              ? "只怕不移动，不怕没火力"
-              : `${stopAfter(g.wave) ? "打完这波去整备" : "潮线还在往前"}`
+              ? `只怕不移动 · ${waveHpLabel(g.wave)}`
+              : `${waveHpLabel(g.wave)} · ${stopAfter(g.wave) ? "打完去整备" : "潮线还在往前"}`
           : g.wave === 1
             ? "只管走位，自动开火"
             : g.bossSpawned && !g.bossKilled
@@ -475,7 +509,7 @@ function updateHud() {
   $("loadout").innerHTML = Array.from({ length: g.slotCap }, (_, i) => {
     const gun = g.guns[i];
     return gun
-      ? `<div class="${gun.tier === 2 ? "tier-two" : ""}" title="${WEAPONS[gun.id].desc}">${icon(gun.id)}<small>${WEAPONS[gun.id].name} ${modTierLabel(gun.tier ?? 1)}</small></div>`
+      ? `<div class="gun-tier-${gun.tier ?? 1}" title="${WEAPONS[gun.id].desc} · ${gunTierLabel(gun.tier)}">${icon(gun.id)}<small>${WEAPONS[gun.id].name} ${gunTierLabel(gun.tier)}</small></div>`
       : '<div class="empty">+<small>空槽</small></div>';
   }).join("");
   $("mod-strip").innerHTML =
@@ -518,8 +552,12 @@ function updateHud() {
     const info = g.mode === "expedition20" ? bossForWave(g.wave) : null;
     $("boss").className = info ? `stage-${info.stage}` : "";
     $("boss").querySelector("span")!.textContent = info
-      ? `${info.name} / ${info.en}`
+      ? `${info.name} / ${info.en} · HP ${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp}`
       : "罐头大王 / DON'T GET CANNED";
+    $("boss").setAttribute(
+      "aria-label",
+      `${info?.name ?? "罐头大王"} ${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp} HP`,
+    );
     $("boss").querySelector("i")!.style.width =
       `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
   }
@@ -648,9 +686,9 @@ Object.defineProperty(window, "scrapMetrics", {
     position: game ? { x: game.player.x, y: game.player.y } : null,
     guns: game?.guns.map((g) => g.id),
     gunTiers: game?.guns.map((g) => g.tier ?? 1) ?? [],
+    gunProfiles:
+      game?.guns.map((gun) => effectiveWeaponProfile(gun.id, gun.tier)) ?? [],
     slotCap: game?.slotCap,
-    tier2Cap: game?.tier2Cap,
-    tier2Count: game?.tier2Count,
     mods: game?.mods.slice(),
     modTiers: game ? game.mods.map((id) => game!.modTier(id)) : [],
     branch: game?.branch ?? null,

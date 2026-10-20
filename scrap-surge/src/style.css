@@ -448,11 +448,24 @@ h1 > i {
   align-items: center;
   justify-content: center;
 }
-.loadout > div.tier-two {
+.loadout > div.tier-two,
+.loadout > div.gun-tier-2 {
   background: #e9eef0;
   box-shadow:
     inset 0 0 0 2px #ffffff,
     2px 2px 0 #68786e;
+}
+.loadout > div.gun-tier-3 {
+  background: #f4e7b8;
+  box-shadow:
+    inset 0 0 0 2px #ffffff,
+    2px 2px 0 #8d743c;
+}
+.loadout > div.gun-tier-4 {
+  background: #f0c881;
+  box-shadow:
+    inset 0 0 0 2px #fff1aa,
+    2px 2px 0 #8c5a32;
 }
 .loadout svg {
   width: 38px;
@@ -637,11 +650,13 @@ h1 > i {
   justify-content: center;
   padding: 25px;
   overflow: auto;
+  overflow-anchor: none;
 }
 #overlay > section {
   animation: arrive 0.25s both;
 }
 .shop-panel {
+  position: relative;
   width: 1020px;
   max-width: 100%;
   background: var(--paper);
@@ -696,6 +711,44 @@ h1 > i {
 }
 .shop-wallet > small {
   font-size: 9px;
+}
+.shop-sticky {
+  position: sticky;
+  top: -28px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px -32px 0;
+  padding: 8px 32px;
+  border-block: 2px solid var(--ink);
+  background: #fff1d0f5;
+  font-size: 11px;
+}
+.shop-sticky > span {
+  white-space: nowrap;
+}
+.shop-sticky b {
+  font-size: 15px;
+}
+.shop-sticky button {
+  min-height: 32px;
+  margin-left: auto;
+  padding: 4px 9px;
+  font-size: 10px;
+}
+.weapon-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 25px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #4d5e47;
+}
+.weapon-summary b {
+  font-size: 18px;
+  color: var(--ink);
 }
 .weapon-cards {
   display: grid;
@@ -1484,11 +1537,21 @@ h1 > i {
     align-items: flex-start;
   }
   #overlay > section {
-    margin: auto 0;
+    margin: 0 auto;
   }
   .shop-panel {
     border-radius: 10px;
     padding: 20px 16px;
+  }
+  .shop-sticky {
+    top: -20px;
+    gap: 9px;
+    margin: 12px -16px 0;
+    padding: 8px 16px;
+    font-size: 10px;
+  }
+  .shop-sticky button {
+    font-size: 9px;
   }
   .shop-heading h2 {
     font-size: 27px;
@@ -1870,6 +1933,58 @@ h1 > i {
 .owned-weapon strong,
 .owned-weapon small {
   display: block;
+}
+.weapon-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+  font-size: 9px;
+  line-height: 1.35;
+  color: #505d49;
+}
+.weapon-stats > span {
+  white-space: nowrap;
+}
+.weapon-stats b {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.weapon-preview {
+  min-height: 40px;
+  border-top: 1.5px solid #273b352e;
+  padding-top: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #4f684f;
+}
+.weapon-preview small {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.wave-armor {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin-top: 12px;
+  padding: 8px 11px;
+  border: 1.5px solid #273b3544;
+  border-radius: 5px;
+  background: #fff4d3;
+  font-size: 9px;
+  line-height: 1.6;
+}
+.wave-armor b {
+  font-size: 10px;
+}
+.wave-armor small {
+  grid-column: 1 / -1;
+  color: #6d745f;
 }
 .owned-weapon strong {
   font-size: 12px;
