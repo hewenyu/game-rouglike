@@ -47,8 +47,7 @@ changing rules, tests or evidence. It applies to any tool or model.
   the new gun's initial cooldown (no free volley from fusion).
 - Integer prices only; a float once produced 145 instead of 144.
 - Known debt: `elite` event declared but never emitted (`main.ts` infers it from
-  state); unreachable quick/branch code in expedition; unused Nightfold geometry
-  helpers in `src/math.ts`; `preview.incomingTier` actually means final merged
+  state); unreachable quick/branch code in expedition; `preview.incomingTier` actually means final merged
   tier.
 
 ## Recurring bug shapes

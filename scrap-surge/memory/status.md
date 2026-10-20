@@ -16,10 +16,9 @@ move superseded text to `docs/status-history.md` instead of stacking new
   `browser-first-shop` 6/6 and `browser-p2-items` 2/2 (ordinary keyboard + CDP
   touch). `npx prettier --check src tests vite.config.ts` reports 9 drifted files.
   The 24-item `test:browser:regression` was last run at `851cd13`, before P1/P2.
-- Branches: `codex/scrap-growth`, `codex/scrap-surge`, `codex/nightfold` are fully
-  merged. `codex/scrap-surge-expansion-draft` (`8e1542e`) is an unapproved WIP draft
-  with known defects; do not merge. Codex worktree:
-  `~/.codex/worktrees/scrap-growth/game-rouglike` (clean, at `b045332`).
+- Branches: only `master` plus `codex/scrap-surge-expansion-draft` (`8e1542e`), an
+  unapproved WIP draft with known defects; do not merge. The merged `codex/*`
+  branches and the Codex `scrap-growth` worktree were removed on 2026-10-20.
 - Deployment (user-run, Cloudflare Pages): production branch `master`, framework
   None, root directory `scrap-surge`, build `npm run build`, output `dist`,
   env `NODE_VERSION=22`. `vite.config.ts` uses `base: "./"`; no backend.
@@ -72,8 +71,7 @@ approved, **not implemented**: `docs/p3b-fullslot-bundle.md`.
    enemy HP to force item dependence.
 5. Hygiene (any time, small commits): prettier the 9 files, add `typecheck` and
    `format:check` scripts, unify browser-test default ports, emit the declared
-   `elite` event, remove unreachable quick/branch code and unused `src/math.ts`
-   helpers, rerun the 24-item browser regression on current source.
+   `elite` event, remove unreachable quick/branch code, rerun the 24-item browser regression on current source.
 
 ## Open gates (none established yet)
 

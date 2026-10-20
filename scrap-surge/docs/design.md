@@ -167,7 +167,8 @@ Unassigned shotgun pellets and area damage can still overkill; no claim of optim
 
 Safety limits: enemies 180, projectiles 420, drop objects 250 (merge excess value),
 visual effects 300. No external assets or backend. Some low-level geometry was copied from
-our own rejected prototype; its unused helpers in `src/math.ts` are dead code.
+our own rejected prototype; its unused polygon helpers were removed from
+`src/math.ts` on 2026-10-20.
 
 ## Frozen slice rules (S1 + S1b)
 
