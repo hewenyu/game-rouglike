@@ -102,6 +102,25 @@ export interface ItemDefinition {
 
 export type ItemCounts = Readonly<Partial<Record<ItemId, number>>>;
 
+export const STAT_REWARD_IDS = [
+  "damage",
+  "as",
+  "hpFlat",
+  "move",
+  "pickup",
+  "power",
+] as const;
+export type StatRewardId = (typeof STAT_REWARD_IDS)[number];
+
+export const CORE_ITEM_IDS: readonly ItemId[] = Object.freeze([
+  "milestone",
+  "volatile-trash",
+  "undertow-board",
+  "twin-trigger",
+  "magnetic-return",
+  "scrap-popcorn",
+]);
+
 function percent(value: number) {
   const rounded = Math.round(value * 10000) / 100;
   return `${rounded}%`;
@@ -522,6 +541,18 @@ export function itemCountsFromIds(ids: readonly ItemId[]): ItemCounts {
   return Object.freeze(counts);
 }
 
+export function itemCountsWith(
+  owned: ItemCounts,
+  id: ItemId,
+  amount = 1,
+): Readonly<Record<ItemId, number>> {
+  const counts = Object.fromEntries(
+    ITEM_IDS.map((itemId) => [itemId, itemCount(owned, itemId)]),
+  ) as Record<ItemId, number>;
+  counts[id] += amount;
+  return Object.freeze(counts);
+}
+
 export type ItemEligibilityReason =
   | "unique-owned"
   | "cap-reached"
@@ -720,6 +751,67 @@ export function drawItemOffers(options: ItemDrawOptions): readonly ItemId[] {
   }
 
   return Object.freeze(picked);
+}
+
+function drawDistinct<T>(
+  values: readonly T[],
+  count: number,
+  rng: () => number,
+): readonly T[] {
+  const pool = [...values];
+  const picked: T[] = [];
+  const target = Math.max(0, Math.floor(count));
+  while (picked.length < target && pool.length > 0) {
+    const index = Math.min(
+      pool.length - 1,
+      Math.floor(randomUnit(rng) * pool.length),
+    );
+    const [value] = pool.splice(index, 1);
+    if (value !== undefined) picked.push(value);
+  }
+  return Object.freeze(picked);
+}
+
+export function drawCoreRewards(
+  owned: ItemCounts,
+  weapons: readonly WeaponId[],
+  count: number,
+  rng: () => number,
+): readonly ItemId[] {
+  const legal = CORE_ITEM_IDS.filter((id) => canOwnItem(id, owned, weapons));
+  return drawDistinct(legal, count, rng);
+}
+
+export function drawStatRewards(
+  count: number,
+  rng: () => number,
+): readonly StatRewardId[] {
+  return drawDistinct(STAT_REWARD_IDS, count, rng);
+}
+
+export const STAT_REWARD_AMOUNTS: Readonly<Record<StatRewardId, number>> =
+  Object.freeze({
+    damage: 0.06,
+    as: 0.06,
+    hpFlat: 1,
+    move: 0.05,
+    pickup: 0.15,
+    power: 0.08,
+  });
+
+export function applyStatReward(
+  stats: Partial<ItemStats>,
+  reward: StatRewardId,
+): Readonly<ItemStats> {
+  return Object.freeze({
+    damage: statValue(stats.damage),
+    as: statValue(stats.as),
+    hpFlat: statValue(stats.hpFlat),
+    move: statValue(stats.move),
+    pickup: statValue(stats.pickup),
+    power: statValue(stats.power),
+    [reward]: statValue(stats[reward]) + STAT_REWARD_AMOUNTS[reward],
+  });
 }
 
 export const EMPTY_ITEM_STATS: Readonly<ItemStats> = Object.freeze({

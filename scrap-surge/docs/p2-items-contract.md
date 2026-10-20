@@ -1,7 +1,8 @@
 # P2 items and rules contract
 
 This repository copy is the self-contained approved contract for the Stage A pure
-item/rules layer. It has no runtime or test dependency on a temporary host path.
+item/rules layer and the Stage B simulation integration. It has no runtime or test
+dependency on a temporary host path.
 The frozen v2 source document SHA-256 is
 `9e1097315911b3e6fb9b7c14900cc3fae1b92f24b3b3b1e1bcb9a7b8cbf84cde`.
 The frozen base commit is `6d15c7f6f335809773bf3bdd051851a9328cbe45`.
@@ -12,11 +13,13 @@ Three-party approval covers P2 implementation only:
 - fresh Opus task `p2_opus_v2_accept_once` explicitly approved it;
 - fresh independent DeepSeek task `p2_ds_v2_accept_once` explicitly approved it.
 
-Stage A implements the catalog and pure rule/profile API. It is not a completed
-P2 integration and establishes no balance, user-feel, runtime or playtest claim.
-Simulation, rendering, shop/rest UI, rewards, chests and performance remain later
-work. The authoritative amendments near the end of this copy override shorthand or
-conflicting wording earlier in it. Prototype numbers are not balance acceptance.
+Stage A implements the catalog and pure rule/profile API. Stage B wires those rules
+into expedition simulation state, inventory, rewards, chests, elites and bounded
+queues. It is not a completed P2 integration: rendering, shop/rest UI, audio,
+browser behavior and performance remain Stage C, and no balance, user-feel, runtime
+or playtest claim follows. The authoritative amendments near the end of this copy
+override shorthand or conflicting wording earlier in it. Prototype numbers are not
+balance acceptance.
 
 Original contract follows.
 

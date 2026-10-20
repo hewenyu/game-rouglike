@@ -1,5 +1,24 @@
 # Validation evidence and boundaries
 
+## P2 Stage B simulation checkpoint (2026-10-19)
+
+Stage B wires contract-v2 item, reward, chest and elite rules into the expedition
+simulation. The author suite covers 19 consolidated rests, W1 core choices,
+item/stat rows, purchase and eligibility atomicity, chest freeze/decline/loss,
+reroll rollback and visible repeat replacement, source cash/fuel and zero-coin
+collection, shotgun 5x3 firing, H2/H3/pressure, terminal return ordering, elite
+reservation/escape, milestone trail, fist remnants, source attribution and bounded
+queues. It also pins voluntary rest exit with unclaimed rewards, reroll independence
+from reward rows, stale unique-claim rejection, and H3 healing only for actual
+`contactProc` aura/contact kills. The migration ledger is
+`docs/p2-test-migration.md`; the Stage C handoff is `docs/p2-stage-b-handoff.md`.
+
+This is a simulation checkpoint only. The shop/rest UI, reward cards, chest/elite
+rendering and item audio are not implemented or browser-verified. No ordinary-input
+W20 victory, full W20 viability, cohort balance, item-led late output, saturation,
+physical-device performance or user-feel claim follows. Author self-checks are not
+independent review.
+
 ## P1 label, hurt-bar and documentation repair (2026-10-19)
 
 This source changes presentation text/CSS and renderer bars only; it does not

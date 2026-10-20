@@ -1,11 +1,20 @@
 # Status
 
 P1 documentation commit `6d15c7f6f335809773bf3bdd051851a9328cbe45` completed
-fresh Opus and DeepSeek review. Stage A of P2 contract v2 now implements the pure
-20-item catalog and rule layer in `src/items.ts`, the optional item-modifier profile
-extension and focused unit coverage. This is not a P2 integration: runtime remains
-P1 until the next agent wires simulation and UI. P2 is not complete or reviewed;
-P3 balance over 20 waves, five-route viability and user feel remain pending.
+fresh Opus and DeepSeek review. Stage A of P2 contract v2 implements the pure
+20-item catalog and rule layer in `src/items.ts`. Stage B now integrates the item
+rules into the expedition simulation: inventory, stat rewards, core/item offers,
+purchases, chests, elites, item procs, source fuel/cash accounting and bounded
+queues. The normal runtime is still not a playable P2 delivery because the
+shop/rest/reward UI and elite/chest rendering remain Stage C. P2 is not complete
+or independently reviewed; P3 balance over 20 waves, five-route viability,
+browser behavior, performance and user feel remain pending.
+
+The Stage B handoff and its known UI gaps are in `docs/p2-stage-b-handoff.md`.
+The obsolete-assertion ledger is `docs/p2-test-migration.md`. The contract source
+hash remains `9e1097315911b3e6fb9b7c14900cc3fae1b92f24b3b3b1e1bcb9a7b8cbf84cde`.
+No full W20 viability, browser/runtime playability, balance or user-acceptance
+claim is made by Stage B.
 
 P1 code at `db0cd9c71e66584515e634a9e55298255710e26e` is approved by root, the
 fresh actual Opus task `p1_opus_final_once` and the fresh actual independent

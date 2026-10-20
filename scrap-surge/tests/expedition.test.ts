@@ -7,6 +7,7 @@ import {
   BAG_HP,
   BOSS_STAGES,
   DURATIONS,
+  ELITE_STATS,
   HP_MULT,
   MIX,
   POCKETS,
@@ -21,7 +22,15 @@ import {
   rerollPrice,
   waveRecovery,
 } from "../src/expedition";
-import type { Enemy } from "../src/sim";
+import {
+  CORE_ITEM_IDS,
+  ITEM_CATALOG,
+  ITEM_CONSTANTS,
+  drawCoreRewards,
+  itemCountsFromIds,
+  itemCountsWith,
+} from "../src/items";
+import type { Bullet, Enemy } from "../src/sim";
 
 const exp = (seed = 123) => new Game(seed, "expedition20");
 const step = (g: Game, n: number, x = 0, y = 0) => {
@@ -34,6 +43,8 @@ const empty = () => {
   g.expeditionBatches = [];
   return g;
 };
+const inventory = (...ids: Parameters<typeof itemCountsFromIds>[0]) =>
+  ids.reduce((counts, id) => itemCountsWith(counts, id), empty().inventory);
 const enemy = (
   g: Game,
   x = 600,
@@ -72,9 +83,9 @@ test("expedition wave schedule and stops match the approved table", () => {
       40, 75,
     ],
   );
-  assert.equal(STOP_AFTER.filter((v) => v === "full").length, 9);
-  assert.equal(STOP_AFTER.filter((v) => v === "quick").length, 6);
-  assert.equal(STOP_AFTER.filter((v) => v === "auto").length, 4);
+  assert.equal(STOP_AFTER.filter((v) => v === "full").length, 19);
+  assert.equal(STOP_AFTER.filter((v) => v === "quick").length, 0);
+  assert.equal(STOP_AFTER.filter((v) => v === "auto").length, 0);
   assert.equal(STOP_AFTER[19], "end");
   for (let i = 0; i < 20; i++) {
     assert.equal(MIX[i].length, 5);
@@ -259,9 +270,7 @@ test("P1 same-ID I+I merges to II with max cooldown and summed paid", () => {
   assert(
     g.events.some(
       (event) =>
-        event.type === "merge" &&
-        event.kind === "slinger" &&
-        event.tier === 2,
+        event.type === "merge" && event.kind === "slinger" && event.tier === 2,
     ),
   );
 });
@@ -303,7 +312,10 @@ test("P1 equal tiers merge one step, lower tiers coexist, and IV never fuses", (
   g.money = 100000;
   g.offers = ["slinger", "coil", "saw", "fist"];
   let paid = 0;
-  for (const [inputTier, expectedTier] of [[1, 2], [3, 4]] as const) {
+  for (const [inputTier, expectedTier] of [
+    [1, 2],
+    [3, 4],
+  ] as const) {
     g.guns = [
       {
         id: "slinger" as const,
@@ -536,7 +548,9 @@ test("P1 IV weapon's real projectile carries IV damage and kills through collisi
   assert(
     g.events.some(
       (event) =>
-        event.type === "tier-fire" && event.kind === "slinger" && event.tier === 4,
+        event.type === "tier-fire" &&
+        event.kind === "slinger" &&
+        event.tier === 4,
     ),
   );
   // Move the real projectile onto the real enemy so collision, not the fire
@@ -579,30 +593,40 @@ test("expedition offers always include an unowned type when one exists", () => {
   }
 });
 
-test("expedition quick picks are free, permanent and tier upgrades are explicit", () => {
-  const g = empty();
-  g.mode = "slice";
-  g.wave = 2;
-  g.phase = "shop";
-  g.chooseMod("popcorn");
-  g.chooseMod("domino");
-  g.mode = "expedition20";
-  g.modTiers.set("popcorn", 1);
-  g.modTiers.set("domino", 1);
-  g.wave = 9;
-  g.phase = "quick";
-  g.openStop();
-  assert.deepEqual(g.quickOptions, ["popcorn", "domino"]);
-  assert(g.chooseQuick(0));
-  assert.equal(g.modTier("popcorn"), 2);
-  assert.equal(g.modTier("domino"), 1);
+test("expedition-old-quick-picks test covered by every rest using item/stat rows", () => {
+  for (let wave = 1; wave <= 19; wave++) {
+    const g = empty();
+    if (wave === 1) {
+      g.openStop();
+      assert.equal(g.phase, "shop");
+      assert.equal(g.pendingRewardChoices.length, 3);
+      assert.equal(g.pendingStatChoices.length, 0);
+      assert.equal(g.itemOffers.length, 3);
+      continue;
+    }
+    g.wave = wave;
+    g.waveTime = g.duration;
+    g.bossKilled = true;
+    g.phase = "fight";
+    g.scraps = [];
+    step(g, 1);
+    assert.equal(g.phase, "sweep");
+    step(g, 60);
+    assert.equal(g.phase, "shop");
+    assert.equal(g.stop, "full");
+    assert.equal(g.itemOffers.length, 3);
+    assert.equal(
+      g.pendingStatChoices.length,
+      [5, 10, 15].includes(wave) ? 0 : 3,
+    );
+  }
 });
 
-test("expedition delayed popcorn retains credit with no target and drains atomically", () => {
+test("scrap popcorn admits fuel and drains at most four units per fixed step", () => {
   const g = empty();
-  g.mods = ["popcorn"];
-  g.modTiers.set("popcorn", 1);
+  g.inventory = inventory("scrap-popcorn");
   g.guns = [];
+  g.popcornCredits = 0;
   g.collect(scrap(1));
   assert.equal(g.popcornCredits, 1);
   assert.equal(g.bullets.length, 0);
@@ -614,37 +638,17 @@ test("expedition delayed popcorn retains credit with no target and drains atomic
   step(g, 1);
   assert.equal(g.popcornCredits, 4);
   assert.equal(g.bullets.filter((b) => b.kind === "bonus").length, 10);
+  assert.equal(g.queueMetrics.popcorn.processed, 5);
 });
 
-test("expedition tier-III ring is separate, may fire without a target and cancels at wave end", () => {
+test("old tier-III popcorn ring coverage replaced by bounded fuel admission", () => {
   const g = empty();
-  g.mods = ["popcorn"];
-  g.modTiers.set("popcorn", 3);
+  g.inventory = inventory("scrap-popcorn");
   g.guns = [];
-  for (let i = 0; i < 5; i++) g.collect(scrap(i));
-  assert.equal(g.ringPending, 1);
-  step(g, 1);
-  assert.equal(g.ringPending, 0);
-  assert.equal(g.bullets.length, 8);
-  assert(
-    g.bullets.every(
-      (bullet) =>
-        bullet.mod === "popcorn" &&
-        bullet.tier === 3 &&
-        !bullet.homing &&
-        bullet.target === 0,
-    ),
-  );
-  g.bullets = [];
-  g.enemies = [];
-  g.collect(scrap(10));
-  g.collect(scrap(11));
-  const before = g.popcornPendingCancelled;
-  assert(g.popcornCredits >= 2);
-  const credits = g.popcornCredits;
-  g.phase = "quick";
-  g.nextWave();
-  assert(g.popcornPendingCancelled >= before + credits);
+  g.admitPopcornFuel(1100);
+  assert.equal(g.popcornCredits, 1024);
+  assert.equal(g.queueMetrics.popcorn.rejected, 76);
+  assert.equal(g.queueMetrics.popcorn.admitted, 1024);
 });
 
 test("expedition splitter death makes two independent chip attempts with 0.65 warning", () => {
@@ -731,44 +735,36 @@ test("expedition boss reservations, stage HP and overtime defeat are exact", () 
   assert.equal(g.phase, "lost");
 });
 
-test("expedition wake uses collection-time anchor, 30-unit gate, 36/30 and root references", () => {
+test("S3 milestone uses actual displacement, 36 radius, 30xP and a root", () => {
   const g = empty();
-  g.branch = "wake";
+  g.inventory = inventory("milestone");
   g.guns = [];
-  g.wakeAnchor = { x: 600, y: 450 };
-  g.collect(scrap(1));
-  assert.equal(g.wakePoints.length, 0);
-  step(g, 10, 1, 0);
-  g.collect(scrap(2));
-  assert.equal(g.wakePoints.length, 1);
-  const point = g.wakePoints[0];
+  step(g, 1, 1, 0);
+  assert.equal(g.trailPoints.length, 0);
+  for (let i = 0; i < 24; i++) step(g, 1, 1, 0);
+  assert.equal(g.trailPoints.length, 1);
+  const point = g.trailPoints[0];
   assert.equal(point.radius, 36);
   assert.equal(point.damage, 30);
   assert(point.root > 0);
   const target = enemy(g, point.x, point.y, 100);
   step(g, 1);
   assert.equal(target.hp, 70);
-  step(g, 70);
-  assert.equal(g.wakePoints.length, 0);
+  step(g, 60);
+  assert.equal(g.trailPoints.length, 0);
 });
 
-test("expedition ember locks drops for 1.2s, explodes once, then unlocks without extra value", () => {
+test("old ember branch coverage replaced by rain cash conversion", () => {
   const g = empty();
-  g.branch = "ember";
-  const e = enemy(g, 600, 300, 1);
-  g.hit(e, 99, g.player);
-  const s = g.scraps[0];
-  assert.equal(s.heat, 1.2);
-  const value = s.value;
-  g.player.x = s.x;
-  g.player.y = s.y;
-  step(g, 72);
-  assert.equal(g.money, 0);
-  assert.equal(g.scraps[0].value, value);
-  assert.equal(g.scraps[0].exploded, true);
-  step(g, 1);
-  assert.equal(g.money, value);
-  assert.equal(g.scraps.length, 0);
+  g.inventory = inventory("siphon-bag");
+  g.collect(scrap(1, 10));
+  assert.equal(g.money, 1);
+  assert.equal(g.coinAccumulator, 700);
+  assert.equal(g.fuelUnits, 0);
+  assert.equal(g.collected, 1);
+  g.collect(scrap(2, 10));
+  assert.equal(g.money, 3);
+  assert.equal(g.coinAccumulator, 400);
 });
 
 test("expedition root map survives the display timer and no ember uses root zero", () => {
@@ -799,33 +795,24 @@ test("expedition root map survives the display timer and no ember uses root zero
   assert.equal(g.chainCounts.has(root), false);
 });
 
-test("expedition wave-end boundary cancels popcorn credits and unlocks ember without blast", () => {
+test("wave boundary drops admitted popcorn work and sweep never carries fight procs", () => {
   const g = empty();
   g.wave = 1;
-  g.branch = "ember";
-  g.mods = ["popcorn"];
-  g.modTiers.set("popcorn", 1);
+  g.inventory = inventory("scrap-popcorn");
   g.popcornCredits = 3;
-  g.phase = "quick";
-  g.quickOptions = [];
+  g.phase = "shop";
   g.nextWave();
   assert.equal(g.wave, 2);
   assert.equal(g.popcornCredits, 0);
-  g.scraps.push({
-    ...scrap(1, 5),
-    heat: 1.2,
-    root: 2,
-    exploded: false,
-  });
-  g.scraps[0].x = g.player.x;
-  g.scraps[0].y = g.player.y;
-  g.money = 0;
-  g.phase = "fight";
-  g.player.x = g.scraps[0].x;
-  g.player.y = g.scraps[0].y;
-  for (let i = 0; i < 74; i++) g.step(1 / 60, { x: 0, y: 0 });
-  assert.equal(g.money, 5);
-  assert.equal(g.popcornPendingCancelled, 3);
+  assert.equal(g.queueMetrics.popcorn.dropped, 3);
+  const sweep = empty();
+  sweep.phase = "sweep";
+  sweep.inventory = inventory("scrap-popcorn");
+  sweep.scraps = [{ ...scrap(1, 5), fuelUnits: 1 }];
+  sweep.sweepTime = DT;
+  step(sweep, 1);
+  assert.equal(sweep.popcornCredits, 0);
+  assert.equal(sweep.sweptFuelUnits, 1);
 });
 
 test("expedition boss stage volleys and enemy forms are observable through real simulation", () => {
@@ -1001,28 +988,16 @@ test("expedition wave boundary clears roots and every transient effect together"
   assert.equal(g.scraps[0].value, 5);
 });
 
-test("expedition quick upgrade accepts exactly one tier per stop", () => {
+test("old quick tier-upgrade coverage replaced by one consolidated rest surface", () => {
   const g = empty();
-  g.mods = ["popcorn", "domino"];
-  g.modTiers.set("popcorn", 1);
-  g.modTiers.set("domino", 1);
-  g.wave = 9;
-  g.phase = "quick";
-  g.openStop();
-  assert(g.chooseQuick(0));
-  assert.equal(g.quickPicked, true);
-  assert.equal(g.chooseQuick(1), false);
-  assert.equal(g.modTier("popcorn"), 2);
-  assert.equal(g.modTier("domino"), 1);
-  g.nextWave();
-  assert.equal(g.wave, 10);
-  g.wave = 13;
-  g.phase = "quick";
-  g.openStop();
-  assert.equal(g.quickPicked, false);
-  assert(g.chooseQuick(0));
-  assert.equal(g.modTier("popcorn"), 3);
-  assert.equal(g.chooseQuick(0), false);
+  for (const wave of [1, 2, 5, 10, 15, 19]) {
+    g.wave = wave;
+    g.waveTime = 0;
+    g.phase = "fight";
+    g.openStop();
+    assert.equal(g.phase, "shop");
+    assert.equal(g.stop, "full");
+  }
 });
 
 test("slice boss starts on 1.6s then uses the 2.4s interval", () => {
@@ -1079,28 +1054,18 @@ test("slice primary domino kills keep no zero-count root and timer expiry still 
   assert.equal(g.chainCounts.size, 0);
 });
 
-test("expedition root cleanup removes its domino radius accumulator", () => {
+test("C2 root-local kill growth expires without leaking across roots", () => {
   const g = empty();
   g.guns = [];
-  g.mods = ["domino"];
-  g.modTiers.set("domino", 2);
+  g.inventory = inventory("volatile-trash", "wedge-ring");
   const victims: Enemy[] = [];
   for (let i = 0; i < 4; i++) victims.push(enemy(g, 400 + i * 20, 300, 1));
   for (const victim of victims) g.hit(victim, 5, g.player, "secondary", 0, 42);
   assert.equal(g.chainCounts.get(42), 4);
-  assert.equal(g.dominoRadius.get(42), 10);
+  assert.equal(g.rootSecondaryKills.get(42), 4);
   step(g, 1);
   assert.equal(g.chainCounts.has(42), false);
-  assert.equal(g.dominoRadius.has(42), false);
-});
-
-test("expedition prunes dominoRadius when its chainCounts entry is already gone", () => {
-  const g = empty();
-  g.guns = [];
-  g.dominoRadius.set(77, 30);
-  step(g, 1);
-  assert.equal(g.chainCounts.has(77), false);
-  assert.equal(g.dominoRadius.has(77), false);
+  assert.equal(g.rootSecondaryKills.has(42), false);
 });
 
 test("expedition wave and W20 boundaries cancel pending credits once", () => {
@@ -1146,22 +1111,7 @@ test("expedition wave and W20 boundaries cancel pending credits once", () => {
   assert.equal(final.ringPending, 0);
 });
 
-test("expedition presentation events fire from real branch, enemy and tier actions", () => {
-  const wake = empty();
-  wake.branch = "wake";
-  wake.player.x = 650;
-  wake.collect(scrap(1));
-  assert(wake.events.some((e) => e.type === "wake-hit"));
-
-  const ember = empty();
-  ember.branch = "ember";
-  enemy(ember, 600, 300, 1);
-  ember.hit(ember.enemies[0], 99, ember.player);
-  ember.enemies = [];
-  ember.phase = "fight";
-  for (let i = 0; i < 74; i++) step(ember, 1);
-  assert(ember.events.some((e) => e.type === "ember-blast"));
-
+test("presentation events still fire for real enemy and tier actions", () => {
   const split = empty();
   const splitter = enemy(split, 600, 300, 1, "splitter");
   split.hit(splitter, 99, split.player);
@@ -1192,36 +1142,19 @@ test("expedition presentation events fire from real branch, enemy and tier actio
   );
 });
 
-test("expedition mod tiers reach audio events and tier-II bonus bullets carry their form", () => {
-  const g = empty();
-  g.wave = 13;
-  g.phase = "quick";
-  g.mods = ["popcorn", "domino"];
-  g.modTiers.set("popcorn", 1);
-  g.modTiers.set("domino", 1);
-  g.openStop();
-  assert(g.chooseQuick("popcorn"));
-  const tier = g.events.find((e) => e.type === "tier" && e.mod === "popcorn");
-  assert(tier);
-  assert.equal(tier.tier, 2);
-  assert.equal(tier.value, 2);
-
+test("popcorn and magnet item procs keep their distinct bullet metadata", () => {
   const popcorn = empty();
-  popcorn.mods = ["popcorn"];
-  popcorn.modTiers.set("popcorn", 2);
+  popcorn.inventory = inventory("scrap-popcorn", "hooked-tip");
   popcorn.guns = [];
   enemy(popcorn, 700, 450, 100);
   popcorn.collect(scrap(1));
   step(popcorn, 1);
   const pop = popcorn.bullets.filter((b) => b.kind === "bonus");
   assert.equal(pop.length, 2);
-  assert(
-    pop.every((b) => b.mod === "popcorn" && b.tier === 2 && b.pierce === 1),
-  );
+  assert(pop.every((b) => b.mod === "popcorn" && b.pierce === 1));
 
   const magnet = empty();
-  magnet.mods = ["magnet"];
-  magnet.modTiers.set("magnet", 2);
+  magnet.inventory = inventory("magnetic-return", "hooked-tip");
   magnet.guns = [];
   const target = enemy(magnet, 800, 450, 100);
   for (let i = 0; i < 8; i++) magnet.collect(scrap(10 + i));
@@ -1230,22 +1163,18 @@ test("expedition mod tiers reach audio events and tier-II bonus bullets carry th
   assert(
     homing.every(
       (b) =>
-        b.mod === "magnet" &&
-        b.tier === 2 &&
-        b.target === target.id &&
-        b.hitIds === undefined,
+        b.mod === "magnet" && b.target === target.id && b.hitIds === undefined,
     ),
   );
 });
 
-test("expedition magnet metadata starts at newly spawned bullets and preserves hitIds", () => {
+test("magnet metadata starts at newly spawned bullets and respects the shared cap", () => {
   const g = empty();
-  g.mods = ["magnet"];
-  g.modTiers.set("magnet", 2);
+  g.inventory = inventory("magnetic-return", "hooked-tip");
   g.guns = [];
   const target = enemy(g, 800, 450, 100);
   const old = g.bullets.length;
-  g.bullets.push({
+  const existing: Bullet = {
     x: 100,
     y: 100,
     id: 999,
@@ -1257,29 +1186,24 @@ test("expedition magnet metadata starts at newly spawned bullets and preserves h
     target: 0,
     r: 5,
     homing: false,
-  });
-  const oldBullet = g.bullets[old];
+  };
+  g.bullets.push(existing);
   for (let i = 0; i < 8; i++) g.collect(scrap(10 + i));
   const fresh = g.bullets.slice(old + 1);
   assert.equal(fresh.length, 10);
   assert(
     fresh.every(
       (b) =>
-        b.mod === "magnet" &&
-        b.tier === 2 &&
-        b.target === target.id &&
-        b.hitIds === undefined,
+        b.mod === "magnet" && b.target === target.id && b.hitIds === undefined,
     ),
   );
-  assert.equal(oldBullet.mod, undefined);
-  assert.equal(oldBullet.hitIds, undefined);
+  assert.equal(existing.mod, undefined);
+  assert.equal(existing.hitIds, undefined);
 
   const capped = empty();
-  capped.mods = ["magnet"];
-  capped.modTiers.set("magnet", 2);
+  capped.inventory = inventory("magnetic-return", "hooked-tip");
   capped.guns = [];
   enemy(capped, 800, 450, 100);
-  capped.combatPicked = 7;
   for (let i = 0; i < 415; i++)
     capped.bullets.push({
       x: 100 + (i % 10),
@@ -1294,32 +1218,32 @@ test("expedition magnet metadata starts at newly spawned bullets and preserves h
       r: 5,
       homing: false,
     });
+  for (let i = 0; i < 7; i++) capped.collect(scrap(30 + i));
   capped.collect(scrap(20));
   assert.equal(capped.bullets.length, 420);
   assert(
     capped.bullets
       .slice(415)
       .every(
-        (b) =>
-          b.mod === "magnet" &&
-          b.tier === 2 &&
-          b.target !== 0 &&
-          b.hitIds === undefined,
+        (b) => b.mod === "magnet" && b.target !== 0 && b.hitIds === undefined,
       ),
   );
-  assert(capped.bullets.slice(0, 415).every((b) => !b.mod));
+  assert(
+    capped.bullets
+      .slice(0, 415)
+      .every((b) => b.mod === undefined || b.mod === "magnet"),
+  );
 });
 
-test("expedition domino tiers inspect every fourth and eighth secondary kill per root", () => {
+test("C1/C4 use real secondary deaths, C2 radius and fixed C4 radius", () => {
   const g = empty();
   g.guns = [];
-  g.mods = ["domino"];
-  g.modTiers.set("domino", 3);
+  g.inventory = inventory("volatile-trash", "wedge-ring", "big-bang");
   const victims: Enemy[] = [];
   for (let i = 0; i < 9; i++) victims.push(enemy(g, 300 + i * 8, 300, 1));
   for (let i = 0; i < 8; i++)
     g.hit(victims[i], 5, g.player, "secondary", 0, 12);
-  assert.equal(g.dominoRadius.get(12), 20);
+  assert.equal(g.rootSecondaryKills.get(12), 8);
   assert(g.pendingBlasts.some((b) => b.radius === 160 && b.damage === 80));
   step(g, 1);
   assert(
@@ -1334,11 +1258,10 @@ test("expedition domino tiers inspect every fourth and eighth secondary kill per
   );
 });
 
-test("expedition tier-II domino marks ordinary pending blasts for a double ring", () => {
+test("C1 queues a real death blast with C2 copied growth", () => {
   const g = empty();
   g.guns = [];
-  g.mods = ["domino"];
-  g.modTiers.set("domino", 2);
+  g.inventory = inventory("volatile-trash", "wedge-ring");
   const victim = enemy(g, 300, 300, 1);
   g.hit(victim, 5, g.player, "weapon");
   const blast = g.pendingBlasts.find((b) => b.damage === 26);
@@ -1353,20 +1276,14 @@ test("expedition tier-II domino marks ordinary pending blasts for a double ring"
   );
 });
 
-test("expedition magnet tier III presents a full-arena warm sweep", () => {
+test("P1 magnet uses eight fuel units and emits ten real caps", () => {
   const g = empty();
-  g.mods = ["magnet"];
-  g.modTiers.set("magnet", 3);
+  g.inventory = inventory("magnetic-return", "hooked-tip");
   g.guns = [];
-  g.combatPicked = 7;
   enemy(g, 800, 450, 100);
-  g.collect(scrap(1));
+  for (let i = 0; i < 8; i++) g.collect(scrap(i));
   assert.equal(g.magnetPulse, 0.6);
-  assert(
-    g.bullets.every(
-      (b) => b.mod === "magnet" && b.tier === 3 && b.hitIds === undefined,
-    ),
-  );
+  assert(g.bullets.every((b) => b.mod === "magnet" && b.hitIds === undefined));
 });
 
 test("expedition tiers double damage without changing saw or fist geometry", () => {
