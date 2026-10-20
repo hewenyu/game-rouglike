@@ -16,9 +16,13 @@ PLAYTEST 审查是历史证据。`3305687` 之后的渲染顺序修复已在
 `01a9bf13a69ceaeeca9263ec9def1d2ba212622a` 完成三方仅限 PLAYTEST 的审查；模型
 审查不是用户验收或目标完成，本候选也不是已完成的 10–20 分钟肉鸽。**
 普通入口默认进入 20 波远征；`?mode=slice` 保留已批准的两波手感切片。当前
-P1 修复后的套件为 **105/105**：原有 102 条规则/渲染/W20 生命周期检查，
-加上 3 条敌方血条范围、条件与非改写的渲染检查；生产构建干净。此前的
-93/93、91/91 与 89/89 保留为对应时间点的历史计数，不覆盖旧日志。W20 两项只使用
+P2 Stage D 套件为 **166/166**，生产构建干净。Stage D 为远征加入精英、宝箱、
+真实 S3 轨迹、H3 光环和压力提示的渲染路径，并区分物品购买、精英和宝箱的合成
+音效；默认切片渲染和模拟规则不变。普通键盘与真实 CDP 触屏的 W3 视觉 fixture
+各自通过，均观察到 360 HP、半径 28 的精英，正常击败、拾取实体宝箱并在下一次
+整备看到两项冻结奖励。该证据仍为作者运行，不是视觉、声音、独立审查或用户验收。
+此前的 105/105、93/93、91/91 与 89/89 保留为对应时间点的历史计数，不覆盖旧日志。
+W20 两项只使用
 明确标注的合成时钟边界验证胜负生命周期，不证明普通 20 波通关、最终首领战可完成
 或用户接受。测试本身的有限范围仍需新上下文复核。其他
 当前证据包括干净构建、24/24 浏览器回归、作者 7/7 接波输入回归、独立
@@ -95,6 +99,8 @@ npm run test:browser:regression   # 独立正常输入回归，同样先启动 d
 npm run test:browser:lifecycle    # W7 自动接波的键盘/触屏输入生命周期回归
 npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
 npm run test:browser:p2-items     # W1 核心领取、真实 W2 触发与物品购买（键盘/触屏）
+BASE_URL=http://127.0.0.1:4192 OUTPUT_DIR=/tmp/p2-stage-d-final-visuals \
+  node tests/browser-p2-visuals.mjs # W3 精英、实体宝箱与冻结奖励视觉流程
 npm run test:browser:expedition    # expedition 普通输入全程；每次独立 attempt 留证
 BASE_URL=http://127.0.0.1:4188 OUTPUT_DIR=/tmp/render-occlusion \
   node tests/browser-render-occlusion.mjs  # 固定合成遮挡 fixture；可选普通 W2 截图

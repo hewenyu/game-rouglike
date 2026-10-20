@@ -1,5 +1,42 @@
 # Status
 
+Stage D of P2 connects the existing elite, chest, trail and item simulation data
+to the expedition renderer and audio. `src/render.ts` now accepts an optional
+`ExpeditionPresentation`, draws the real elite position/HP and warning, physical
+chests and trail points, and preserves the frozen default enemy draw path.
+`src/audio.ts` gives elite, chest and item purchases distinct cues, and
+`src/main.ts` routes the elite warning once from read-only state because the
+simulation currently does not emit its declared `elite` event.
+
+Stage D is an implementation checkpoint only. P2 is not complete or independently
+reviewed; P3 balance, five-route viability, full-run behavior, performance and
+user feel remain pending. The stage handoffs are
+`docs/p2-stage-b-handoff.md`, `docs/p2-stage-c-handoff.md` and
+`docs/p2-stage-d-handoff.md`; the obsolete-assertion ledger is
+`docs/p2-test-migration.md`. The contract source hash remains
+`9e1097315911b3e6fb9b7c14900cc3fae1b92f24b3b3b1e1bcb9a7b8cbf84cde`.
+
+At this checkpoint `npm test` passes **166/166**, `npm run build` is clean and
+`git diff --check` is clean. Existing `tests/browser-p2-items.mjs` and the new
+`tests/browser-p2-visuals.mjs` each pass **2/2** on server `4192` with ordinary
+keyboard and real CDP touch and no page errors. Both visual runs reached W3,
+observed an elite with `maxHp 360` and `radius 28`, killed it through combat,
+collected the physical elite chest, and reached the frozen two-choice rest.
+Artifacts are `/tmp/p2-stage-d-existing/report.json`,
+`/tmp/p2-stage-d-visuals/report.json` and the final-tree rerun
+`/tmp/p2-stage-d-final-visuals/report.json`.
+
+The natural milestone seed `2` run completed on desktop with **404 real trail
+observations** (`/tmp/p2-stage-d-trail3/report.json`). Its touch attempt failed at
+W1 because `.reward-row` disappeared during a fixture race, so only desktop
+real-trail browser evidence is claimed. The frozen enemy draw hash remains
+`4ba5006bbeb0835ae7fc1d9ce8deecf1f41926250d2303ebfe1be15e02d80abf`.
+
+No Stage D evidence establishes audible quality or mix acceptance, visual
+acceptance, an ordinary-input W20 victory, W16-W20 or physical-device
+performance, cohort balance or item-led late output. Browser runs were headless,
+and the stage commit still needs independent review on its frozen SHA.
+
 P1 documentation commit `6d15c7f6f335809773bf3bdd051851a9328cbe45` completed
 fresh Opus and DeepSeek review. Stage A of P2 contract v2 implements the pure
 20-item catalog and rule layer in `src/items.ts`. Stage B integrates the rules
@@ -79,13 +116,13 @@ expansion is part of this freeze.
 
 P1 repair evidence for the approved code:
 
-| Check | Result |
-| --- | --- |
-| Unit suite | **105/105** |
-| Production build | **clean** |
-| Merge fixture on isolated `4192` | **2/2**, no page errors |
+| Check                             | Result                                |
+| --------------------------------- | ------------------------------------- |
+| Unit suite                        | **105/105**                           |
+| Production build                  | **clean**                             |
+| Merge fixture on isolated `4192`  | **2/2**, no page errors               |
 | 390px layout after compact labels | **no document/card/summary overflow** |
-| Diff hygiene | `git diff --check` clean |
+| Diff hygiene                      | `git diff --check` clean              |
 
 The repair's final merge report is
 `/tmp/p1-compact-qa4-4192/report.json`, with desktop/touch before/after
@@ -100,12 +137,12 @@ check, not screenshot acceptance over every state or a full W20 run.
 The following prior evidence belongs to predecessor `c674b4f`, not to repairs
 made after it. It was not rerun after the final repair and is not relabelled:
 
-| Carried evidence from `c674b4f` | Result |
-| --- | --- |
-| First-shop ordinary input on `4190` | **6/6** (keyboard 3/3, touch 3/3), no page errors |
-| Input lifecycle on `4190` | **7/7** (keyboard 4/4, touch 3/3), no page errors |
-| Earlier first-merge desktop/touch fixture | **2/2**, no page errors |
-| Full slice comparator vs `19a66dd` | **0 differences**, 3,422 steps per seed 42/23/145 |
+| Carried evidence from `c674b4f`           | Result                                            |
+| ----------------------------------------- | ------------------------------------------------- |
+| First-shop ordinary input on `4190`       | **6/6** (keyboard 3/3, touch 3/3), no page errors |
+| Input lifecycle on `4190`                 | **7/7** (keyboard 4/4, touch 3/3), no page errors |
+| Earlier first-merge desktop/touch fixture | **2/2**, no page errors                           |
+| Full slice comparator vs `19a66dd`        | **0 differences**, 3,422 steps per seed 42/23/145 |
 
 The four grouped invariant additions requested before freeze are present as
 distinct tests: atomic cascade behavior with paid aggregation, rejection that
@@ -202,16 +239,16 @@ baselines. The model review is not user acceptance or goal completion.
 
 ### Evidence for the simulation/input baseline
 
-| Check | Result |
-| --- | --- |
-| Unit suite | **89/89** |
-| Production build | **clean** |
-| Browser regression on `851cd13` | **24/24**, root-reported |
-| Input lifecycle on `f7d0741` | **7/7 author**, independent DeepSeek **7/7** |
-| Three-seed slice equivalence on `851cd13` | **0 differences** |
-| Simulation CPU diagnostic | W1-W15 only; p95 **0.060041 ms**, max **1.301042 ms** |
-| Ordinary ranged run on `851cd13` | **lost W20 during boss spawn; boss fight unobserved**, 0 HP |
-| Seed-42 paired diagnostic on `db74a8c` | **40,860/40,860 equal**, 45 accepted, W20 loss at **39.917 s** |
+| Check                                     | Result                                                         |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| Unit suite                                | **89/89**                                                      |
+| Production build                          | **clean**                                                      |
+| Browser regression on `851cd13`           | **24/24**, root-reported                                       |
+| Input lifecycle on `f7d0741`              | **7/7 author**, independent DeepSeek **7/7**                   |
+| Three-seed slice equivalence on `851cd13` | **0 differences**                                              |
+| Simulation CPU diagnostic                 | W1-W15 only; p95 **0.060041 ms**, max **1.301042 ms**          |
+| Ordinary ranged run on `851cd13`          | **lost W20 during boss spawn; boss fight unobserved**, 0 HP    |
+| Seed-42 paired diagnostic on `db74a8c`    | **40,860/40,860 equal**, 45 accepted, W20 loss at **39.917 s** |
 
 The paired diagnostic is one fixed simulation body, not a browser or human
 sample. It matched control and observed state, events, RNG values and cumulative
@@ -241,11 +278,11 @@ the approved pre-expansion slice at
 `058951fc84994abb8ee24a2c587bb9232c1c1ccd`, all three seeds finished with zero
 per-step differences:
 
-| Seed | Outcome | Kills | HP | Chain peak |
-| --- | --- | ---: | ---: | ---: |
-| 42 | won | 307 | 10 | 20 |
-| 23 | won | 308 | 7 | 18 |
-| 145 | won | 307 | 10 | 18 |
+| Seed | Outcome | Kills |  HP | Chain peak |
+| ---- | ------- | ----: | --: | ---------: |
+| 42   | won     |   307 |  10 |         20 |
+| 23   | won     |   308 |   7 |         18 |
+| 145  | won     |   307 |  10 |         18 |
 
 This is evidence that the late recovery change did not alter the slice. It is not
 new coverage of the expedition.

@@ -1,12 +1,13 @@
 import "./style.css";
 import { Game } from "./sim";
-import { Renderer } from "./render";
+import { Renderer, type ExpeditionPresentation } from "./render";
 import { Input } from "./input";
 import { Sound } from "./audio";
 import { DT, WEAPONS, MODS, type WeaponId, type ModId } from "./data";
 import {
   ITEM_BY_ID,
   ITEM_IDS,
+  ITEM_CONSTANTS,
   applyStatReward,
   deriveItemStats,
   itemCount,
@@ -24,10 +25,13 @@ import {
   BAG_HP,
   BRANCHES,
   HP_MULT,
+  ELITE_STATS,
+  ELITE_TIMER_SHARE,
   bossForWave,
   clampedWave,
   effectiveWeaponProfile,
   gunTierLabel,
+  isEliteWave,
   modTierLabel,
   nextModDescription,
   quickKind,
@@ -62,6 +66,7 @@ let game: Game | null = null,
   uiAt = 0,
   frames = 0,
   frameTimes: number[] = [],
+  eliteWarningWave = 0,
   title = true,
   doneSaved = false;
 type RecordData = {
@@ -180,18 +185,15 @@ const STAT_REWARD_LABEL: Record<
 const SHAPE_ART: Record<ItemDefinition["shape"], string> = {
   sandal:
     '<path d="M23 26c-8 10-9 25 0 31 9 5 35 0 45-6 8-6 5-17-5-21l-25-9c-4-1-9-1-15 5Z"/><path d="M34 31c15 1 24 7 24 15M38 61h15"/>',
-  coil:
-    '<path d="M27 23c18-11 46 0 45 17-1 15-30 12-38 2-8-11 7-18 19-12 11 7 2 17-9 20"/><path d="M22 54h51M28 62h35"/>',
+  coil: '<path d="M27 23c18-11 46 0 45 17-1 15-30 12-38 2-8-11 7-18 19-12 11 7 2 17-9 20"/><path d="M22 54h51M28 62h35"/>',
   milestone:
     '<path d="M39 57V29h28l7 10-7 10H39"/><path d="M29 66h45"/><path d="m68 17 5 9 10 1-8 7 2 10-9-5-9 5 2-10-8-7 10-1Z"/>',
   board:
     '<path d="M19 47c7-17 23-26 40-23 13 2 22 10 21 22-1 12-14 17-31 15-17-2-30-3-30-14Z"/><path d="M27 44c17 2 27-6 42-9M58 35l5 13"/>',
   trash:
     '<path d="m34 27 27-6 5 10-21 12Z"/><path d="m29 49 22-11 26 13-18 14Z"/><path d="m57 37 19-8 9 13-9 8Z"/><path d="m62 19-4-9 11 2 3-7"/>',
-  ring:
-    '<path d="M31 28 66 17l8 14-30 19Z"/><path d="m31 28 13 22 30-19"/><path d="M35 40c9 1 20 7 23 18"/>',
-  fuse:
-    '<rect x="28" y="31" width="46" height="24" rx="8"/><path d="M38 29v28M55 29v28M74 34c12-2 9-13 18-13"/><path d="m89 16 4 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z"/>',
+  ring: '<path d="M31 28 66 17l8 14-30 19Z"/><path d="m31 28 13 22 30-19"/><path d="M35 40c9 1 20 7 23 18"/>',
+  fuse: '<rect x="28" y="31" width="46" height="24" rx="8"/><path d="M38 29v28M55 29v28M74 34c12-2 9-13 18-13"/><path d="m89 16 4 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z"/>',
   burst:
     '<path d="m58 16 7 15 16-4-8 13 13 9-16 2 1 16-12-11-12 11 1-16-16-2 13-9-8-13 16 4Z"/>',
   shell:
@@ -206,16 +208,14 @@ const SHAPE_ART: Record<ItemDefinition["shape"], string> = {
     '<path d="m28 57 17-32 21 5-4 37Z"/><path d="M43 22c3-5 9-6 12-2l4 6"/><path d="m55 20 6-11M67 24l12-7M72 37l13 1"/>',
   barrel:
     '<path d="M23 31h55v26H23Z"/><path d="M30 31v26M38 31v26M78 36h17v16H78Z"/><path d="m63 39 9 4-9 4"/>',
-  nail:
-    '<path d="M27 62 75 21l11 12-43 41Z"/><path d="m32 48 16 15M74 21l12-7 8 9-8 10"/>',
+  nail: '<path d="M27 62 75 21l11 12-43 41Z"/><path d="m32 48 16 15M74 21l12-7 8 9-8 10"/>',
   "twin-trigger":
     '<path d="M28 31h49v28H28Z"/><path d="M31 36h45M35 31v-9m22 9v-9m14 9v-9"/><path d="m38 63 8-5m8 7 8-5m8 7 8-5"/>',
   magnet:
     '<path d="M30 28v27c0 21 33 21 33 0V28H49v27c0 8 9 8 9 0V28"/><path d="M50 23h21M25 23h21"/>',
   popcorn:
     '<path d="m26 52 11-17 12 9 9-16 12 10 10-7 8 22-20 14-28-3Z"/><path d="m36 35-6-9 11 3 3-12 8 10 10-3-2 10M62 19l8-7 2 11 11 2-7 7"/>',
-  hook:
-    '<path d="M33 31v24c0 17 22 20 29 5 4-9-5-17-13-12-6 4-3 11 3 10"/><path d="M33 31h-12m12 0h12M77 20l8 8-8 8"/>',
+  hook: '<path d="M33 31v24c0 17 22 20 29 5 4-9-5-17-13-12-6 4-3 11 3 10"/><path d="M33 31h-12m12 0h12M77 20l8 8-8 8"/>',
   siphon:
     '<path d="M31 25h47l-9 44H40Z"/><path d="M27 25h55M42 37h25M44 48h20"/><path d="M82 35c12 2 13 17 2 20"/>',
 };
@@ -278,6 +278,7 @@ function start(seed?: number) {
   title = false;
   phase = "";
   doneSaved = false;
+  eliteWarningWave = 0;
   frameTimes = [];
   acc = 0;
   $("title").hidden = true;
@@ -366,10 +367,7 @@ function itemCapText(g: Game, id: ItemId) {
       : "唯一"
     : `${owned} / ${item.cap} 份`;
 }
-function itemDeltaMarkup(
-  before: DerivedItemStats,
-  after: DerivedItemStats,
-) {
+function itemDeltaMarkup(before: DerivedItemStats, after: DerivedItemStats) {
   const additions: string[] = [];
   const items: [string, number, number][] = [
     ["武器伤害", before.weaponFactor, after.weaponFactor],
@@ -427,6 +425,66 @@ function projectedWeapons(
     ),
   }));
 }
+function eliteWarningData(g: Game) {
+  if (
+    g.mode !== "expedition20" ||
+    g.phase !== "fight" ||
+    !isEliteWave(g.wave) ||
+    g.eliteSpawned ||
+    g.eliteEscaped ||
+    g.eliteRenderData
+  )
+    return null;
+  const remaining = Math.max(0, g.duration * ELITE_TIMER_SHARE - g.waveTime);
+  return {
+    wave: g.wave,
+    progress:
+      remaining > 0
+        ? Math.max(
+            0,
+            Math.min(1, g.waveTime / (g.duration * ELITE_TIMER_SHARE)),
+          )
+        : 1,
+    remaining,
+  };
+}
+function playEliteWarning(g: Game) {
+  const warning = eliteWarningData(g);
+  if (!warning || warning.wave === eliteWarningWave) return;
+  eliteWarningWave = warning.wave;
+  sound.play({ type: "elite", value: warning.wave });
+}
+function expeditionPresentation(g: Game): ExpeditionPresentation {
+  const derived = g.derivedItemStats();
+  const elite = g.eliteRenderData;
+  return {
+    elite,
+    eliteWarning: eliteWarningData(g),
+    chests: g.chestRenderData.map((chest) => ({
+      x: chest.x,
+      y: chest.y,
+      source: chest.source,
+      pulse: chest.pulse,
+    })),
+    trailPoints: g.trailPoints.map((point) => ({
+      x: point.x,
+      y: point.y,
+      life: point.life,
+      max: point.max,
+      radius: point.radius,
+    })),
+    weaponProfiles: g.guns.map((gun) =>
+      effectiveWeaponProfile(
+        gun.id,
+        gun.tier,
+        weaponItemModifiers(gun.id, derived),
+      ),
+    ),
+    spikeShellCopies: derived.counts["spike-shell"],
+    spikeShellRadius: ITEM_CONSTANTS.spikeShellRadius,
+    pressureActive: g.pressureTimer > 0,
+  };
+}
 function itemCard(
   g: Game,
   id: ItemId,
@@ -467,7 +525,7 @@ function itemCard(
     <h3>${definition.name}</h3>
     <div class="item-meta"><span>${definition.unique ? "唯一" : `最多 ${definition.cap} 份`}</span><span>持有 ${owned}${definition.unique ? "" : ` / ${definition.cap}`}</span><span>${definition.dependencies.allOf.length || definition.dependencies.anyOf.length ? "有前置" : "无前置"}</span></div>
     <p>${definition.description}</p>
-    <div class="item-delta">${delta|| "特殊机制"}</div>
+    <div class="item-delta">${delta || "特殊机制"}</div>
     ${kind === "offer" ? `<div class="item-buy-row"><span class="item-price">${sold ? "已购入" : `${price} ◈`}</span><small>${sold ? "已结算" : stale ? "当前不可用" : g.money < price ? `还差 ${price - g.money} ◈` : warning || "购买并立即装备"}</small><button class="item-buy" data-buy-item="${index}" ${disabled ? "disabled" : ""}>${sold ? "✓" : "买下"}</button></div>` : ""}
     ${kind === "reward" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-core="${index}" ${stale ? "disabled" : ""}>${stale ? "不可选" : "选这件"}</button><small>${g.money} ◈ 钱包不变 · 不替代商店</small></div>` : ""}
     ${kind === "chest" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-chest="${index}" ${stale ? "disabled" : ""}>${stale ? "已失效" : "确认选择"}</button><small>领取后关闭宝箱</small></div>` : ""}
@@ -498,11 +556,11 @@ function selectItemDetail(selector: string) {
       entry.classList.toggle("selected", entry === card),
     );
     detail.innerHTML =
-      card.querySelector<HTMLElement>(".item-detail-template")?.innerHTML ||
-      "";
+      card.querySelector<HTMLElement>(".item-detail-template")?.innerHTML || "";
     detail.dataset.selected = card.dataset.itemId || "";
-    const sourceAction =
-      card.querySelector<HTMLButtonElement>(".item-detail-template button");
+    const sourceAction = card.querySelector<HTMLButtonElement>(
+      ".item-detail-template button",
+    );
     const detailAction = detail.querySelector<HTMLButtonElement>("button");
     if (sourceAction && detailAction)
       detailAction.onclick = sourceAction.onclick;
@@ -652,8 +710,7 @@ function expeditionShop(g: Game) {
           if (g.buy(Number(b.dataset.buy))) {
             note(`购入 ${b.dataset.buyGunName || "武器"}`);
             expeditionShop(g);
-          }
-          else note("这笔购买无法结算。");
+          } else note("这笔购买无法结算。");
         }),
     );
   $("overlay")
@@ -678,8 +735,7 @@ function expeditionShop(g: Game) {
     .forEach(
       (b) =>
         (b.onclick = () => {
-          if (g.claimCoreReward(Number(b.dataset.claimCore)))
-            expeditionShop(g);
+          if (g.claimCoreReward(Number(b.dataset.claimCore))) expeditionShop(g);
           else note("这件核心已不可领取。");
         }),
     );
@@ -1115,7 +1171,24 @@ Object.defineProperty(window, "scrapMetrics", {
         })()
       : [],
     elite: game?.eliteRenderData ?? null,
+    eliteWarning: game ? eliteWarningData(game) : null,
+    eliteWaveStats:
+      game && isEliteWave(game.wave)
+        ? {
+            ...ELITE_STATS[game.wave],
+            expectedSpawnAt: game.duration * ELITE_TIMER_SHARE,
+          }
+        : null,
     chest: game?.chestRenderData ?? [],
+    trailPoints:
+      game?.trailPoints.map((point) => ({
+        x: point.x,
+        y: point.y,
+        life: point.life,
+        max: point.max,
+        radius: point.radius,
+        damage: point.damage,
+      })) ?? [],
     frozenChest: game?.pendingRewards.chest ?? null,
     queueCounters: game
       ? Object.fromEntries(
@@ -1191,8 +1264,13 @@ function frame(now: number) {
       acc -= DT;
     }
     for (const e of game.drain()) sound.play(e);
+    playEliteWarning(game);
     sync();
-    renderer.render(game, now / 1000);
+    renderer.render(
+      game,
+      now / 1000,
+      game.mode === "expedition20" ? expeditionPresentation(game) : undefined,
+    );
     if (now - uiAt > 100) {
       updateHud();
       layout();

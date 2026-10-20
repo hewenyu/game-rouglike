@@ -1,5 +1,65 @@
 # Validation evidence and boundaries
 
+## P2 Stage D audiovisual integration (2026-10-20)
+
+Stage D adds an expedition-only presentation path without changing simulation,
+combat, RNG, accounting or the frozen slice renderer. `Renderer.render` accepts an
+optional `ExpeditionPresentation`; ordinary SLICE calls remain unchanged. At the
+base commit `b0a8f14`, elite and chest state existed as simulation data, but the
+renderer had no actual path that drew those cues. Stage D now draws:
+
+- the authoritative elite at its real position and HP, with hazard fins, an
+  `ELITE` marker and a live HP bar;
+- the pre-spawn elite warning banner and countdown;
+- physical brass/glass chests at `chestRenderData` coordinates;
+- actual S3 `trailPoints` at their real radius and lifetime;
+- the H3 aura radius, pressure-state cue, distinct pickup/item bullets and the
+  profile-driven saw orbit radius.
+
+Enemy projectiles remain the final world-layer pass, above world effects, blasts
+and the chain readout. `src/audio.ts` now gives elite, chest and item-purchase
+events distinct synthesized identities; item purchases no longer stack the
+legacy weapon-buy chime beneath their cue. The existing mute and voice-cap
+machinery remains in force. `src/main.ts` builds presentation values from
+read-only simulation state and emits the elite warning cue once per elite wave.
+That presentation edge is needed because the simulation event union declares
+`elite`, but the current simulation does not emit it.
+
+| Check                     | Result                                                             |
+| ------------------------- | ------------------------------------------------------------------ |
+| `npm test`                | **166/166**                                                        |
+| `npm run build`           | **clean**                                                          |
+| `git diff --check`        | **clean**                                                          |
+| Existing P2 item fixture  | **2/2**, keyboard and CDP touch, zero page errors                  |
+| Stage D W3 visual fixture | **2/2**, keyboard and CDP touch, zero page errors                  |
+| W3 elite                  | real `maxHp 360`, `radius 28`, defeated through ordinary combat    |
+| W3 chest                  | physical elite chest observed and collected in both modes          |
+| W3 rest                   | frozen two-choice chest observed and claimed in both modes         |
+| Frozen enemy draw hash    | `4ba5006bbeb0835ae7fc1d9ce8deecf1f41926250d2303ebfe1be15e02d80abf` |
+
+The existing item fixture report is `/tmp/p2-stage-d-existing/report.json`. The
+final-source visual report is `/tmp/p2-stage-d-final-visuals/report.json`
+(SHA-256
+`f58178346d3b40adc4c81eabb089663265ed3f89a8d651863682f2edbc27de19`);
+screenshots
+include `keyboard-w3-elite-warning-desktop.png`,
+`keyboard-w3-elite-live-desktop.png`, `keyboard-w3-chest-live-desktop.png`,
+`keyboard-w3-chest-choice.png`, and touch equivalents in that directory. The
+final tree was also checked by the earlier `/tmp/p2-stage-d-visuals/report.json`
+run. Both mobile runs remained at 390px, used real CDP touch, and no visible rest
+action measured below 44x44.
+
+The natural milestone seed `2` run at `/tmp/p2-stage-d-trail3/report.json`
+completed on desktop and recorded **404 real trail observations**, with
+`/tmp/p2-stage-d-trail3/keyboard-w3-trail-desktop.png`. Its touch attempt failed
+before W2 because the `.reward-row` disappeared during a browser fixture race;
+that is a fixture limitation, not evidence of two-mode real-trail coverage.
+
+These checks do not establish audible quality or mix acceptance, visual
+acceptance, physical-phone/Safari behavior, W16-W20 performance, an ordinary-input
+W20 victory, cohort balance, item-led late output or independent review. Browser
+runs were headless. All browser and renderer evidence is author-run.
+
 ## P2 Stage C runnable-UI checkpoint (2026-10-19)
 
 Stage C presents the Stage B contract-v2 item, reward, chest and elite state in
@@ -108,14 +168,14 @@ committed purchase-result display. It is a structural P1 freeze candidate only.
 P2 item rules and their expedition UI now exist, but the combined candidate is
 not independently reviewed, balance-tuned over 20 waves, or user-accepted.
 
-| Check | Result |
-| --- | --- |
-| `npm test` | **105/105** |
-| `npm run build` | **clean** |
-| First-shop on `4190` | **6/6**, no page errors |
-| Input lifecycle on `4190` | **7/7**, no page errors |
-| Paired desktop/touch browser merge fixture | **2/2**, no page errors |
-| Full slice comparator vs `19a66dd` | **0 differences**, 3,422 steps × 3 seeds |
+| Check                                      | Result                                   |
+| ------------------------------------------ | ---------------------------------------- |
+| `npm test`                                 | **105/105**                              |
+| `npm run build`                            | **clean**                                |
+| First-shop on `4190`                       | **6/6**, no page errors                  |
+| Input lifecycle on `4190`                  | **7/7**, no page errors                  |
+| Paired desktop/touch browser merge fixture | **2/2**, no page errors                  |
+| Full slice comparator vs `19a66dd`         | **0 differences**, 3,422 steps × 3 seeds |
 
 The added unit groups are deliberately separate:
 
@@ -467,14 +527,14 @@ show that one source caused all W20 damage, and it makes no boss-balance claim.
 
 W20 accepted-hit timeline:
 
-| Step | Wave time | Source | HP |
-| ---: | ---: | --- | ---: |
-| 38,877 | 6.883s | enemy bullet | 6 -> 5 |
-| 38,955 | 8.183s | enemy bullet | 5 -> 4 |
-| 39,278 | 13.567s | contact | 4 -> 3 |
-| 40,207 | 29.050s | enemy bullet | 3 -> 2 |
-| 40,474 | 33.500s | enemy bullet | 2 -> 1 |
-| 40,859 | 39.917s | enemy bullet | 1 -> 0 |
+|   Step | Wave time | Source       |     HP |
+| -----: | --------: | ------------ | -----: |
+| 38,877 |    6.883s | enemy bullet | 6 -> 5 |
+| 38,955 |    8.183s | enemy bullet | 5 -> 4 |
+| 39,278 |   13.567s | contact      | 4 -> 3 |
+| 40,207 |   29.050s | enemy bullet | 3 -> 2 |
+| 40,474 |   33.500s | enemy bullet | 2 -> 1 |
+| 40,859 |   39.917s | enemy bullet | 1 -> 0 |
 
 This differs from the browser run on `851cd13`, which died at W20 wave time
 `57.583333333331346s` during boss spawn. The two runs used different execution
@@ -483,13 +543,13 @@ change and does not call the earlier strategy stale.
 
 Selected artifacts:
 
-| Artifact | SHA-256 |
-| --- | --- |
-| Harness `/tmp/astra-db74a8c-hurt-diagnostic/harness.ts` | `0201fab7fdf6df3e16c3ade7b22693d0bf2bb5dbf715fb9e0883e06d6b9f8c7b` |
-| Report `/tmp/astra-db74a8c-hurt-diagnostic/paired-full/report.json` | `a341e3d79675d0a5dc5258712291b56af6226b13ce022103d2a5f76a85183797` |
-| Steps `/tmp/astra-db74a8c-hurt-diagnostic/paired-full/steps.jsonl` | `7ccb122d19c946e8fcaa72ebacd98a12e36c8fb00e62be47af35dd76064eab49` |
-| Stdout `/tmp/astra-db74a8c-hurt-diagnostic/execution.stdout.txt` | `6f75d0d4550c04f494c9652a8e18a888f374745590f72572154b47d0f1027798` |
-| Stderr `/tmp/astra-db74a8c-hurt-diagnostic/execution.stderr.txt` | `e8e0f4293947f9c466ee195e0c524587ae350f0abcd314ad788a5c4024b4ee6f` |
+| Artifact                                                                   | SHA-256                                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Harness `/tmp/astra-db74a8c-hurt-diagnostic/harness.ts`                    | `0201fab7fdf6df3e16c3ade7b22693d0bf2bb5dbf715fb9e0883e06d6b9f8c7b` |
+| Report `/tmp/astra-db74a8c-hurt-diagnostic/paired-full/report.json`        | `a341e3d79675d0a5dc5258712291b56af6226b13ce022103d2a5f76a85183797` |
+| Steps `/tmp/astra-db74a8c-hurt-diagnostic/paired-full/steps.jsonl`         | `7ccb122d19c946e8fcaa72ebacd98a12e36c8fb00e62be47af35dd76064eab49` |
+| Stdout `/tmp/astra-db74a8c-hurt-diagnostic/execution.stdout.txt`           | `6f75d0d4550c04f494c9652a8e18a888f374745590f72572154b47d0f1027798` |
+| Stderr `/tmp/astra-db74a8c-hurt-diagnostic/execution.stderr.txt`           | `e8e0f4293947f9c466ee195e0c524587ae350f0abcd314ad788a5c4024b4ee6f` |
 | Environment `/tmp/astra-db74a8c-hurt-diagnostic/execution.environment.txt` | `6202c61a9694113854a769d960a55c0419a871d5a56e87248819de2d466f8a2e` |
 
 The authorized harness was executed once. It completed with a pass report and

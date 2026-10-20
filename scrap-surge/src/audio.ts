@@ -7,6 +7,9 @@ export class Sound {
   pickup = 0;
   lastFire = 0;
   lastTierFire = 0;
+  lastElite = -Infinity;
+  lastChest = -Infinity;
+  lastItemBuy = -Infinity;
   init() {
     if (!this.context) {
       this.context = new AudioContext();
@@ -23,6 +26,9 @@ export class Sound {
   toggle() {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.28;
+  }
+  later(fn: () => void, ms: number) {
+    setTimeout(fn, ms);
   }
   tone(
     f: number,
@@ -77,9 +83,32 @@ export class Sound {
       );
     }
     if (e.type === "hurt") this.tone(145, 45, 0.3, 0.4, "sawtooth");
-    if (e.type === "wave" || e.type === "buy") {
+    if (e.type === "wave" || (e.type === "buy" && !e.item && !e.stat)) {
       this.tone(330, 660, 0.24, 0.3);
       setTimeout(() => this.tone(494, 988, 0.22, 0.15), 90);
+    }
+    if (e.type === "buy" && e.item) {
+      // Item/reward acquisition gets its own short glass-and-brass identity and
+      // must not layer the legacy weapon-buy chime underneath.
+      const t = this.context?.currentTime ?? 0;
+      if (t - this.lastItemBuy < 0.08) return;
+      this.lastItemBuy = t;
+      this.tone(610, 820, 0.12, 0.14, "sine");
+      this.later(() => this.tone(930, 1230, 0.13, 0.09, "triangle"), 55);
+    }
+    if (e.type === "elite") {
+      const t = this.context?.currentTime ?? 0;
+      if (t - this.lastElite < 0.12) return;
+      this.lastElite = t;
+      this.tone(230, 145, 0.28, 0.28, "square");
+      this.later(() => this.tone(185, 92, 0.34, 0.2, "sawtooth"), 100);
+    }
+    if (e.type === "chest") {
+      const t = this.context?.currentTime ?? 0;
+      if (t - this.lastChest < 0.12) return;
+      this.lastChest = t;
+      this.tone(410, 680, 0.16, 0.16, "triangle");
+      this.later(() => this.tone(720, 1080, 0.22, 0.12, "sine"), 80);
     }
     if (e.type === "boss") {
       const stage = e.value ?? 1;

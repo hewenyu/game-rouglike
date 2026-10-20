@@ -3,6 +3,7 @@ import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
 import {
   bossForWave,
   effectiveWeaponProfile,
+  type EffectiveWeaponProfile,
   type GameMode,
   type GunTier,
 } from "./expedition";
@@ -24,6 +25,43 @@ const WEAPON_TINT: Record<WeaponId, string> = {
   coil: "#b6e05a",
   fist: "#f0a05c",
   saw: "#8fb3d9",
+};
+export type EliteRenderDatum = {
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+  radius: number;
+  wave: number;
+  marker: "elite";
+};
+export type ChestRenderDatum = {
+  x: number;
+  y: number;
+  source: "elite" | "boss" | "shop";
+  pulse: number;
+};
+export type TrailRenderDatum = {
+  x: number;
+  y: number;
+  life: number;
+  max: number;
+  radius: number;
+};
+export type EliteWarningDatum = {
+  wave: number;
+  progress: number;
+  remaining: number;
+};
+export type ExpeditionPresentation = {
+  elite: EliteRenderDatum | null;
+  eliteWarning: EliteWarningDatum | null;
+  chests: readonly ChestRenderDatum[];
+  trailPoints: readonly TrailRenderDatum[];
+  weaponProfiles: readonly EffectiveWeaponProfile[];
+  spikeShellCopies: number;
+  spikeShellRadius: number;
+  pressureActive: boolean;
 };
 export class Renderer {
   ctx: CanvasRenderingContext2D;
@@ -505,7 +543,7 @@ export class Renderer {
       c.restore();
     }
   }
-  render(g: Game, t: number) {
+  render(g: Game, t: number, presentation?: ExpeditionPresentation) {
     this.background(t);
     const c = this.ctx,
       w = this.width,
@@ -623,6 +661,93 @@ export class Renderer {
       }
       c.restore();
     }
+    if (g.mode === "expedition20") {
+      if (presentation?.eliteWarning) {
+        const warning = presentation.eliteWarning;
+        c.save();
+        c.globalAlpha = 0.72 + Math.sin(t * 8) * 0.18;
+        this.round(380, 34, 440, 58, 10, "#fff1c8e6", "#d44732", 4);
+        this.text(
+          `精英来袭 · W${String(warning.wave).padStart(2, "0")}`,
+          554,
+          59,
+          20,
+          "#8f2e22",
+        );
+        this.round(856, 43, 66, 30, 6, "#f3d9a8", "#8f2e22", 2);
+        this.text(
+          `${Math.max(0, warning.remaining).toFixed(1)}s`,
+          889,
+          63,
+          14,
+          "#8f2e22",
+        );
+        this.round(416, 70, 368, 8, 4, "#e5c58e", "#6d5138", 1);
+        this.round(
+          418,
+          72,
+          Math.max(0, Math.min(364, 364 * warning.progress)),
+          4,
+          2,
+          "#e05a37",
+          "#0000",
+          0,
+        );
+        c.restore();
+      }
+      for (const point of presentation?.trailPoints ?? []) {
+        const a = Math.max(
+          0,
+          Math.min(1, point.life / Math.max(0.001, point.max)),
+        );
+        c.save();
+        c.globalAlpha = 0.25 + a * 0.6;
+        this.ellipse(
+          point.x,
+          point.y,
+          point.radius,
+          point.radius,
+          "#f6bd6026",
+          "#c78336",
+          3,
+        );
+        this.ellipse(
+          point.x,
+          point.y,
+          point.radius * 0.62,
+          point.radius * 0.62,
+          "#0000",
+          "#fff0a0",
+          2,
+        );
+        this.line(
+          [
+            { x: point.x - 13, y: point.y },
+            { x: point.x, y: point.y - 13 },
+            { x: point.x + 13, y: point.y },
+            { x: point.x, y: point.y + 13 },
+            { x: point.x - 13, y: point.y },
+          ],
+          "#fff0a0",
+          2,
+        );
+        c.restore();
+      }
+      for (const chest of presentation?.chests ?? []) {
+        const lift = Math.sin(t * 4 + chest.pulse * 2) * 2;
+        c.save();
+        c.translate(chest.x, chest.y + lift);
+        // Brass + glass is deliberately unlike the enemy's red-orange orb.
+        this.ellipse(0, 17, 28, 9, "#7b5c3938", "#8a673b", 2);
+        this.round(-24, -18, 48, 34, 7, "#b98031", "#5d471f", 4);
+        this.round(-20, -13, 40, 11, 4, "#f2d67b", "#5d471f", 2);
+        this.round(-5, -13, 10, 29, 3, "#fff3b0", "#5d471f", 2);
+        this.ellipse(0, -3, 5, 7, "#65c9bf", "#36554e", 2);
+        this.round(-19, 7, 38, 8, 2, "#8d682d", "#5d471f", 2);
+        this.text("LOOT", 0, -28, 10, "#70411f", true);
+        c.restore();
+      }
+    }
     for (const point of g.wakePoints) {
       const a = Math.max(0, point.life / point.max);
       c.save();
@@ -656,6 +781,98 @@ export class Renderer {
       c.restore();
     }
     for (const e of g.enemies) this.enemy(e, g.mode);
+    if (
+      g.mode === "expedition20" &&
+      presentation?.elite &&
+      presentation.elite.hp > 0
+    ) {
+      const elite = presentation.elite;
+      const ratio = Math.max(0, Math.min(1, elite.hp / elite.maxHp));
+      c.save();
+      c.translate(elite.x, elite.y);
+      // Hazard fins give the elite a distinct silhouette while the rendered
+      // body position and HP remain the authoritative simulation values.
+      for (const side of [-1, 1]) {
+        c.beginPath();
+        c.moveTo(side * 21, -13);
+        c.lineTo(side * 43, -31);
+        c.lineTo(side * 37, 2);
+        c.lineTo(side * 48, 23);
+        c.lineTo(side * 31, 16);
+        c.closePath();
+        c.fillStyle = "#d94d32";
+        c.fill();
+        c.strokeStyle = "#58291f";
+        c.lineWidth = 3;
+        c.stroke();
+      }
+      this.line(
+        [
+          { x: -10, y: -45 },
+          { x: -5, y: -54 },
+          { x: 0, y: -45 },
+          { x: 5, y: -54 },
+          { x: 10, y: -45 },
+        ],
+        "#ff7a3d",
+        3,
+      );
+      this.round(-34, -66, 68, 5, 2, "#2b302c", "#fff1c8", 1);
+      this.round(-33, -65, 66 * ratio, 3, 1, "#f0603d", "#0000", 0);
+      this.text("ELITE", 0, -72, 11, "#9f2f20", true);
+      c.restore();
+    }
+    if (
+      g.mode === "expedition20" &&
+      presentation &&
+      presentation.spikeShellCopies > 0
+    ) {
+      const r = presentation.spikeShellRadius;
+      c.save();
+      c.globalAlpha = 0.22 + Math.sin(t * 6) * 0.08;
+      c.setLineDash([5, 7]);
+      this.ellipse(g.player.x, g.player.y, r, r, "#0000", "#dff6e8", 3);
+      c.setLineDash([]);
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4 + t * 0.8;
+        this.line(
+          [
+            {
+              x: g.player.x + Math.cos(a) * (r - 5),
+              y: g.player.y + Math.sin(a) * (r - 5),
+            },
+            {
+              x: g.player.x + Math.cos(a) * (r + 4),
+              y: g.player.y + Math.sin(a) * (r + 4),
+            },
+          ],
+          "#dff6e8",
+          2,
+        );
+      }
+      c.restore();
+    }
+    if (
+      g.mode === "expedition20" &&
+      presentation?.pressureActive &&
+      g.phase === "fight"
+    ) {
+      c.save();
+      c.globalAlpha = 0.5;
+      for (let i = 0; i < 3; i++)
+        this.line(
+          [
+            { x: g.player.x - 12 + i * 12, y: g.player.y - 38 },
+            {
+              x: g.player.x - 17 + i * 12 + Math.sin(t * 7 + i) * 4,
+              y: g.player.y - 55 - i * 4,
+            },
+          ],
+          "#fff0a0",
+          3,
+        );
+      c.restore();
+    }
     for (const k of g.corpses) {
       const life = k.life / k.max;
       c.save();
@@ -680,8 +897,7 @@ export class Renderer {
       );
       c.restore();
     }
-    for (const b of g.bullets)
-      if (b.kind !== "enemy") this.bullet(b, t);
+    for (const b of g.bullets) if (b.kind !== "enemy") this.bullet(b, t);
     this.crab(
       g.player.x,
       g.player.y,
@@ -691,14 +907,17 @@ export class Renderer {
       true,
     );
     g.guns.forEach((gun, i) => {
-      const profile = effectiveWeaponProfile(gun.id, gun.tier);
+      const profile =
+        g.mode === "expedition20" && presentation?.weaponProfiles[i]
+          ? presentation.weaponProfiles[i]
+          : effectiveWeaponProfile(gun.id, gun.tier);
       if (gun.id === "saw") {
         for (let n = 0; n < profile.saws; n++) {
           const a = g.time * 4 + (i * Math.PI) / 2 + n * Math.PI;
           this.gun(
             gun.id,
-            g.player.x + Math.cos(a) * 92,
-            g.player.y + Math.sin(a) * 92,
+            g.player.x + Math.cos(a) * profile.sawOrbitRadius,
+            g.player.y + Math.sin(a) * profile.sawOrbitRadius,
             g.time * 9,
             0,
             1,
@@ -945,6 +1164,7 @@ export class Renderer {
       const isTierIIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) >= 3;
       const isTierIIPopcorn = b.mod === "popcorn" && (b.tier ?? 1) === 2;
       const isMagnet = b.mod === "magnet" && b.homing && (b.tier ?? 1) >= 2;
+      const isPickupShot = b.kind === "bonus" && !!b.mod;
       this.line(
         [
           {
@@ -959,9 +1179,11 @@ export class Renderer {
             ? "#ff9b2f"
             : isTierIIPopcorn
               ? "#b7efc8"
-              : b.kind === "bonus"
-                ? "#d5edb2"
-                : "#fceabe",
+              : isPickupShot
+                ? "#b8f2dc"
+                : b.kind === "bonus"
+                  ? "#d5edb2"
+                  : "#fceabe",
         isTierIIPopcorn ? 5 : 4,
       );
       this.ellipse(
@@ -975,9 +1197,11 @@ export class Renderer {
             ? "#f2c76f"
             : isTierIIIPopcorn
               ? "#ffd76a"
-              : b.kind === "bonus"
-                ? "#e9cf4a"
-                : "#fff3c8",
+              : isPickupShot
+                ? "#effff3"
+                : b.kind === "bonus"
+                  ? "#e9cf4a"
+                  : "#fff3c8",
         INK,
         b.kind === "enemy" ? 3 : 1.8,
       );
@@ -1013,6 +1237,18 @@ export class Renderer {
             { x: -8, y: 7 },
           ],
           "#fff0c4",
+          1.6,
+        );
+      }
+      if (isPickupShot && !isMagnet) {
+        this.line(
+          [
+            { x: -12, y: -7 },
+            { x: -12, y: 7 },
+            { x: -4, y: 0 },
+            { x: -12, y: -7 },
+          ],
+          "#4f9f8a",
           1.6,
         );
       }
