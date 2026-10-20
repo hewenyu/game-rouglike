@@ -205,6 +205,8 @@ export type QueueMetrics = {
   // admission-rejection count, not a promise of later processing.
   rejected: number;
   dropped: number;
+  // Queue-specific completed work. Popcorn counts consumed fuel units here,
+  // not emitted bullets; use the popcorn shot counters for emitted output.
   processed: number;
 };
 export type DamageSource =
@@ -218,6 +220,12 @@ export type PendingBlast = {
   dualRing?: boolean;
   tier3?: boolean;
 };
+function sameOfferSet<T>(left: readonly T[], right: readonly T[]) {
+  if (left.length !== right.length) return false;
+  const leftSet = new Set(left);
+  if (leftSet.size !== new Set(right).size) return false;
+  return right.every((value) => leftSet.has(value));
+}
 class SeededStream {
   #state: number;
   constructor(seed: number) {
@@ -416,6 +424,9 @@ export class Game {
   ringCueReady = false;
   magnetPulse = 0;
   magnetPulseCooldown = 0;
+  get popcornFuelConsumed() {
+    return this.popcornDrained;
+  }
   spitterFallbackToBag = 0;
   pocketRejected = 0;
   pocketBatches: PocketBatch[] = [];
@@ -1272,10 +1283,13 @@ export class Game {
     if (this.money < price) return false;
     const weaponBefore = [...this.offers];
     const itemBefore = [...this.itemOffers];
-    const statBefore = [...this.statRewardOffers];
+    const weaponAlt = this.alternateWeaponOffer(weaponBefore);
+    const itemAlt = this.alternateItemOffer(itemBefore);
+    // A reroll must be able to change at least one visible offer row. This is
+    // checked before any stream draw, charge or mutation.
+    if (!weaponAlt && !itemAlt) return false;
     const weaponState = this.weaponShopStream.state();
     const itemState = this.itemShopRandom.state();
-    const statState = this.statRewardRandom.state();
     const weaponNext = this.legalWeaponOffers(
       this.weaponShopStream,
       weaponBefore,
@@ -1290,26 +1304,18 @@ export class Game {
         rng: this.itemShopRandom.next,
       }),
     ];
-    const statNext =
-      this.wave === 1 ? [] : drawStatRewards(3, this.statRewardRandom.next);
-    const changed =
-      weaponNext.some((id, i) => id !== weaponBefore[i]) ||
-      itemNext.some((id, i) => id !== itemBefore[i]) ||
-      statNext.some((id, i) => id !== statBefore[i]);
-    if (!changed) {
+    // A reorder-only result is not a useful offer change.
+    const weaponChanged = !sameOfferSet(weaponNext, weaponBefore);
+    const itemChanged = !sameOfferSet(itemNext, itemBefore);
+    if (!weaponChanged && !itemChanged) {
       this.weaponShopStream.setState(weaponState);
       this.itemShopRandom.setState(itemState);
-      this.statRewardRandom.setState(statState);
-      // A deterministic visible change is preferred to a silent repeated draw.
-      // If no alternate exists in either row, the attempt is rejected without
-      // spending money, counters or RNG state.
-      const itemAlt = this.alternateItemOffer(itemBefore);
-      const weaponAlt = this.alternateWeaponOffer(weaponBefore);
+      // Reordering the same IDs is not a visible offer change. Replace the last
+      // card of exactly one row, with weapons taking priority.
       if (!itemAlt && !weaponAlt) return false;
       if (weaponAlt) {
         weaponNext[weaponNext.length - 1] = weaponAlt;
-      }
-      if (itemAlt) {
+      } else if (itemAlt) {
         itemNext[itemNext.length - 1] = itemAlt;
       }
     }
@@ -1318,9 +1324,6 @@ export class Game {
     this.itemRerollUsed = true;
     this.offers = weaponNext;
     this.itemOffers = itemNext;
-    if (this.pendingRewardChoices.length === 0) {
-      this.statRewardOffers = statNext;
-    }
     this.sold.clear();
     this.soldItems.clear();
     this.purchaseRecords.clear();
@@ -1339,9 +1342,9 @@ export class Game {
       const j = Math.floor(stream.next() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    let offers = pool.slice(0, 4);
+    let offers = pool.slice(0, 3);
     if (unowned.length && !offers.some((id) => unowned.includes(id))) {
-      const index = Math.floor(stream.next() * 4);
+      const index = Math.floor(stream.next() * 3);
       offers[index] = unowned[Math.floor(stream.next() * unowned.length)];
     }
     for (let i = offers.length - 1; i > 0; i--) {
@@ -1373,6 +1376,17 @@ export class Game {
   }
   refillExpeditionOffers() {
     this.offers = this.legalWeaponOffers(this.weaponShopStream, this.offers);
+  }
+  // Test-only deterministic stream controls. These expose no live state to the
+  // player and never alter production offer generation.
+  setWeaponShopStreamState(state: number) {
+    this.weaponShopStream.setState(state);
+  }
+  setItemShopStreamState(state: number) {
+    this.itemShopRandom.setState(state);
+  }
+  setStatRewardStreamState(state: number) {
+    this.statRewardRandom.setState(state);
   }
   refillExpeditionItems() {
     this.itemOffers = drawItemOffers({

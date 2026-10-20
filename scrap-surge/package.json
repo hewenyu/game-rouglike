@@ -16,7 +16,9 @@
     "test:astra:ranged": "node tests/astra-ranged-run.mjs",
     "test:astra:heal-trace": "node tests/astra-heal-trace.cjs",
     "format": "prettier --write src tests vite.config.ts",
-    "test:browser:regression": "node tests/browser-regression.mjs"
+    "test:browser:regression": "node tests/browser-regression.mjs",
+    "test:browser:p2-visuals": "node tests/browser-p2-visuals.mjs",
+    "test:browser:p2-lifecycle": "node tests/browser-p2-lifecycle.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

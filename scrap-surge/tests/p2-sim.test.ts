@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../src/sim";
-import { DT } from "../src/data";
+import { DT, WEAPONS } from "../src/data";
 import {
   drawItemOffers,
   ITEM_CONSTANTS,
@@ -10,6 +10,7 @@ import {
   itemPrice,
 } from "../src/items";
 import type { ItemId } from "../src/items";
+import type { WeaponId } from "../src/data";
 import type { Bullet, ChestPickup, Corpse } from "../src/sim";
 
 const exp = (seed = 123) => new Game(seed, "expedition20");
@@ -271,6 +272,106 @@ test("P2 reroll is independent of pending rewards and rolls back on failure", ()
   assert.equal(g.money < 100, true);
 });
 
+test("P2 free reroll preserves pending core, stat and chest contents without reward RNG draws", () => {
+  const g = empty();
+  g.phase = "shop";
+  g.wave = 8;
+  g.money = 0;
+  g.shopRerollIndex = 0;
+  g.offers = ["shotgun", "coil", "saw"];
+  g.itemOffers = ["worn-sandals", "short-fuse", "long-barrel"];
+  g.statRewardOffers = ["damage", "as", "move"];
+  g.pendingRewardChoices = ["milestone"];
+  g.pendingStatChoices = ["damage"];
+  const pickup = chest(g, "elite");
+  assert.equal(g.collectChest(pickup), true);
+  const sentinel = chest(g, "boss");
+  assert.equal(
+    g.chests.some(
+      (entry) => entry.source === "boss" && entry.id === sentinel.id,
+    ),
+    true,
+  );
+  const statState = g.statRewardRandom.state();
+  const lootState = g.lootRandom.state();
+  const pending = [...g.pendingRewardChoices];
+  const pendingStats = [...g.pendingStatChoices];
+  const statOffers = [...g.statRewardOffers];
+  const frozen = JSON.parse(JSON.stringify(g.frozenChest));
+
+  assert.equal(g.rerollExpedition(), true);
+  assert.equal(g.money, 0);
+  assert.deepEqual(g.pendingRewardChoices, pending);
+  assert.deepEqual(g.pendingStatChoices, pendingStats);
+  assert.deepEqual(g.statRewardOffers, statOffers);
+  assert.deepEqual(g.frozenChest, frozen);
+  assert.equal(g.statRewardRandom.state(), statState);
+  assert.equal(g.lootRandom.state(), lootState);
+  assert.equal(
+    g.chests.some(
+      (entry) => entry.source === "boss" && entry.id === sentinel.id,
+    ),
+    true,
+  );
+});
+
+test("P2 failed reroll leaves money, counters, rows, rewards and all streams atomic", () => {
+  const g = empty();
+  g.phase = "shop";
+  g.wave = 8;
+  g.money = 0;
+  g.shopRerollIndex = 1;
+  g.offers = ["shotgun", "coil", "saw"];
+  g.itemOffers = ["worn-sandals", "short-fuse", "long-barrel"];
+  g.statRewardOffers = ["damage", "as", "move"];
+  g.pendingRewardChoices = ["milestone"];
+  g.pendingStatChoices = ["damage"];
+  g.sold.add(1);
+  g.soldItems.add(2);
+  g.events.push({ type: "buy", kind: "coil", value: 999 });
+  const before = {
+    streams: [
+      g.weaponShopStream.state(),
+      g.itemShopRandom.state(),
+      g.statRewardRandom.state(),
+      g.lootRandom.state(),
+    ],
+    money: g.money,
+    index: g.shopRerollIndex,
+    offers: [...g.offers],
+    items: [...g.itemOffers],
+    statOffers: [...g.statRewardOffers],
+    pending: [...g.pendingRewardChoices],
+    pendingStats: [...g.pendingStatChoices],
+    sold: [...g.sold],
+    soldItems: [...g.soldItems],
+    events: structuredClone(g.events),
+    processed: JSON.stringify(g.queueMetrics),
+  };
+
+  assert.equal(g.rerollExpedition(), false);
+  assert.deepEqual(
+    [
+      g.weaponShopStream.state(),
+      g.itemShopRandom.state(),
+      g.statRewardRandom.state(),
+      g.lootRandom.state(),
+    ],
+    before.streams,
+  );
+  assert.equal(g.money, before.money);
+  assert.equal(g.shopRerollIndex, before.index);
+  assert.deepEqual(g.offers, before.offers);
+  assert.deepEqual(g.itemOffers, before.items);
+  assert.deepEqual(g.statRewardOffers, before.statOffers);
+  assert.deepEqual(g.pendingRewardChoices, before.pending);
+  assert.deepEqual(g.pendingStatChoices, before.pendingStats);
+  assert.deepEqual([...g.sold], before.sold);
+  assert.deepEqual([...g.soldItems], before.soldItems);
+  assert.deepEqual(g.events, before.events);
+  assert.equal(JSON.stringify(g.queueMetrics), before.processed);
+});
+
 test("P2 stale unique reward choices fail revalidation without substitution", () => {
   const g = empty();
   g.phase = "shop";
@@ -310,14 +411,14 @@ test("P2 exact-repeat reroll replacement is visible without mutating prior rows"
   g.wave = 8;
   g.money = 100;
   g.shopRerollIndex = 1;
-  g.weaponShopStream.setState(0);
-  g.itemShopRandom.setState(0);
-  g.statRewardRandom.setState(0);
+  g.setWeaponShopStreamState(0);
+  g.setItemShopStreamState(0);
+  g.setStatRewardStreamState(0);
   g.refillExpeditionOffers();
   g.refillExpeditionItems();
-  g.weaponShopStream.setState(0);
-  g.itemShopRandom.setState(0);
-  g.statRewardRandom.setState(0);
+  g.setWeaponShopStreamState(0);
+  g.setItemShopStreamState(0);
+  g.setStatRewardStreamState(0);
   const oldWeapons = Object.freeze([...g.offers]);
   const oldItems = Object.freeze([...g.itemOffers]);
   const oldStats = Object.freeze([...g.statRewardOffers]);
@@ -328,9 +429,59 @@ test("P2 exact-repeat reroll replacement is visible without mutating prior rows"
   const firstStats = [...g.statRewardOffers];
   assert.equal(g.money, 94);
   assert.notDeepEqual(firstWeapons, oldWeapons);
-  assert.notDeepEqual(firstItems, oldItems);
+  // This synthetic repetition produces the same item IDs. The weapon row is
+  // the guaranteed fallback, and exactly that one row changes.
+  assert.deepEqual(firstItems, oldItems);
+  assert.equal(
+    firstWeapons.filter((id) => oldWeapons.includes(id)).length,
+    2,
+    "weapons-first fallback replaces exactly one card",
+  );
+  assert(
+    firstWeapons.some(
+      (id) =>
+        !oldWeapons.includes(id) &&
+        (Object.keys(WEAPONS) as string[]).includes(id),
+    ),
+  );
   assert.deepEqual(firstStats, oldStats);
-  assert.equal(oldWeapons.length, 4);
+  assert.equal(oldWeapons.length, 3);
+});
+
+test("P2 reroll requires exactly three SIM offers and treats reordered IDs as no change", () => {
+  const g = empty();
+  g.phase = "shop";
+  g.wave = 8;
+  g.money = 100;
+  g.shopRerollIndex = 1;
+  for (let seed = 0; seed < 20; seed++) {
+    g.setWeaponShopStreamState(seed);
+    g.refillExpeditionOffers();
+    assert.equal(g.offers.length, 3);
+    assert.equal(new Set(g.offers).size, 3);
+  }
+
+  g.offers = ["shotgun", "coil", "saw"];
+  g.itemOffers = ["worn-sandals", "short-fuse", "long-barrel"];
+  // Both rows draw the same sets in a different order. The reroll must not
+  // charge for a reorder-only result; the weapon fallback replaces one card.
+  g.setWeaponShopStreamState(0);
+  g.setItemShopStreamState(0);
+  const itemsBefore = [...g.itemOffers];
+  assert.equal(g.rerollExpedition(), true);
+  const legalAlternates = (Object.keys(WEAPONS) as WeaponId[]).filter(
+    (id) => !["shotgun", "coil", "saw"].includes(id),
+  );
+  assert.equal(
+    g.offers.filter((id) => ["shotgun", "coil", "saw"].includes(id)).length,
+    2,
+  );
+  assert.equal(
+    g.offers.filter((id) => !["shotgun", "coil", "saw"].includes(id)).length,
+    1,
+  );
+  assert(g.offers.some((id) => legalAlternates.includes(id)));
+  assert.deepEqual(g.itemOffers, itemsBefore);
 });
 
 test("P2 raw source cash and fuel survive cap merges and convert once", () => {
@@ -497,6 +648,53 @@ test("P2 shotgun F4 fires pellets times volleys and tags every admitted projecti
   assert.equal(new Set(fired.map((b) => b.id)).size, fired.length);
 });
 
+test("P2 popcorn cap accounting keeps fuel consumption distinct from emitted shots", () => {
+  const full = empty();
+  full.inventory = inventory("scrap-popcorn");
+  full.guns = [];
+  enemy(full, 700, 450, 1000);
+  for (let i = 0; i < 420; i++)
+    full.bullets.push({ ...bonusBullet(10000 + i), mod: "magnet" });
+  full.popcornCredits = 1;
+  const existing = full.bullets.map((bullet) => ({
+    id: bullet.id,
+    damage: bullet.damage,
+    mod: bullet.mod,
+    source: bullet.source,
+  }));
+  full.drainExpeditionPopcorn();
+  assert.equal(full.popcornCredits, 0);
+  assert.equal(full.popcornFuelConsumed, 1);
+  assert.equal(full.queueMetrics.popcorn.processed, 1);
+  assert.equal(full.popcornShotsAdmitted, 0);
+  assert.equal(full.popcornShotsRejected, 2);
+  assert.equal(full.expeditionBonusBudget, 2);
+  assert.deepEqual(
+    full.bullets.map((bullet) => ({
+      id: bullet.id,
+      damage: bullet.damage,
+      mod: bullet.mod,
+      source: bullet.source,
+    })),
+    existing,
+  );
+
+  const partial = empty();
+  partial.inventory = inventory("scrap-popcorn");
+  partial.guns = [];
+  enemy(partial, 700, 450, 1000);
+  for (let i = 0; i < 419; i++)
+    partial.bullets.push({ ...bonusBullet(20000 + i), mod: "magnet" });
+  partial.popcornCredits = 1;
+  partial.drainExpeditionPopcorn();
+  assert.equal(partial.popcornCredits, 0);
+  assert.equal(partial.popcornFuelConsumed, 1);
+  assert.equal(partial.queueMetrics.popcorn.processed, 1);
+  assert.equal(partial.popcornShotsAdmitted, 1);
+  assert.equal(partial.popcornShotsRejected, 1);
+  assert.equal(partial.bullets.length, 420);
+});
+
 test("P2 expedition movement applies derived moveFactor and slice movement stays frozen", () => {
   const expedition = empty();
   expedition.inventory = inventory(
@@ -561,7 +759,10 @@ test("P2 pierce tagging only mutates admitted new bullets at the shared cap", ()
   shotgun.weapons(DT);
   assert.equal(shotgun.bullets.length, 420);
   assert.equal(shotgun.bullets[414].pierce, 0);
-  assert.equal(shotgun.bullets.slice(415).filter((b) => b.pierce === 1).length, 5);
+  assert.equal(
+    shotgun.bullets.slice(415).filter((b) => b.pierce === 1).length,
+    5,
+  );
 });
 
 test("P2 H2 only triggers on accepted nonlethal contact and pressure changes both channels", () => {

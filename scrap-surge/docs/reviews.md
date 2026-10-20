@@ -26,6 +26,39 @@ are the verifiable evidence. This is not one model roleplaying three.
 Author self-check is not independent review. The independent DeepSeek review must
 run in a separate context against a frozen commit.
 
+## P2 repair consent on `27c3503` (2026-10-20)
+
+Root Astra proposed the bounded R1-R5 repair recorded at
+`/tmp/p2-27-repair-contract.txt`. Fresh actual Opus task
+`p2_opus_repair_consent_once` and fresh independent DeepSeek task
+`p2_ds_repair_adjudicate_once` both explicitly approved the repair scope. These
+were consent/adjudication decisions, not reviews of unfinished code.
+
+- **R1:** The simulation generated four weapon offers while the UI showed
+  three; the shared reroll also drew from stat-reward RNG and could charge while
+  the visible offer set stayed unchanged. The approved repair is exactly three
+  simulation offers, set-based change detection, no reward-stream mutation,
+  prevalidation before RNG/spend, and one deterministic weapon-first fallback.
+- **R2:** Fresh adjudication rejected the claim that the existing popcorn
+  behavior was a P1 combat defect. The approved v2 contract explicitly consumes
+  a fuel unit even when the 420-bullet cap rejects one or both shots. The real
+  defect was ambiguous documentation and a browser fixture that treated
+  `queueCounters.popcorn.processed` as emitted-shot evidence. The approved repair
+  keeps combat behavior, exposes `popcornFuelConsumed`, labels `processed` as
+  consumed fuel units, and requires real admitted-shot evidence. This issue was
+  corrected in naming, tests and docs; it was **not** faked as a gameplay fix.
+- **R3-R5:** Opus and DeepSeek agreed that obsolete onboarding, undersized mobile
+  text, remote/incomplete selected detail, unexplained `P` language and missing
+  central proc numbers needed bounded presentation repairs. No balance or rule
+  change was authorized.
+
+The three-offer generation and exact-set reroll fix do change the simulation
+schedule to the already approved contract. The popcorn counter work does not
+change combat. The frozen `27c3503` Stage D review is blocked by these findings;
+a fresh Opus and independent DeepSeek review of the new repair SHA remains
+required. Author tests and browser runs are not that review, and this repair
+scope is not P3 balance approval, user acceptance or a performance claim.
+
 ## P1 code approval and docs-repair gate: `db0cd9c` (2026-10-19)
 
 Root, the fresh actual Opus task `p1_opus_final_once`, and the fresh actual independent

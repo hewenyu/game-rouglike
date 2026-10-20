@@ -196,6 +196,29 @@ async function layoutReport(page) {
       disabled: button.disabled,
       ...rect(button),
     }));
+    const font = (selector) => {
+      const node = document.querySelector(selector);
+      return node ? parseFloat(getComputedStyle(node).fontSize) : null;
+    };
+    const cardLabelOverflow = [
+      ...document.querySelectorAll(".p2-item-card .item-code"),
+    ].filter((node) => node.scrollWidth > node.clientWidth + 1).length;
+    const detail = document.querySelector("#selected-item-detail");
+    const reward = document.querySelector(".reward-row");
+    const restSections = [...document.querySelectorAll(".p2-rest > *")];
+    const nestedScroll = [...document.querySelectorAll(".p2-rest *")].filter(
+      (node) => {
+        const style = getComputedStyle(node);
+        const scrollable = [style.overflowX, style.overflowY].some(
+          (value) => value === "scroll" || value === "auto",
+        );
+        return (
+          scrollable &&
+          (node.scrollHeight > node.clientHeight + 2 ||
+            node.scrollWidth > node.clientWidth + 2)
+        );
+      },
+    ).length;
     return {
       viewportWidth: window.innerWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
@@ -205,15 +228,81 @@ async function layoutReport(page) {
         document.querySelector(".p2-rest .shop-footer"),
       ).position,
       buttons,
+      nestedScroll,
+      cardLabelOverflow,
+      cardCounts: {
+        weapon: document.querySelectorAll(".weapon-market .weapon-card").length,
+        item: document.querySelectorAll(".shop-item-section .p2-item-card")
+          .length,
+        reward: document.querySelectorAll(".reward-row .p2-item-card").length,
+        stat: document.querySelectorAll(".stat-choice").length,
+      },
+      fonts: {
+        cardTitle: font(".p2-item-card h3"),
+        cardLabel: font(".p2-item-card .item-code"),
+        cardMeta: font(".p2-item-card .item-meta"),
+        detailDescription: font("#selected-item-detail p"),
+        detailEffect: font("#selected-item-detail .detail-proc"),
+      },
+      detail: detail
+        ? {
+            id: detail.dataset.selected,
+            text: detail.innerText,
+            directlyAfterReward:
+              !!reward && detail.previousElementSibling === reward,
+            rewardOffset:
+              reward && restSections.includes(reward)
+                ? restSections.indexOf(detail) - restSections.indexOf(reward)
+                : null,
+          }
+        : null,
+      noise: document.body.innerText,
+      nextReachable: (() => {
+        const next = document.querySelector("#next");
+        if (!next) return false;
+        const overlay = document.querySelector("#overlay");
+        const prior = overlay.scrollTop;
+        overlay.scrollTop = overlay.scrollHeight;
+        const rect = next.getBoundingClientRect();
+        overlay.scrollTop = prior;
+        return rect.top >= 0 && rect.bottom <= window.innerHeight + 1;
+      })(),
     };
   });
 }
 
-function assertLayout(layout, mobile) {
+function assertLayout(layout, mobile, allowStatDetail = false) {
   if (mobile) {
     assert.equal(layout.documentScrollWidth, layout.viewportWidth);
     assert(layout.overlayScrollWidth <= layout.overlayClientWidth + 1);
     assert.equal(layout.footerPosition, "static");
+    assert.equal(layout.cardCounts.weapon, 3);
+    assert(layout.cardCounts.item >= 1 && layout.cardCounts.item <= 3);
+    assert(
+      layout.cardCounts.reward <= 3 || layout.cardCounts.stat === 3,
+      "a reward row must expose at most three item cards or three stat choices",
+    );
+    assert(layout.fonts.cardTitle >= 14);
+    assert(layout.fonts.cardLabel >= 11);
+    assert(layout.fonts.cardMeta >= 11);
+    if (!allowStatDetail) {
+      assert(layout.fonts.detailDescription >= 14);
+      assert(layout.fonts.detailEffect >= 14);
+    }
+    assert.equal(layout.nestedScroll, 0);
+    assert.equal(
+      layout.cardLabelOverflow,
+      0,
+      "P2 family labels must not be ellipsized",
+    );
+    assert(layout.nextReachable);
+    const noiseMatch = layout.noise.match(
+      /(派生|冻住|重新校验|现金替代|×P|\bF4\b|因果根)/,
+    );
+    assert(
+      !noiseMatch,
+      `player-facing engineering prose: ${noiseMatch?.[0]}\n${layout.noise}`,
+    );
   }
   const undersized = layout.buttons.filter(
     (button) => button.visible && (button.width < 44 || button.height < 44),
@@ -255,6 +344,23 @@ async function claimCore(page, mobile, state) {
 
 async function meaningfulPurchases(page, mobile, state) {
   const purchased = [];
+  if ((state.rewards?.stats?.length ?? 0) > 0) {
+    await scrollTo(page, ".stat-choice-row");
+    if (mobile) await page.locator(".stat-choice").first().tap();
+    else await page.locator(".stat-choice").first().click();
+    await page.waitForFunction(
+      (before) =>
+        window.scrapMetrics.rewards.stats.length === 0 &&
+        JSON.stringify(window.scrapMetrics.statRewards) !==
+          JSON.stringify(before),
+      state.statRewards,
+    );
+    purchased.push({
+      kind: "stat",
+      id: state.rewards.stats[0],
+      after: await metrics(page),
+    });
+  }
   const itemIndex = state.itemOffers.findIndex((id) =>
     ITEM_PREFERENCE.includes(id),
   );
@@ -386,6 +492,9 @@ async function run(browser, kind) {
         }
         const layout = await layoutReport(page);
         assertLayout(layout, mobile);
+        assert(layout.cardCounts.reward > 0);
+        assert(layout.detail?.directlyAfterReward);
+        assert(/(当前效果|效果数值|机制强度)/.test(layout.detail?.text ?? ""));
         const core = await claimCore(page, mobile, state);
         await screenshot(
           page,
@@ -405,12 +514,12 @@ async function run(browser, kind) {
       if (state.phase === "shop" && state.wave === 2 && !restDone) {
         await driver.release();
         const layout = await layoutReport(page);
-        assertLayout(layout, mobile);
+        assertLayout(layout, mobile, layout.cardCounts.stat === 3);
         await screenshot(page, mobile ? "touch" : "keyboard", "w2-rest-before");
         const purchases = await meaningfulPurchases(page, mobile, state);
         const after = await metrics(page);
         if ((after.inventory["scrap-popcorn"] ?? 0) > 0)
-          assert(after.queueCounters.popcorn.processed > 0);
+          assert(after.popcornShotsAdmitted > 0);
         await scrollTo(page, ".shop-item-section");
         await screenshot(page, mobile ? "touch" : "keyboard", "w2-rest-after");
         restReports.push({
@@ -432,8 +541,25 @@ async function run(browser, kind) {
       }
       if (state.phase === "shop" && state.wave === 3) {
         await driver.release();
+        const chestLayout = await layoutReport(page);
+        assertLayout(chestLayout, mobile);
         observed.frozenChest = state.rewards?.chest ?? null;
         if (observed.frozenChest) {
+          assert(observed.frozenChest.itemIds.length > 0);
+          assert(observed.frozenChest.itemIds.length <= 3);
+          assert(chestLayout.detail?.directlyAfterReward);
+          assert.equal(
+            chestLayout.detail?.id,
+            observed.frozenChest.itemIds.find((id) => {
+              const index = observed.frozenChest.itemIds.indexOf(id);
+              return observed.frozenChest.available[index];
+            }),
+          );
+          assert(
+            /(数值变化|效果数值|当前未生效)/.test(
+              chestLayout.detail?.text ?? "",
+            ),
+          );
           await screenshot(
             page,
             mobile ? "touch" : "keyboard",

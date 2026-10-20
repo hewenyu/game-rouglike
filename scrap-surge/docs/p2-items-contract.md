@@ -124,7 +124,28 @@ coinAccumulator %= 1000
 If a conversion curse exists, apply its integer multiplier to rateMilli; never apply it to fuelUnits. Store rawCash, fuelUnits, and collected separately on each scrap. Collection must be guarded by collected, not by rawCash > 0. A zero-coin collection still creates pickup FX and still triggers fuel-dependent procs. The fractional wallet remainder carries across collections.
 When the 250-object scrap cap is reached, merge rawCash and fuelUnits into an existing uncollected object, or create a new object after purging collected ones. Never revive a collected object merely because it is the last array element. No cash or fuel is lost at the cap. Boss scrap has fuelUnits = 1.
 Sweep collection credits cash and adds the collected fuel to a separate sweptFuelUnits metric exactly once, but does not enqueue popcorn, magnet, or other fight-only proc work. The player still receives full pickup FX even when the fractional cash delta is zero. Sweep work cannot carry into the next wave.
-Reroll exact-repeat fallback deterministic order: weapons first, items second, catalog order, lowest unoffered legal candidate replacing last card in that row. If no row has an alternate, disable reroll without draws/spend/counters/events. Existing sold cards may become eligible after a reroll per normal purchase rules.
+Reroll is atomic and exact-set based: each shop row has exactly three
+distinct offers unless the legal pool itself is smaller. The shared reroll first
+prevalidates affordability and a legal alternate before any stream draw, charge
+or mutation. Success requires a changed offer set in at least one row; a
+reordering of the same IDs is not a change. If a fresh draw repeats the exact set
+in both rows, the deterministic fallback replaces the last card of exactly one
+row, with weapons first and items second in catalog order. If neither row has an
+alternate, the reroll returns without draws, spending, counters, reward changes
+or events. A failed attempt leaves money, streams, rows, purchase state,
+counters, rewards and events unchanged. Rerolls never consume stat-reward RNG or
+mutate pending rewards. `tests/p2-sim.test.ts` pins these properties.
 
-Terminology disclosure: the proposed counter named deferred counts requests rejected/discarded AT ADMISSION, not a hidden promise of future processing. Display/test it as admission rejection; dropped counts previously admitted work canceled at terminal/wave boundary. Processed/output counters count only actual work. This clarification does not change queue rules. Numeric under1024 wave estimate above is an unmeasured review rationale, not proof; P3 saturation profiling must check it.
+For popcorn, `queueCounters.popcorn.processed` counts consumed fuel units, not
+emitted bullets. `popcornFuelConsumed` exposes the same quantity, while
+`popcornShotsAdmitted` and `popcornShotsRejected` report admitted and
+cap-rejected shot output separately.
+
+Terminology disclosure: the proposed counter named deferred counts requests
+rejected/discarded AT ADMISSION, not a hidden promise of future processing.
+Display/test it as admission rejection; dropped counts previously admitted work
+canceled at terminal/wave boundary. Processed/output counters count only actual
+work. This clarification does not change queue rules. The numeric under-1024
+wave estimate above is an unmeasured review rationale, not proof; P3 saturation
+profiling must check it.
 Opus presentation guidance: full pickup FX even fractionalcoin; start-wave control near top/reward and accessible by scrolling, not below every card. P1 source has no current shotguncountbug; F4 introduces the need for pellets*shots.

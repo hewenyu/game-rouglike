@@ -2003,14 +2003,19 @@ h1 > i {
 }
 .rest-section-heading > .text-button {
   flex: none;
+  min-width: 44px;
   min-height: 44px;
 }
 .reward-row {
   padding: 12px;
   border: 2px solid #a87942;
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, #fff3cf 0 55%, #f6dfad 55% 56%, #fff3cf 56%);
+  background: linear-gradient(
+    135deg,
+    #fff3cf 0 55%,
+    #f6dfad 55% 56%,
+    #fff3cf 56%
+  );
   box-shadow: 3px 3px 0 #b09a6f;
 }
 .rest-choice-section.reward-row {
@@ -2051,13 +2056,16 @@ h1 > i {
 }
 .p2-item-card.rarity-uncommon {
   border-top-right-radius: 0;
-  background:
-    linear-gradient(135deg, #f9edc6 0 93%, #a8c59d 93%);
+  background: linear-gradient(135deg, #f9edc6 0 93%, #a8c59d 93%);
 }
 .p2-item-card.rarity-rare {
   border: 4px double var(--ink);
   background:
-    linear-gradient(#f1c56f 0 4px, transparent 4px calc(100% - 4px), #f1c56f calc(100% - 4px)),
+    linear-gradient(
+      #f1c56f 0 4px,
+      transparent 4px calc(100% - 4px),
+      #f1c56f calc(100% - 4px)
+    ),
     #f9e8b9;
 }
 .p2-item-card.sold {
@@ -2254,7 +2262,53 @@ h1 > i {
   color: var(--ink);
 }
 .item-detail-panel {
+  display: block;
+  margin-top: 8px;
+  padding: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  background: #f4e3b5;
+  box-shadow: 2px 2px 0 #ab956d;
+}
+.item-detail-panel:empty {
   display: none;
+}
+.item-detail-panel .detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+.item-detail-panel h4 {
+  margin: 5px 0;
+  font-size: 18px;
+}
+.item-detail-panel p {
+  margin: 4px 0 8px;
+  color: #4e5c4d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.item-detail-panel .detail-tags {
+  font-size: 12px;
+}
+.item-detail-panel .item-code,
+.item-detail-panel .rarity-label {
+  font-size: 12px;
+}
+.detail-proc {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  padding: 8px;
+  border-left: 4px solid #d78643;
+  background: #fff7dc;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.detail-proc small {
+  font-size: 12px;
+  line-height: 1.4;
 }
 .row-actions {
   display: flex;
@@ -2423,6 +2477,7 @@ h1 > i {
   }
   .rest-section-heading {
     align-items: flex-start;
+    flex-wrap: wrap;
     gap: 8px;
   }
   .rest-start-row {
@@ -2449,7 +2504,7 @@ h1 > i {
   .p2-rest .weapon-cards,
   .p2-rest .owned-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
+    gap: 6px;
   }
   .p2-item-card {
     border-width: 2px;
@@ -2463,11 +2518,12 @@ h1 > i {
     padding: 4px 5px 1px;
   }
   .item-code {
-    font-size: 6px;
+    font-size: 11px;
     letter-spacing: 0;
   }
   .rarity-label {
-    display: none;
+    display: inline;
+    font-size: 11px;
   }
   .item-art {
     min-height: 55px;
@@ -2477,32 +2533,35 @@ h1 > i {
     height: 55px;
   }
   .rarity-mark {
-    right: 3px;
-    bottom: 1px;
-    font-size: 5px;
+    display: none;
   }
   .p2-item-card h3 {
-    margin: 1px 5px 3px;
-    font-size: 12px;
+    margin: 2px 6px 3px;
+    font-size: 14px;
   }
   .item-meta {
-    gap: 2px;
-    padding: 0 5px;
-    font-size: 6px;
+    gap: 3px;
+    padding: 0 6px;
+    font-size: 11px;
   }
   .item-meta > span {
     padding: 1px 2px;
   }
   .p2-item-card > p {
-    display: -webkit-box;
-    overflow: hidden;
-    margin: 4px 5px;
-    font-size: 7px;
-    line-height: 1.45;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
+    display: none;
   }
   .item-delta {
+    display: block;
+    margin: 5px 6px;
+    padding: 4px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .item-delta > b {
+    display: block;
+    font-size: 11px;
+  }
+  .item-delta > span {
     display: none;
   }
   .item-buy-row,
@@ -2519,30 +2578,32 @@ h1 > i {
   .reward-choice-row small {
     width: 100%;
     flex-basis: 100%;
-    font-size: 6px;
+    font-size: 11px;
   }
   .item-buy {
     width: 100%;
     min-height: 44px;
     margin-top: 1px;
     padding: 3px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .stat-choice {
     min-height: 102px;
-    padding: 5px;
+    padding: 7px;
   }
   .stat-choice > span {
-    font-size: 7px;
-  }
-  .stat-choice > strong {
     font-size: 11px;
   }
+  .stat-choice > strong {
+    font-size: 13px;
+  }
   .stat-choice > small {
-    display: none;
+    display: block;
+    font-size: 11px;
+    line-height: 1.4;
   }
   .stat-weapons {
-    font-size: 6px;
+    display: none;
   }
   .inventory-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2552,8 +2613,8 @@ h1 > i {
   }
   .item-detail-panel {
     display: block;
-    margin-top: 10px;
-    padding: 10px;
+    margin-top: 8px;
+    padding: 12px;
     border: 2px solid var(--ink);
     border-radius: 7px;
     background: #f4e3b5;
@@ -2569,20 +2630,41 @@ h1 > i {
     gap: 5px;
   }
   .item-detail-panel h4 {
-    margin: 4px 0;
-    font-size: 16px;
+    margin: 5px 0;
+    font-size: 18px;
   }
   .item-detail-panel p {
-    margin: 3px 0 6px;
+    margin: 4px 0 8px;
     color: #4e5c4d;
-    font-size: 9px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.5;
   }
   .item-detail-panel .detail-tags {
-    font-size: 8px;
+    font-size: 12px;
   }
   .item-detail-panel .rarity-label {
     display: inline;
+    font-size: 12px;
+  }
+  .item-detail-panel .item-code {
+    font-size: 12px;
+  }
+  .detail-proc {
+    display: grid;
+    gap: 4px;
+    margin: 8px 0;
+    padding: 8px;
+    border-left: 4px solid #d78643;
+    background: #fff7dc;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .detail-proc small {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .detail-action {
+    font-size: 13px;
   }
   .row-actions {
     align-items: stretch;

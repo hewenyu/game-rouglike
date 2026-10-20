@@ -42,7 +42,10 @@ function steer(state) {
   let nearest = 112,
     near = null;
   for (const enemy of state.enemyPositions || []) {
-    const d = Math.hypot(enemy.x - state.position.x, enemy.y - state.position.y);
+    const d = Math.hypot(
+      enemy.x - state.position.x,
+      enemy.y - state.position.y,
+    );
     if (d < nearest) {
       nearest = d;
       near = enemy;
@@ -148,6 +151,29 @@ async function layoutReport(page) {
         visible: r.width > 0 && r.height > 0,
       };
     };
+    const font = (selector) => {
+      const node = document.querySelector(selector);
+      return node ? parseFloat(getComputedStyle(node).fontSize) : null;
+    };
+    const detail = document.querySelector("#selected-item-detail");
+    const reward = document.querySelector(".reward-row");
+    const rewardCards = [
+      ...document.querySelectorAll(".reward-row .p2-item-card"),
+    ];
+    const restSections = [...document.querySelectorAll(".p2-rest > *")];
+    const nestedScroll = [...document.querySelectorAll(".p2-rest *")].filter(
+      (node) => {
+        const style = getComputedStyle(node);
+        const scrollable = [style.overflowX, style.overflowY].some(
+          (value) => value === "scroll" || value === "auto",
+        );
+        return (
+          scrollable &&
+          (node.scrollHeight > node.clientHeight + 2 ||
+            node.scrollWidth > node.clientWidth + 2)
+        );
+      },
+    ).length;
     const buttons = [
       ...document.querySelectorAll(
         ".p2-rest .item-buy, .p2-rest .text-button, .p2-rest #next-fast, .p2-rest #next-compact, .p2-rest #next",
@@ -164,20 +190,21 @@ async function layoutReport(page) {
       ...rect(button),
     }));
     const cardNodes = [...document.querySelectorAll(".p2-item-card")];
-    const cards = cardNodes.map(
-      (card) => ({
-        id: card.dataset.itemId,
-        ...rect(card),
-      }),
-    );
+    const cards = cardNodes.map((card) => ({
+      id: card.dataset.itemId,
+      ...rect(card),
+    }));
+    const cardLabelOverflow = [
+      ...document.querySelectorAll(".p2-item-card .item-code"),
+    ].filter((node) => node.scrollWidth > node.clientWidth + 1).length;
     return {
       viewportWidth: window.innerWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
       overlayClientWidth: document.querySelector("#overlay")?.clientWidth ?? 0,
       overlayScrollWidth: document.querySelector("#overlay")?.scrollWidth ?? 0,
-      footerPosition:
-        getComputedStyle(document.querySelector(".p2-rest .shop-footer"))
-          .position,
+      footerPosition: getComputedStyle(
+        document.querySelector(".p2-rest .shop-footer"),
+      ).position,
       unselectableCards: cardNodes.filter(
         (card) => !card.hasAttribute("data-select-item"),
       ).length,
@@ -187,8 +214,48 @@ async function layoutReport(page) {
       cardOverflow: cards.some(
         (card) => card.left < 0 || card.right > window.innerWidth + 0.5,
       ),
+      cardLabelOverflow,
       cards,
       buttons,
+      cardCounts: {
+        weapon: document.querySelectorAll(".weapon-market .weapon-card").length,
+        item: document.querySelectorAll(".shop-item-section .p2-item-card")
+          .length,
+        reward: rewardCards.length,
+        stat: document.querySelectorAll(".stat-choice").length,
+      },
+      fonts: {
+        cardTitle: font(".p2-item-card h3"),
+        cardLabel: font(".p2-item-card .item-code"),
+        cardMeta: font(".p2-item-card .item-meta"),
+        detailDescription: font("#selected-item-detail p"),
+        detailEffect: font("#selected-item-detail .detail-proc"),
+      },
+      detail: detail
+        ? {
+            id: detail.dataset.selected,
+            group: detail.previousElementSibling?.className ?? "",
+            text: detail.innerText,
+            directlyAfterReward:
+              !!reward && detail.previousElementSibling === reward,
+            rewardOffset:
+              reward && restSections.includes(reward)
+                ? restSections.indexOf(detail) - restSections.indexOf(reward)
+                : null,
+          }
+        : null,
+      noise: document.body.innerText,
+      nestedScroll,
+      nextReachable: (() => {
+        const next = document.querySelector("#next");
+        if (!next) return false;
+        const overlay = document.querySelector("#overlay");
+        const prior = overlay.scrollTop;
+        overlay.scrollTop = overlay.scrollHeight;
+        const rect = next.getBoundingClientRect();
+        overlay.scrollTop = prior;
+        return rect.top >= 0 && rect.bottom <= window.innerHeight + 1;
+      })(),
     };
   });
 }
@@ -202,6 +269,11 @@ function assertLayout(layout, mobile) {
     );
     assert(layout.overlayScrollWidth <= layout.overlayClientWidth + 1);
     assert(!layout.cardOverflow, "P2 item cards must stay inside 390px");
+    assert.equal(
+      layout.cardLabelOverflow,
+      0,
+      "P2 family labels must not be ellipsized",
+    );
     assert.equal(layout.unselectableCards, 0);
     assert.equal(
       layout.visibleDetailTemplates,
@@ -212,6 +284,23 @@ function assertLayout(layout, mobile) {
       layout.footerPosition,
       "static",
       "mobile P2 footer must not cover selectable content",
+    );
+    assert.equal(layout.cardCounts.weapon, 3);
+    assert(layout.cardCounts.item >= 1 && layout.cardCounts.item <= 3);
+    assert(layout.cardCounts.reward <= 3 || layout.cardCounts.stat === 3);
+    assert(layout.fonts.cardTitle >= 14);
+    assert(layout.fonts.cardLabel >= 11);
+    assert(layout.fonts.cardMeta >= 11);
+    assert(layout.fonts.detailDescription >= 14);
+    assert(layout.fonts.detailEffect >= 14);
+    assert.equal(layout.nestedScroll, 0);
+    assert(layout.nextReachable);
+    const noiseMatch = layout.noise.match(
+      /(派生|冻住|重新校验|现金替代|×P|\bF4\b|因果根)/,
+    );
+    assert(
+      !noiseMatch,
+      `player-facing engineering prose: ${noiseMatch?.[0]}\n${layout.noise}`,
     );
   }
   const visibleButtons = layout.buttons.filter((button) => button.visible);
@@ -266,14 +355,19 @@ async function run(browser, kind) {
         await driver.release();
         await scrollTo(page, ".reward-row");
         const coreChoices = state.rewards?.items ?? [];
-        const coreId = CORE_PREFERENCE.find((id) =>
-          coreChoices.includes(id),
-        );
+        const coreId = CORE_PREFERENCE.find((id) => coreChoices.includes(id));
         assert(coreId, `W1 must offer a natural proc core: ${coreChoices}`);
         const coreIndex = coreChoices.indexOf(coreId);
         const before = state;
         const layout = await layoutReport(page);
         assertLayout(layout, mobile);
+        assert(layout.cardCounts.reward > 0);
+        assert(layout.detail?.directlyAfterReward);
+        assert(
+          coreChoices.includes(layout.detail?.id),
+          `default detail must be an available W1 core: ${layout.detail?.id}`,
+        );
+        assert(/(当前效果|效果数值|机制强度)/.test(layout.detail?.text ?? ""));
         await page.screenshot({
           path: join(OUTPUT_DIR, `${kind}-w1-core-before.png`),
           fullPage: true,
@@ -284,9 +378,9 @@ async function run(browser, kind) {
             .locator(`.reward-row .p2-item-card[data-item-card="${coreIndex}"]`)
             .click({ position: { x: 8, y: 8 } });
           assert.equal(
-            await page.locator("#selected-item-detail").getAttribute(
-              "data-selected",
-            ),
+            await page
+              .locator("#selected-item-detail")
+              .getAttribute("data-selected"),
             coreId,
           );
         }
@@ -319,7 +413,8 @@ async function run(browser, kind) {
         coreClaimed = true;
         await activate(page, mobile, "#next-fast");
         await page.waitForFunction(
-          () => window.scrapMetrics.phase === "fight" &&
+          () =>
+            window.scrapMetrics.phase === "fight" &&
             window.scrapMetrics.wave === 2,
         );
         continue;
@@ -341,25 +436,40 @@ async function run(browser, kind) {
         assert(await itemButton.isVisible());
         assert(await itemButton.isEnabled());
         await scrollTo(page, ".shop-item-section");
+        await page
+          .locator(
+            `.shop-item-section .p2-item-card[data-item-card="${itemIndex}"]`,
+          )
+          .click({ position: { x: 8, y: 8 } });
+        assert.equal(
+          await page
+            .locator("#selected-item-detail")
+            .getAttribute("data-selected"),
+          ITEM_ID,
+        );
         const layout = await layoutReport(page);
         assertLayout(layout, mobile);
+        assert(layout.detail?.group?.includes("shop-item-section"));
+        assert(layout.detail?.rewardOffset >= 1);
+        assert(
+          /(当前效果|效果数值|数值变化|机制强度)/.test(
+            layout.detail?.text ?? "",
+          ),
+        );
+        assert(
+          /生命上限 10 → 12/.test(layout.detail?.text ?? ""),
+          `厚壳 detail must show its own derived change: ${layout.detail?.text}`,
+        );
+        assert(
+          !/废料爆米花/.test(layout.detail?.text ?? ""),
+          `厚壳 detail must not show unrelated held procs: ${layout.detail?.text}`,
+        );
         const priceText = await page
           .locator(".shop-item-section .item-price")
           .nth(itemIndex)
           .innerText();
         const price = Number(priceText.replace(/[^0-9]/g, ""));
         assert(price > 0, `item price must be visible: ${priceText}`);
-        if (mobile) {
-          await page
-            .locator(`.shop-item-section .p2-item-card[data-item-card="${itemIndex}"]`)
-            .click({ position: { x: 8, y: 8 } });
-          assert.equal(
-            await page.locator("#selected-item-detail").getAttribute(
-              "data-selected",
-            ),
-            ITEM_ID,
-          );
-        }
         await page.screenshot({
           path: join(OUTPUT_DIR, `${kind}-w2-item-before.png`),
           fullPage: true,
@@ -382,12 +492,19 @@ async function run(browser, kind) {
         assert.equal(after.maxHp, before.maxHp + 2);
         assert.equal(after.derived.moveFactor < 1, true);
         assert(
-          before.queueCounters.popcorn.processed > 0,
-          `W2 must show real popcorn processing: ${JSON.stringify(before.queueCounters.popcorn)}`,
+          before.popcornShotsAdmitted > 0,
+          `W2 must admit real popcorn shots: ${JSON.stringify({
+            fuel: before.popcornFuelConsumed,
+            admitted: before.popcornShotsAdmitted,
+            rejected: before.popcornShotsRejected,
+          })}`,
         );
-        assert(
-          before.queueCounters.popcorn.admitted >=
-            before.queueCounters.popcorn.processed,
+        assert(before.popcornFuelConsumed > 0);
+        assert(before.queueCounters.popcorn.admitted > 0);
+        assert.equal(
+          before.queueCounters.popcorn.processed,
+          before.popcornFuelConsumed,
+          "processed popcorn queue work must be consumed fuel units",
         );
         await scrollTo(page, ".shop-item-section");
         await page.screenshot({
@@ -407,7 +524,12 @@ async function run(browser, kind) {
             before,
             after,
           },
-          proc: before.queueCounters.popcorn,
+          proc: {
+            fuelConsumed: before.popcornFuelConsumed,
+            shotsAdmitted: before.popcornShotsAdmitted,
+            shotsRejected: before.popcornShotsRejected,
+            queue: before.queueCounters.popcorn,
+          },
           blasts: before.queueCounters.pendingBlasts,
         });
         assert.deepEqual(errors, []);
@@ -456,7 +578,10 @@ const report = {
   noInvulnerability: true,
   results,
 };
-await writeFile(join(OUTPUT_DIR, "report.json"), JSON.stringify(report, null, 2));
+await writeFile(
+  join(OUTPUT_DIR, "report.json"),
+  JSON.stringify(report, null, 2),
+);
 console.log(
   JSON.stringify(
     {

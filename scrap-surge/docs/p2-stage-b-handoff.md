@@ -1,10 +1,13 @@
 # P2 Stage B simulation handoff
 
-This is a Stage B simulation checkpoint, not a playable P2 delivery. The normal
-`expedition20` mode now exposes the contract-v2 rule/inventory/reward state, but
-Stage C still owns the shop/rest UI, reward presentation, elite and chest
-rendering, audio hooks, browser behavior and full-run acceptance. No W20
-viability, performance, user-feel or balance claim follows from these tests.
+**Obsolete as a current-gap description.** This records the historical Stage B
+simulation checkpoint. The normal `expedition20` mode now exposes the
+contract-v2 rule/inventory/reward state; Stage C added the shop/rest UI, reward
+presentation and browser fixtures, and Stage D added elite and chest rendering
+plus audio hooks. The repair documented in `docs/p2-repair-handoff.md` then fixed
+the offer count, reroll atomicity, owned-item previews, mobile card text and
+popcorn accounting presentation. Full-run acceptance and independent review of
+the new frozen SHA remain open.
 
 ## Public simulation surface
 
@@ -31,7 +34,9 @@ The queue metrics expose `admitted`, `rejected`, `dropped` and `processed`.
 Contract v2's terminology disclosure maps `deferred` to admission rejection:
 `rejected` is the internal admission-rejection counter, not hidden future work.
 Previously admitted work canceled by a wave boundary or loss increments
-`dropped`. `processed` counts only work actually emitted or credited.
+`dropped`. For popcorn, `processed` counts consumed fuel units;
+`popcornFuelConsumed` exposes that scalar and the shot counters report admitted
+and rejected bullets separately.
 
 The shared corpse/trail cap is 180. Physical chests cap at 9 and frozen chest
 choices at 3. Pending blasts cap at 512 and drain at most 12 per tick. Popcorn
@@ -39,18 +44,15 @@ fuel caps at 1024 units, drains at most four units per tick and emits two shots
 per unit subject to the shared 420-bullet cap; rejected shots are counted, not
 silently treated as output.
 
-## Known integration gaps
+## Historical Stage B gaps (closed or superseded)
 
-- The shop/rest surface still renders the P1 weapon flow; Stage C must render
-  item cards, stat rewards, chest choices, rarity/unique/cap/dependency text,
-  prices and the full effect preview without moving rules into rendering.
-- Elite and chest visuals are exposed as data only. The renderer must add the
-  unmistakable elite silhouette/marker/HP cue and real chest cue without altering
-  collision, RNG or simulation order.
-- Item/elite/chest audio identities and mobile 390px layouts are not implemented
-  or browser-verified in Stage B.
-- There is no Stage B proof of normal-input W20 completion, cohort balance,
-  item-led late output, saturation, or physical-device performance.
+- The shop/rest surface and item/stat/chest cards were added in Stage C.
+- Elite and chest rendering was added in Stage D; the repair removed nested
+  card-label ellipsis and unrelated item-proc readouts from selected details.
+- Item/elite/chest audio identities and 390px browser checks were added later.
+- No Stage B proof of normal-input W20 completion, cohort balance, item-led late
+  output, saturation or physical-device performance was claimed; those remain
+  P3/open gaps except where the repair records a bounded browser check.
 
 ## Test handoff
 

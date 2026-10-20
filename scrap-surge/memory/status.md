@@ -1,5 +1,36 @@
 # Status
 
+The frozen P2 repair candidate replaces the Stage D checkpoint with the bounded
+R1-R5 repair agreed by Astra, Opus and independent DeepSeek on `27c3503`.
+`src/sim.ts` now generates exactly three distinct expedition weapon offers and
+makes shared rerolls atomic, exact-set based and independent of reward RNG.
+`src/items.ts` exposes a pure central proc preview; `src/main.ts` uses readable
+mechanism language, puts full selected-item detail directly after its group,
+keeps `厚壳` focused on its own derived change, and no longer shows item codes or
+unexplained `P`. The 390px card row keeps all three family labels visible.
+Popcorn `processed` is explicitly consumed fuel units; actual admitted and
+rejected shots remain separately observable. Balance, HP, waves, audio and the
+frozen slice renderer are unchanged.
+
+At the repair verification checkpoint, `npm test` passes **172/172**,
+`npm run build` is clean and `git diff --check` is clean. On dev server `4194`,
+the P2 item fixture passes **2/2** keyboard/CDP touch with zero page errors and
+real popcorn shots (49/98 keyboard, 46/92 touch; 0 rejected). The W3 visual
+fixture passes **2/2** in both modes with a natural 360 HP / radius 28 elite,
+physical chest, frozen two-choice chest and claim. The lifecycle fixture passes
+6/6: pause, resize pause, refresh/mute, a real W3 0 HP loss, one completion
+record and clean retry. Latest reports and hashes are recorded in
+`docs/testing.md`; these are author-run headless evidence, not independent review.
+
+The frozen `27c3503` review is blocked by the R1-R5 findings. Fresh Opus and
+independent DeepSeek review of this repair SHA is still required, as is root
+integration review. The earlier P1 popcorn "combat defect" was rejected by fresh
+adjudication rather than reported as fixed: the approved behavior consumes fuel
+at the 420-shot cap, and only its naming/tests/docs were repaired. No ordinary
+input W20 victory, W16-W20 saturation, late five-route viability, physical
+phone/Safari behavior, audio-mix acceptance, independent review or user
+acceptance is established.
+
 Stage D of P2 connects the existing elite, chest, trail and item simulation data
 to the expedition renderer and audio. `src/render.ts` now accepts an optional
 `ExpeditionPresentation`, draws the real elite position/HP and warning, physical

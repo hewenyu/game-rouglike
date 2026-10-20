@@ -12,6 +12,7 @@ import {
   deriveItemStats,
   itemCount,
   itemCountsWith,
+  itemProcPreview,
   perVolleyDps,
   projectileCount,
   weaponItemModifiers,
@@ -53,7 +54,7 @@ const legacyKey = "scrap-surge.v1";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 if (gameMode === "expedition20") document.body.classList.add("expedition20");
 app.innerHTML = `<canvas id="arena" aria-label="废潮自动战斗场地；WASD 或方向键移动，武器自动攻击"></canvas><header><a class="brand" href="#" id="brand">SCRAP<span>SURGE</span><b>废潮</b></a><div class="header-tools"><span class="version">${gameMode === "expedition20" ? "EXPEDITION / 20" : "FEEL TEST / 01"}</span><button id="sound" class="small-button" aria-label="关闭声音">声音 ON</button><button id="pause" class="small-button" hidden aria-label="暂停">Ⅱ</button></div></header>
-<section id="title" class="title"><div class="title-copy"><div class="kicker"><span></span> 一只小蟹。六把破烂。一整片怪潮。</div><h1>废<span>潮</span><i>!</i></h1><h2>捡的是垃圾。<br>打出来的是<span>火力。</span></h2><p>只管走位，让壳上的家伙自动开火。<br>捡废料、挂武器，把一场混战滚成连锁反应。</p><div class="start-row"><button class="primary" id="start">下海，开火 <b>↗</b></button><button id="how" class="outline">怎么玩？</button></div><small>${gameMode === "expedition20" ? "20 波潮线 · 9 次整备 · 4 场首领战 · 约 15 分钟" : "两波战斗 + 一次改装商店 · 约 1 分钟战斗体验"}</small></div><div class="sticker">不用瞄准<br><strong>自动开火！</strong><span>JUST KEEP MOVING</span></div><div class="title-bottom"><div><b>01</b><p>走位活下来<small>WASD / 方向键 · 触屏摇杆</small></p></div><div><b>02</b><p>往壳上挂火力<small>六个槽位，同时开火</small></p></div><div><b>03</b><p>让连锁自己滚起来<small>击杀 → 掉落 → 火力 → 更多击杀</small></p></div></div><div class="bottom-tape">TRASH INTO TREASURE · TREASURE INTO TROUBLE · TRASH INTO TREASURE · TREASURE INTO TROUBLE</div></section>
+<section id="title" class="title"><div class="title-copy"><div class="kicker"><span></span> 一只小蟹。六把破烂。一整片怪潮。</div><h1>废<span>潮</span><i>!</i></h1><h2>捡的是垃圾。<br>打出来的是<span>火力。</span></h2><p>只管走位，让壳上的家伙自动开火。<br>捡废料、挂武器，把一场混战滚成连锁反应。</p><div class="start-row"><button class="primary" id="start">下海，开火 <b>↗</b></button><button id="how" class="outline">怎么玩？</button></div><small>${gameMode === "expedition20" ? "20 波潮线 · 19 次整备 · 4 场首领战" : "两波战斗 + 一次改装商店 · 约 1 分钟战斗体验"}</small></div><div class="sticker">不用瞄准<br><strong>自动开火！</strong><span>JUST KEEP MOVING</span></div><div class="title-bottom"><div><b>01</b><p>走位活下来<small>WASD / 方向键 · 触屏摇杆</small></p></div><div><b>02</b><p>往壳上挂火力<small>六格武器，同款同阶自动合成</small></p></div><div><b>03</b><p>让连锁自己滚起来<small>击杀 → 掉落 → 火力 → 更多击杀</small></p></div></div><div class="bottom-tape">TRASH INTO TREASURE · TREASURE INTO TROUBLE · TRASH INTO TREASURE · TREASURE INTO TROUBLE</div></section>
 <section id="hud" hidden><div class="edge-timer" id="edge"><i id="edge-fill"></i><span id="wave-label">第一波 / 02</span><strong id="timer">20</strong><small id="wave-note">自动开火，别被围住</small></div><div class="hud-bottom" id="hud-bottom"><div class="health"><strong id="hp-label">10 / 10</strong><div id="hp"></div><small>壳还很硬</small></div><div id="loadout" class="loadout"></div><div class="wallet"><span>废料</span><strong id="money">0</strong><small id="kill-count">0 击败</small></div></div><div id="boss" hidden><span>罐头大王 / DON'T GET CANNED</span><div><i></i></div></div><div class="kill-banner" id="kill-banner"></div><div id="mod-strip"></div><p id="hint" class="hint">只需要移动，武器会自动找目标。</p><div id="joystick" role="group" aria-label="触屏移动摇杆"><i></i><span>移动</span></div></section><div id="overlay" hidden></div><div id="toast" role="status"></div>`;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -160,11 +161,11 @@ function icon(id: WeaponId) {
   return `<svg viewBox="0 0 120 85" aria-hidden="true" fill="${WEAPONS[id].color}" stroke="#273b35" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">${shapes[id]}</svg>`;
 }
 const ITEM_FAMILY_LABEL: Record<ItemDefinition["family"], string> = {
-  S: "移动 / SPEED",
-  C: "连锁 / CHAIN",
-  H: "壳甲 / HULL",
-  F: "火力 / FIREPOWER",
-  P: "拾取 / PICKUP",
+  S: "移动",
+  C: "连锁",
+  H: "壳甲",
+  F: "火力",
+  P: "拾取",
 };
 const RARITY_LABEL: Record<ItemDefinition["rarity"], string> = {
   common: "普通",
@@ -180,7 +181,7 @@ const STAT_REWARD_LABEL: Record<
   hpFlat: { name: "壳甲上限", detail: "+1 并回复 1" },
   move: { name: "移动速度", detail: "+5%" },
   pickup: { name: "拾取范围", detail: "+15%" },
-  power: { name: "P 强度", detail: "+8%" },
+  power: { name: "机制强度", detail: "+8%（影响爆炸、星痕与拾取弹伤害）" },
 };
 const SHAPE_ART: Record<ItemDefinition["shape"], string> = {
   sandal:
@@ -375,7 +376,7 @@ function itemDeltaMarkup(before: DerivedItemStats, after: DerivedItemStats) {
     ["移动", before.moveFactor, after.moveFactor],
     ["生命上限", before.maxHp, after.maxHp],
     ["拾取范围", before.pickupRadius, after.pickupRadius],
-    ["P 强度", before.powerFactor, after.powerFactor],
+    ["机制强度", before.powerFactor, after.powerFactor],
   ];
   for (const [label, a, b] of items) {
     if (Math.abs(b - a) < 0.0001) continue;
@@ -387,7 +388,57 @@ function itemDeltaMarkup(before: DerivedItemStats, after: DerivedItemStats) {
   }
   return additions.length
     ? additions.slice(0, 5).join(" · ")
-    : "机制生效 · 见物品说明";
+    : "点选查看完整效果";
+}
+function previewNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+function previewReadout(
+  before: ReturnType<typeof itemProcPreview>,
+  after: ReturnType<typeof itemProcPreview>,
+  id: ItemId,
+) {
+  const a = before.readoutsByItem[id];
+  const b = after.readoutsByItem[id];
+  if (!a && !b) return "";
+  const parts: string[] = [];
+  const add = (
+    label: string,
+    key: "damage" | "radius" | "interval" | "threshold" | "count" | "max",
+  ) => {
+    const from = a?.[key];
+    const to = b?.[key];
+    if (from === undefined && to === undefined) return;
+    if (from === undefined) parts.push(`${label} ${previewNumber(to!)}`);
+    else if (to === undefined) parts.push(`${label} ${previewNumber(from)}`);
+    else if (Math.abs(from - to) < 0.0001)
+      parts.push(`${label} ${previewNumber(to)}`);
+    else parts.push(`${label} ${previewNumber(from)} → ${previewNumber(to)}`);
+  };
+  add("伤害", "damage");
+  add("半径", "radius");
+  add("上限半径", "max");
+  add("间隔", "interval");
+  add("触发", "threshold");
+  add("数量", "count");
+  return parts.join(" · ");
+}
+function derivedPreviewReadout(
+  before: DerivedItemStats,
+  after: DerivedItemStats,
+) {
+  const parts: string[] = [];
+  const add = (label: string, from: number, to: number, digits = 2) => {
+    if (Math.abs(from - to) < 0.0001) return;
+    parts.push(`${label} ${from.toFixed(digits)} → ${to.toFixed(digits)}`);
+  };
+  add("武器伤害", before.weaponFactor, after.weaponFactor);
+  add("攻速", before.asFactor, after.asFactor);
+  add("生命上限", before.maxHp, after.maxHp, 0);
+  add("移动", before.moveFactor, after.moveFactor);
+  add("拾取范围", before.pickupRadius, after.pickupRadius, 0);
+  add("机制强度", before.powerFactor, after.powerFactor);
+  return parts.join(" · ");
 }
 function ownedWeaponRows(g: Game) {
   const derived = g.derivedItemStats();
@@ -498,7 +549,8 @@ function itemCard(
   const price = kind === "offer" ? g.itemOfferPrice(index) : 0;
   const stale = !eligibility.eligible;
   const owned = itemCount(g.inventory, id);
-  const projected = itemCountsWith(g.inventory, id);
+  const projected =
+    !stale && !sold ? itemCountsWith(g.inventory, id) : g.inventory;
   const after = deriveItemStats(projected, g.statRewards, {
     moved: true,
     pressureActive: false,
@@ -520,15 +572,15 @@ function itemCard(
       ? "有兼容枪时才生效"
       : "";
   return `<article class="p2-item-card rarity-${rarity} ${sold ? "sold" : ""} ${stale ? "stale" : ""} ${selected ? "chest-choice" : ""}" data-select-item data-item-card="${index}" data-card-index="${index}" data-item-id="${id}" tabindex="0">
-    <div class="item-card-top"><span class="item-code">${definition.code} · ${ITEM_FAMILY_LABEL[definition.family]}</span><span class="rarity-label">${RARITY_LABEL[rarity]}</span></div>
+    <div class="item-card-top"><span class="item-code">${ITEM_FAMILY_LABEL[definition.family]}</span><span class="rarity-label">${RARITY_LABEL[rarity]}</span></div>
     <div class="item-art">${itemIcon(definition)}<span class="rarity-mark">${rarity === "rare" ? "RARE" : rarity === "uncommon" ? "UNCOMMON" : "COMMON"}</span></div>
     <h3>${definition.name}</h3>
     <div class="item-meta"><span>${definition.unique ? "唯一" : `最多 ${definition.cap} 份`}</span><span>持有 ${owned}${definition.unique ? "" : ` / ${definition.cap}`}</span><span>${definition.dependencies.allOf.length || definition.dependencies.anyOf.length ? "有前置" : "无前置"}</span></div>
-    <p>${definition.description}</p>
-    <div class="item-delta">${delta || "特殊机制"}</div>
+    <p class="item-card-description">${definition.description}</p>
+    <div class="item-delta"><b>点选查看效果 · ${delta}</b></div>
     ${kind === "offer" ? `<div class="item-buy-row"><span class="item-price">${sold ? "已购入" : `${price} ◈`}</span><small>${sold ? "已结算" : stale ? "当前不可用" : g.money < price ? `还差 ${price - g.money} ◈` : warning || "购买并立即装备"}</small><button class="item-buy" data-buy-item="${index}" ${disabled ? "disabled" : ""}>${sold ? "✓" : "买下"}</button></div>` : ""}
-    ${kind === "reward" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-core="${index}" ${stale ? "disabled" : ""}>${stale ? "不可选" : "选这件"}</button><small>${g.money} ◈ 钱包不变 · 不替代商店</small></div>` : ""}
-    ${kind === "chest" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-chest="${index}" ${stale ? "disabled" : ""}>${stale ? "已失效" : "确认选择"}</button><small>领取后关闭宝箱</small></div>` : ""}
+    ${kind === "reward" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-core="${index}" ${stale ? "disabled" : ""}>${stale ? "不可选" : "选这件"}</button><small>免费领取 · 不花废料</small></div>` : ""}
+    ${kind === "chest" ? `<div class="reward-choice-row"><button class="item-buy" data-claim-chest="${index}" ${stale ? "disabled" : ""}>${stale ? "已拥有或达到上限" : "确认选择"}</button><small>领取后关闭宝箱</small></div>` : ""}
   </article>`;
 }
 function ownedInventoryMarkup(g: Game) {
@@ -555,6 +607,10 @@ function selectItemDetail(selector: string) {
     cards.forEach((entry) =>
       entry.classList.toggle("selected", entry === card),
     );
+    const group = card.closest(
+      ".reward-row, .shop-item-section, .inventory-section",
+    );
+    if (group) group.insertAdjacentElement("afterend", detail);
     detail.innerHTML =
       card.querySelector<HTMLElement>(".item-detail-template")?.innerHTML || "";
     detail.dataset.selected = card.dataset.itemId || "";
@@ -576,7 +632,16 @@ function selectItemDetail(selector: string) {
     });
     card.addEventListener("focusin", () => choose(card));
   });
-  choose(cards.find((card) => card.closest(".shop-item-section")) ?? cards[0]!);
+  const primary =
+    cards.find(
+      (card) =>
+        card.classList.contains("chest-choice") && card.closest(".reward-row"),
+    ) ??
+    cards.find((card) => card.closest(".reward-row")) ??
+    cards.find((card) => card.closest(".shop-item-section")) ??
+    cards.find((card) => card.closest(".inventory-section")) ??
+    cards[0];
+  choose(primary!);
 }
 function expeditionShop(g: Game) {
   const maxTier = g.guns.reduce(
@@ -586,7 +651,6 @@ function expeditionShop(g: Game) {
   const derived = g.derivedItemStats();
   const owned = ownedWeaponRows(g);
   const offered = g.offers
-    .slice(0, 3)
     .map((id, index) => {
       const w = WEAPONS[id],
         sold = g.sold.has(index),
@@ -648,7 +712,7 @@ function expeditionShop(g: Game) {
         .join("");
       return `<button class="stat-choice" data-stat="${index}">
         <span>${STAT_REWARD_LABEL[reward].name}</span><strong>${STAT_REWARD_LABEL[reward].detail}</strong>
-        <small>面板变化 · 伤害 ${beforeDerived.weaponFactor.toFixed(2)} → ${afterDerived.weaponFactor.toFixed(2)} · 攻速 ${beforeDerived.asFactor.toFixed(2)} → ${afterDerived.asFactor.toFixed(2)}</small>
+        <small>伤害 ${beforeDerived.weaponFactor.toFixed(2)} → ${afterDerived.weaponFactor.toFixed(2)} · 攻速 ${beforeDerived.asFactor.toFixed(2)} → ${afterDerived.asFactor.toFixed(2)} · 机制强度 ${beforeDerived.powerFactor.toFixed(2)} → ${afterDerived.powerFactor.toFixed(2)}</small>
         <div class="stat-weapons">${weaponPreview || "当前无枪"}</div>
       </button>`;
     })
@@ -657,9 +721,9 @@ function expeditionShop(g: Game) {
   const pendingRow = coreRewards
     ? `<section class="rest-choice-section reward-row"><div class="rest-section-heading"><div><span class="section-kicker">FREE CORE / 机制已打出</span><h3>把这件挂进回路。</h3></div><button class="text-button" data-skip-reward>跳过本次</button></div><div class="item-card-row">${coreRewards}</div><small class="section-note">跳过或直接下海都无补偿；离开整备点即丢弃本行。</small></section>`
     : statChoices
-      ? `<section class="rest-choice-section reward-row"><div class="rest-section-heading"><div><span class="section-kicker">STAT PICK / 这一停只拿一项</span><h3>让枪和破烂一起变厚。</h3></div><button class="text-button" data-skip-reward>放弃本次</button></div><div class="stat-choice-row">${statChoices}</div><small class="section-note">数值来自中央派生；不领取也可正常下海。</small></section>`
+      ? `<section class="rest-choice-section reward-row"><div class="rest-section-heading"><div><span class="section-kicker">STAT PICK / 这一停只拿一项</span><h3>让枪和破烂一起变厚。</h3></div><button class="text-button" data-skip-reward>放弃本次</button></div><div class="stat-choice-row">${statChoices}</div><small class="section-note">不领取也能继续下一波。</small></section>`
       : chestRewards
-        ? `<section class="rest-choice-section reward-row"><div class="rest-section-heading"><div><span class="section-kicker">${g.frozenChest!.source === "boss" ? "BOSS CHEST" : "ELITE CHEST"} / ${g.frozenChest!.source === "boss" ? "三选一" : "二选一"}</span><h3>战利品已经冻住。</h3></div><button class="text-button" data-skip-reward>不领取</button></div><div class="item-card-row">${chestRewards}</div><small class="section-note">唯一 / 上限 / 前置会在领取时重新校验；不提供现金替代。</small></section>`
+        ? `<section class="rest-choice-section reward-row"><div class="rest-section-heading"><div><span class="section-kicker">${g.frozenChest!.source === "boss" ? "BOSS CHEST" : "ELITE CHEST"} / ${g.frozenChest!.source === "boss" ? "三选一" : "二选一"}</span><h3>挑一件宝箱战利品。</h3></div><button class="text-button" data-skip-reward>不领取</button></div><div class="item-card-row">${chestRewards}</div><small class="section-note">已拥有或达到上限的选项不可再选；跳过不会换成废料。</small></section>`
         : "";
   const itemRow = itemOffers
     ? `<section class="rest-choice-section shop-item-section"><div class="rest-section-heading"><div><span class="section-kicker">ITEM ROW / 每停最多三件</span><h3>别只盯着枪。</h3></div><span class="section-note">稀有度会影响掉落，不是装饰色。</span></div><div class="item-card-row">${itemOffers}</div></section>`
@@ -670,11 +734,11 @@ function expeditionShop(g: Game) {
     ${g.wave === 1 ? '<div class="rest-brief"><b>W1 免费核心</b><span>三选一是机制行，不和商店售卖行混在一起。</span><span>跳过后，下一波仍会开始，不补现金。</span></div>' : ""}
     <div class="rest-start-row"><span>整备点不消耗战斗时间。看完卡面就出发。</span><button id="next-fast" class="primary">开始下一波 <b>→</b></button></div>
     ${pendingRow}
-    <section class="rest-choice-section weapon-market"><div class="rest-section-heading"><div><span class="section-kicker">WEAPON ROW / 独立武器池</span><h3>底盘火力</h3></div><span class="section-note">同名同阶自动合成，最高 IV；前三张是独立卡位。</span></div><div class="weapon-cards">${offered}</div><div class="row-actions"><span>拆解返还累计投入的 35%；买枪/合成结果在卡上写死。</span><button id="reroll" class="text-button" ${g.money < reroll ? "disabled" : ""}>一起换武器与物品 ↻ ${reroll ? `${reroll} ◈` : "首次免费"}</button></div></section>
+    <section class="rest-choice-section weapon-market"><div class="rest-section-heading"><div><span class="section-kicker">WEAPON ROW / 独立武器池</span><h3>底盘火力</h3></div><span class="section-note">三把不同武器；同款同阶会自动合成，最高 IV。</span></div><div class="weapon-cards">${offered}</div><div class="row-actions"><span>拆解会返还累计投入的 35%。</span><button id="reroll" class="text-button" ${g.money < reroll ? "disabled" : ""}>一起换武器与物品 ↻ ${reroll ? `${reroll} ◈` : "首次免费"}</button></div></section>
     ${itemRow}
-    <div class="item-detail-panel" id="selected-item-detail" aria-live="polite"></div>
     <section class="rest-choice-section inventory-section"><div class="rest-section-heading"><div><span class="section-kicker">ITEM BAG / 当前持有</span><h3>破烂清单</h3></div><span class="section-note">${itemArtifactCount(g)} 件 · 点按查看完整效果</span></div><div class="inventory-list">${ownedInventoryMarkup(g)}</div></section>
-    <p class="weapon-dps-note">理论DPS是面板估算：每轮实际弹丸数、单目标全中、餐叉持续接触；不含多目标与拾取弹收益。F4 只会改变快枪 / 散弹 / 火箭。</p>
+    <div class="item-detail-panel" id="selected-item-detail" aria-live="polite"></div>
+    <p class="weapon-dps-note">理论DPS按每轮弹丸全中估算；不含多目标与拾取弹。双联扳机只强化快枪 / 散弹 / 火箭。</p>
     <div class="owned-heading"><h3>壳上的火力</h3><span>实时面板值 · 已计物品</span></div>
     <div class="owned-grid">${owned}</div>
     <div class="empty-slots">${g.guns.length < g.slotCap ? `还有 ${g.slotCap - g.guns.length} 个空槽可以买新武器。` : "六个槽位已满；同名同阶仍可合成。"} 枪位是容量，不是免费武器。</div>
@@ -699,7 +763,73 @@ function expeditionShop(g: Game) {
               card.closest(".reward-row")
             ? `<div class="detail-action"><span>免费 · 钱包不变</span><button class="item-buy" data-claim-${card.classList.contains("chest-choice") ? "chest" : "core"}="${cardIndex}" ${!g.itemEligibility(definition.id).eligible ? "disabled" : ""}>${!g.itemEligibility(definition.id).eligible ? "不可选" : "选中这件"}</button></div>`
             : "";
-      template.innerHTML = `<div class="detail-head"><span class="item-code">${definition.code} · ${ITEM_FAMILY_LABEL[definition.family]}</span><span class="rarity-label">${RARITY_LABEL[definition.rarity]}</span></div><h4>${definition.name}</h4><p>${definition.description}</p><div class="detail-tags"><span>${RARITY_LABEL[definition.rarity]}</span><span>${itemCapText(g, definition.id)}</span>${definition.weaponEligibility.length ? "<span>适用枪：快枪 / 散弹 / 火箭</span>" : ""}${definition.dependencies.allOf.length || definition.dependencies.anyOf.length ? "<span>前置未满足时不可购买/领取</span>" : ""}</div>${action}`;
+      const shouldProject =
+        definition &&
+        card.classList.contains("p2-item-card") &&
+        g.itemEligibility(definition.id).eligible &&
+        !g.soldItems.has(cardIndex);
+      const projected = shouldProject
+        ? itemCountsWith(g.inventory, definition.id)
+        : g.inventory;
+      const context = {
+        moved: true,
+        pressureActive: g.pressureTimer > 0,
+        weapons: g.guns.map((gun) => gun.id),
+      } as const;
+      const currentPreview = itemProcPreview(
+        g.inventory,
+        g.statRewards,
+        context,
+      );
+      const procPreview = itemProcPreview(projected, g.statRewards, context);
+      const itemActive = procPreview.activeByItem[definition.id] === true;
+      const beforeDerived = deriveItemStats(
+        g.inventory,
+        g.statRewards,
+        context,
+      );
+      const afterDerived = deriveItemStats(projected, g.statRewards, context);
+      const procLine = procPreview.byItem[definition.id] || "";
+      const procCondition = procPreview.conditionsByItem[definition.id] || "";
+      const selectedReadout = previewReadout(
+        currentPreview,
+        procPreview,
+        definition.id,
+      );
+      const derivedReadout = derivedPreviewReadout(beforeDerived, afterDerived);
+      const effectLine =
+        procLine || derivedReadout || "这件物品当前没有可变化的战斗数值。";
+      const heldProcReadouts: string[] = [];
+      const powerChanged =
+        Math.abs(afterDerived.powerFactor - beforeDerived.powerFactor) >=
+        0.0001;
+      if (powerChanged) {
+        for (const candidate of ITEM_IDS) {
+          if (
+            candidate === definition.id ||
+            itemCount(g.inventory, candidate) <= 0
+          )
+            continue;
+          const readout = previewReadout(
+            currentPreview,
+            procPreview,
+            candidate,
+          );
+          if (readout)
+            heldProcReadouts.push(`${ITEM_BY_ID[candidate].name}：${readout}`);
+        }
+      }
+      const effectTitle = procLine
+        ? itemActive
+          ? "效果数值"
+          : "当前未生效"
+        : "数值变化";
+      const detailReadouts = [
+        selectedReadout && procLine ? `当前：${selectedReadout}` : "",
+        derivedReadout && procLine ? derivedReadout : "",
+        ...heldProcReadouts,
+      ].filter(Boolean);
+      template.innerHTML = `<div class="detail-head"><span class="item-code">${ITEM_FAMILY_LABEL[definition.family]} · ${RARITY_LABEL[definition.rarity]}</span><span class="rarity-label">${itemCapText(g, definition.id)}</span></div><h4>${definition.name}</h4><p>${definition.description}</p><div class="detail-tags"><span>${RARITY_LABEL[definition.rarity]}</span><span>${itemCapText(g, definition.id)}</span>${definition.weaponEligibility.length ? "<span>适用枪：快枪 / 散弹 / 火箭</span>" : ""}${definition.dependencies.allOf.length || definition.dependencies.anyOf.length ? "<span>需要前置物品</span>" : ""}</div><div class="detail-proc"><b>${effectTitle}</b><span>${effectLine}</span>${detailReadouts.length ? `<small>${detailReadouts.join("；")}</small>` : ""}${procCondition ? `<small>${procCondition}</small>` : ""}</div>${action}`;
       card.append(template);
     });
   $("overlay")
@@ -721,11 +851,7 @@ function expeditionShop(g: Game) {
           const index = Number(b.dataset.buyItem);
           const id = g.itemOffers[index];
           if (g.buyItem(index)) {
-            note(
-              id
-                ? `${ITEM_BY_ID[id].name} 已购入，效果立即写入派生。`
-                : "物品已购入。",
-            );
+            note(id ? `${ITEM_BY_ID[id].name} 已购入并生效。` : "物品已购入。");
             expeditionShop(g);
           } else note("这张物品卡已失效，价格不足或有前置限制。");
         }),
@@ -746,7 +872,7 @@ function expeditionShop(g: Game) {
         (b.onclick = () => {
           if (g.claimPendingItem(Number(b.dataset.claimChest)))
             expeditionShop(g);
-          else note("宝箱选项已失效，无法用现金替代。");
+          else note("这个宝箱选项当前不可领取。");
         }),
     );
   $("overlay")
@@ -984,7 +1110,7 @@ function updateHud() {
             : g.wave < 4
               ? "移动就是闪避。武器自己找目标。"
               : g.wave < 9
-                ? "改装会先长成回路；商店只负责枪。"
+                ? "武器打底盘，物品把伤害、掉落和拾取接成回路。"
                 : g.wave < 16
                   ? "容量不是免费枪位。留下真正喂回路的武器。"
                   : "潮水在加速。把已成的连锁交给它自己滚。"
@@ -1069,7 +1195,7 @@ $("brand").onclick = (e) => {
 };
 $("how").onclick = () => {
   overlay(
-    `<section class="pause-panel guide"><div class="eyebrow">JUST KEEP MOVING</div><h2>你负责走位。<br>破烂负责开火。</h2><p><b>电脑：</b>WASD / 方向键移动。<br><b>手机：</b>拖动左下摇杆。<br>无需瞄准或按攻击键，壳上的武器会同时工作。</p><p>${gameMode === "expedition20" ? "二十波潮线：打怪、退潮、整备。第一波后选改装，第二波后进枪店；第五波后会永久选择航迹或余烬。首领在 5 / 10 / 15 / 20 波。自动接波时按住移动键也不会丢。" : "第一波 20 秒 → 商店买武器、免费选两种改装 → 第二波 35 秒并击败首领。"}<br>捡废料、喷子弹、击杀爆炸，试着把它们接成一个回路。</p><p class="fine">P / Esc 暂停。切出窗口或旋转屏幕自动暂停。刷新会结束本局，只保存完成记录和声音设置。${gameMode === "slice" ? " 当前是切片模式；去掉 mode=slice 即进入 20 波远征。" : ""}</p><button id="gotit" class="primary">懂了，开整 <b>→</b></button></section>`,
+    `<section class="pause-panel guide"><div class="eyebrow">JUST KEEP MOVING</div><h2>你负责走位。<br>破烂负责开火。</h2><p><b>电脑：</b>WASD / 方向键移动。<br><b>手机：</b>拖动左下摇杆。<br>无需瞄准或按攻击键，壳上的武器会同时工作。</p><p>${gameMode === "expedition20" ? "二十波潮线。W1-W19 每次退潮都有三把武器、三件物品和一项机制或数值奖励；W1 免费选一件核心物品。同名同阶武器会自动二合一，最多六格。物品有的是可重复叠加，有的只能拥有一件。精英掉实体宝箱，首领宝箱品质更高。每次整备都可手动开始下一波或跳过未领奖励；刷新页面会结束本局，只保留记录和静音设置。" : "第一波 20 秒 → 商店买武器、免费选两种改装 → 第二波 35 秒并击败首领。"}<br>捡废料、喷子弹、击杀爆炸，试着把它们接成一个回路。</p><p class="fine">P / Esc 暂停。切出窗口或旋转屏幕自动暂停。刷新会结束本局，只保存完成记录和声音设置。${gameMode === "slice" ? " 当前是切片模式；去掉 mode=slice 即进入 20 波远征。" : ""}</p><button id="gotit" class="primary">懂了，开整 <b>→</b></button></section>`,
   );
   $("gotit").onclick = close;
 };
@@ -1136,6 +1262,13 @@ Object.defineProperty(window, "scrapMetrics", {
     hp: game?.player.hp,
     maxHp: game?.maxHp,
     derived: game?.derivedItemStats(),
+    procPreview: game
+      ? itemProcPreview(game.inventory, game.statRewards, {
+          moved: game.movedThisTick,
+          pressureActive: game.pressureTimer > 0,
+          weapons: game.guns.map((gun) => gun.id),
+        })
+      : null,
     statRewards: game ? { ...game.statRewards } : null,
     itemRerollUsed: game?.itemRerollUsed,
     position: game ? { x: game.player.x, y: game.player.y } : null,
@@ -1241,6 +1374,9 @@ Object.defineProperty(window, "scrapMetrics", {
     scraps: game?.scraps.length,
     pending: game?.pendingBlasts.length,
     pendingPeak: game?.pendingPeak,
+    popcornFuelConsumed: game?.popcornFuelConsumed,
+    popcornShotsAdmitted: game?.popcornShotsAdmitted,
+    popcornShotsRejected: game?.popcornShotsRejected,
     corpses: game?.corpses.length,
     chainCount: game?.chainCount,
     chainPeak: game?.chainPeak,

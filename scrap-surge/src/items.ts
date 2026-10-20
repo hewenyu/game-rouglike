@@ -292,7 +292,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "S3",
     family: "S",
     name: "里程碑",
-    description: `战斗中每实际移动 ${ITEM_CONSTANTS.milestoneDistance} 像素留下持续 ${ITEM_CONSTANTS.milestoneLifetime} 秒、半径 ${ITEM_CONSTANTS.milestoneRadius} 的星痕；每个星痕对每个敌人造成 ${ITEM_CONSTANTS.milestoneDamage}×P，唯一。`,
+    description: `战斗中每实际移动 ${ITEM_CONSTANTS.milestoneDistance} 像素留下持续 ${ITEM_CONSTANTS.milestoneLifetime} 秒、半径 ${ITEM_CONSTANTS.milestoneRadius} 的星痕；每个星痕对每个敌人造成 ${ITEM_CONSTANTS.milestoneDamage} × 机制强度，唯一。`,
     shape: "milestone",
     rarity: "rare",
     cap: ITEM_CAPS.milestone,
@@ -318,7 +318,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "C1",
     family: "C",
     name: "易爆垃圾",
-    description: `每次真实死亡排入半径 ${ITEM_CONSTANTS.volatileTrashRadius}、伤害 ${ITEM_CONSTANTS.volatileTrashDamage}×P 的爆炸；次生击杀可继续触发，唯一。`,
+    description: `每次真实死亡排入半径 ${ITEM_CONSTANTS.volatileTrashRadius}、伤害 ${ITEM_CONSTANTS.volatileTrashDamage} × 机制强度的爆炸；次生击杀可继续触发，唯一。`,
     shape: "trash",
     rarity: "rare",
     cap: ITEM_CAPS["volatile-trash"],
@@ -331,7 +331,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "C2",
     family: "C",
     name: "楔形环",
-    description: `需先拥有易爆垃圾；同一因果根内每 ${ITEM_CONSTANTS.wedgeKillsPerStep} 次次生击杀使后续爆炸半径 +${percent(ITEM_CONSTANTS.wedgeRadiusStep)}，每份上限 ${percent(ITEM_CONSTANTS.wedgeCopyCap)}；最多 ${ITEM_CAPS["wedge-ring"]} 份。`,
+    description: `需先拥有易爆垃圾；同一连锁内每 ${ITEM_CONSTANTS.wedgeKillsPerStep} 次次生击杀使后续爆炸半径 +${percent(ITEM_CONSTANTS.wedgeRadiusStep)}，每份上限 ${percent(ITEM_CONSTANTS.wedgeCopyCap)}；最多 ${ITEM_CAPS["wedge-ring"]} 份。`,
     shape: "ring",
     rarity: "uncommon",
     cap: ITEM_CAPS["wedge-ring"],
@@ -344,7 +344,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "C3",
     family: "C",
     name: "短引信",
-    description: `每份武器伤害 ${percent(ITEM_CONSTANTS.shortFuseWeaponDamage)}，P +${percent(ITEM_CONSTANTS.shortFusePower)}；最多 ${ITEM_CAPS["short-fuse"]} 份。`,
+    description: `每份武器伤害 ${percent(ITEM_CONSTANTS.shortFuseWeaponDamage)}，机制强度 +${percent(ITEM_CONSTANTS.shortFusePower)}；最多 ${ITEM_CAPS["short-fuse"]} 份。`,
     shape: "fuse",
     rarity: "common",
     cap: ITEM_CAPS["short-fuse"],
@@ -357,7 +357,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "C4",
     family: "C",
     name: "大爆炸",
-    description: `需先拥有易爆垃圾；同一因果根内每 ${ITEM_CONSTANTS.bigBangKills} 次次生击杀追加一次半径 ${ITEM_CONSTANTS.bigBangRadius}、伤害 ${ITEM_CONSTANTS.bigBangDamage}×P 的爆炸，唯一。`,
+    description: `需先拥有易爆垃圾；同一连锁内每 ${ITEM_CONSTANTS.bigBangKills} 次次生击杀追加一次半径 ${ITEM_CONSTANTS.bigBangRadius}、伤害 ${ITEM_CONSTANTS.bigBangDamage} × 机制强度的爆炸，唯一。`,
     shape: "burst",
     rarity: "rare",
     cap: ITEM_CAPS["big-bang"],
@@ -383,7 +383,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "H2",
     family: "H",
     name: "暗流板",
-    description: `每份让已接受的致伤接触爆炸半径 +${ITEM_CONSTANTS.undertowRadiusPerCopy}、伤害 +${ITEM_CONSTANTS.undertowDamagePerCopy}×最大生命×P；基础半径 ${ITEM_CONSTANTS.undertowRadiusBase}，最多 ${ITEM_CAPS["undertow-board"]} 份。敌方子弹不触发。`,
+    description: `每份让已接受的致伤接触爆炸半径 +${ITEM_CONSTANTS.undertowRadiusPerCopy}、伤害 +${ITEM_CONSTANTS.undertowDamagePerCopy} × 最大生命 × 机制强度；基础半径 ${ITEM_CONSTANTS.undertowRadiusBase}，最多 ${ITEM_CAPS["undertow-board"]} 份。敌方子弹不触发。`,
     shape: "undertow",
     rarity: "uncommon",
     cap: ITEM_CAPS["undertow-board"],
@@ -396,7 +396,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "H3",
     family: "H",
     name: "刺壳",
-    description: `每 ${ITEM_CONSTANTS.spikeShellInterval} 秒放出半径 ${ITEM_CONSTANTS.spikeShellRadius} 的刺环，每份造成 ${ITEM_CONSTANTS.spikeShellDamage}×最大生命×P；每 ${ITEM_CONSTANTS.spikeShellKillHealEvery} 次直接刺环或暗流接触爆炸击杀回复 1，每波最多 ${ITEM_CONSTANTS.spikeShellHealPerWave}，最多 ${ITEM_CAPS["spike-shell"]} 份。`,
+    description: `每 ${ITEM_CONSTANTS.spikeShellInterval} 秒放出半径 ${ITEM_CONSTANTS.spikeShellRadius} 的刺环，每份造成 ${ITEM_CONSTANTS.spikeShellDamage} × 最大生命 × 机制强度；每 ${ITEM_CONSTANTS.spikeShellKillHealEvery} 次刺环或暗流接触爆炸击杀回复 1，每波最多 ${ITEM_CONSTANTS.spikeShellHealPerWave}，最多 ${ITEM_CAPS["spike-shell"]} 份。`,
     shape: "spikes",
     rarity: "uncommon",
     cap: ITEM_CAPS["spike-shell"],
@@ -474,7 +474,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "P1",
     family: "P",
     name: "磁力回潮",
-    description: `拾取基础半径变为 ${ITEM_CONSTANTS.magnetBaseRadius}（再计拾取加成）；每 ${ITEM_CONSTANTS.magnetFuelEvery} 单位燃料发射 ${ITEM_CONSTANTS.magnetCaps} 枚 ${ITEM_CONSTANTS.magnetDamage}×P 瓶盖，唯一。`,
+    description: `拾取基础半径变为 ${ITEM_CONSTANTS.magnetBaseRadius}（再计拾取加成）；每 ${ITEM_CONSTANTS.magnetFuelEvery} 单位燃料发射 ${ITEM_CONSTANTS.magnetCaps} 枚 ${ITEM_CONSTANTS.magnetDamage} × 机制强度的瓶盖，唯一。`,
     shape: "magnet",
     rarity: "uncommon",
     cap: ITEM_CAPS["magnetic-return"],
@@ -487,7 +487,7 @@ export const ITEM_CATALOG: readonly ItemDefinition[] = Object.freeze([
     code: "P2",
     family: "P",
     name: "废料爆米花",
-    description: `每单位燃料排入 ${ITEM_CONSTANTS.popcornShotsPerFuel} 发 ${ITEM_CONSTANTS.popcornDamage}×P 的寻敌弹，唯一。`,
+    description: `每单位燃料排入 ${ITEM_CONSTANTS.popcornShotsPerFuel} 发 ${ITEM_CONSTANTS.popcornDamage} × 机制强度的寻敌弹，唯一。`,
     shape: "popcorn",
     rarity: "rare",
     cap: ITEM_CAPS["scrap-popcorn"],
@@ -969,6 +969,253 @@ export function deriveItemStats(
       1 + ITEM_CONSTANTS.siphonPickupBulletDamage * p4,
     acceptedHurtDamageBonus:
       counts["pressure-valve"] * ITEM_CONSTANTS.pressureHurtDamage,
+  });
+}
+
+function formatPreviewNumber(value: number, digits = 1) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(digits);
+}
+
+export interface ItemProcPreview {
+  readonly active: boolean;
+  readonly summary: readonly string[];
+  readonly conditions: readonly string[];
+  readonly byItem: Readonly<Partial<Record<ItemId, string>>>;
+  readonly conditionsByItem: Readonly<Partial<Record<ItemId, string>>>;
+  readonly activeByItem: Readonly<Partial<Record<ItemId, boolean>>>;
+  readonly readoutsByItem: Readonly<Partial<Record<ItemId, ItemProcReadout>>>;
+}
+
+export interface ItemProcReadout {
+  readonly damage?: number;
+  readonly radius?: number;
+  readonly max?: number;
+  readonly interval?: number;
+  readonly threshold?: number;
+  readonly count?: number;
+}
+
+// Presentation-only helper. It reuses the same derived values and constants as
+// combat and never mutates inventory, stats or item effects.
+export function itemProcPreview(
+  owned: ItemCounts,
+  statRewards: Partial<ItemStats> = EMPTY_ITEM_STATS,
+  context: ItemDerivationContext = {},
+): ItemProcPreview {
+  const before = deriveItemStats(owned, statRewards, context);
+  const counts = before.counts;
+  const summary: string[] = [];
+  const conditions: string[] = [];
+  const byItem: Partial<Record<ItemId, string>> = {};
+  const conditionsByItem: Partial<Record<ItemId, string>> = {};
+  const activeByItem: Partial<Record<ItemId, boolean>> = {};
+  const readoutsByItem: Partial<Record<ItemId, ItemProcReadout>> = {};
+  for (const definition of ITEM_CATALOG) {
+    const copies = counts[definition.id];
+    const dependenciesMet =
+      definition.dependencies.allOf.every((required) => counts[required] > 0) &&
+      (definition.dependencies.anyOf.length === 0 ||
+        definition.dependencies.anyOf.some((required) => counts[required] > 0));
+    const weapons = context.weapons ?? [];
+    const weaponMet =
+      definition.weaponEligibility.length === 0 ||
+      definition.weaponEligibility.some((weapon) => weapons.includes(weapon));
+    activeByItem[definition.id] = copies > 0 && dependenciesMet && weaponMet;
+  }
+  const add = (
+    id: ItemId,
+    copy: number,
+    value: string,
+    condition?: string,
+    readout?: ItemProcReadout,
+  ) => {
+    if (copy <= 0) return;
+    const definition = ITEM_BY_ID[id];
+    const line = `${definition.name}：${value}`;
+    summary.push(line);
+    byItem[id] = line;
+    if (readout) readoutsByItem[id] = Object.freeze(readout);
+    if (condition) {
+      conditions.push(condition);
+      conditionsByItem[id] = condition;
+    }
+  };
+
+  add(
+    "milestone",
+    counts.milestone,
+    `每 ${ITEM_CONSTANTS.milestoneDistance}px 一颗，${formatPreviewNumber(
+      before.milestoneDamage,
+    )} 伤害 / 半径 ${ITEM_CONSTANTS.milestoneRadius}`,
+    `移动时生效；机制强度 ×${before.powerFactor.toFixed(2)}`,
+    {
+      damage: before.milestoneDamage,
+      radius: ITEM_CONSTANTS.milestoneRadius,
+      threshold: ITEM_CONSTANTS.milestoneDistance,
+    },
+  );
+  add(
+    "volatile-trash",
+    counts["volatile-trash"],
+    `${formatPreviewNumber(
+      before.volatileTrashDamage,
+    )} 伤害 / 半径 ${ITEM_CONSTANTS.volatileTrashRadius}`,
+    "真实击杀时生效",
+    {
+      damage: before.volatileTrashDamage,
+      radius: ITEM_CONSTANTS.volatileTrashRadius,
+    },
+  );
+  add(
+    "wedge-ring",
+    counts["wedge-ring"],
+    `范围内每 ${ITEM_CONSTANTS.wedgeKillsPerStep} 次连环击杀 +${formatPreviewNumber(
+      ITEM_CONSTANTS.wedgeRadiusStep * 100,
+      0,
+    )}% 半径`,
+    `同一连锁内累积；当前基础半径 ${wedgeRingRadius(0, counts["wedge-ring"]).toFixed(1)}，上限 ${
+      ITEM_CONSTANTS.wedgeCopyCap * counts["wedge-ring"] * 100
+    }%`,
+    {
+      radius: wedgeRingRadius(0, counts["wedge-ring"]),
+      max:
+        ITEM_CONSTANTS.volatileTrashRadius *
+        (1 + ITEM_CONSTANTS.wedgeCopyCap * counts["wedge-ring"]),
+    },
+  );
+  add(
+    "big-bang",
+    counts["big-bang"],
+    `每 ${ITEM_CONSTANTS.bigBangKills} 次连环击杀追加 ${formatPreviewNumber(
+      before.bigBangDamage,
+    )} 伤害 / 半径 ${ITEM_CONSTANTS.bigBangRadius}`,
+    "只在同一连锁内计数",
+    {
+      damage: before.bigBangDamage,
+      radius: ITEM_CONSTANTS.bigBangRadius,
+      threshold: ITEM_CONSTANTS.bigBangKills,
+    },
+  );
+  add(
+    "undertow-board",
+    counts["undertow-board"],
+    `${formatPreviewNumber(
+      before.hurtExplosion.damage,
+    )} 伤害 / 半径 ${before.hurtExplosion.radius}`,
+    "只在非致命近身受伤后爆炸；敌弹不触发",
+    {
+      damage: before.hurtExplosion.damage,
+      radius: before.hurtExplosion.radius,
+    },
+  );
+  if (counts["spike-shell"] > 0) {
+    const line = `刺壳：每 ${ITEM_CONSTANTS.spikeShellInterval}s / 半径 ${ITEM_CONSTANTS.spikeShellRadius} / ${formatPreviewNumber(
+      before.spikeShellDamage,
+    )} 伤害`;
+    summary.push(line);
+    byItem["spike-shell"] = line;
+    readoutsByItem["spike-shell"] = {
+      damage: before.spikeShellDamage,
+      radius: ITEM_CONSTANTS.spikeShellRadius,
+      interval: ITEM_CONSTANTS.spikeShellInterval,
+    };
+    const condition = `当前 ${counts["spike-shell"]} 份；压力阀触发时伤害 ×${ITEM_CONSTANTS.pressureSpikeMultiplier}；每 ${ITEM_CONSTANTS.spikeShellKillHealEvery} 次直接击杀回 1 点，每波最多 ${ITEM_CONSTANTS.spikeShellHealPerWave} 点`;
+    conditions.push(condition);
+    conditionsByItem["spike-shell"] = condition;
+  }
+  add(
+    "pressure-valve",
+    counts["pressure-valve"],
+    `每次受伤 +${ITEM_CONSTANTS.pressureHurtDamage}；非致命受伤后 ${ITEM_CONSTANTS.pressureDuration}s 内近战武器伤害 +${formatPreviewNumber(
+      ITEM_CONSTANTS.pressureWeaponDamage * 100,
+      0,
+    )}%`,
+    `当前压力触发时武器伤害 ×${(
+      1 + ITEM_CONSTANTS.pressureWeaponDamage
+    ).toFixed(2)}`,
+  );
+  add(
+    "twin-trigger",
+    counts["twin-trigger"],
+    `适用武器每轮多发 ${counts["twin-trigger"]} 发，单发伤害 ×${(
+      Math.pow(ITEM_CONSTANTS.twinTriggerDamage, counts["twin-trigger"]) *
+      before.weaponFactor
+    ).toFixed(3)}`,
+    "仅快枪、散弹、火箭；当前没有适用枪时不生效",
+    {
+      count: counts["twin-trigger"],
+    },
+  );
+  if (counts["magnetic-return"] > 0) {
+    const line = `磁力回潮：每 ${ITEM_CONSTANTS.magnetFuelEvery} 单位燃料发射 ${ITEM_CONSTANTS.magnetCaps} 枚，${formatPreviewNumber(
+      ITEM_CONSTANTS.magnetDamage *
+        before.powerFactor *
+        before.pickupBulletDamageMultiplier,
+    )} 伤害`;
+    summary.push(line);
+    byItem["magnetic-return"] = line;
+    readoutsByItem["magnetic-return"] = {
+      damage:
+        ITEM_CONSTANTS.magnetDamage *
+        before.powerFactor *
+        before.pickupBulletDamageMultiplier,
+      radius: before.pickupRadius,
+      threshold: ITEM_CONSTANTS.magnetFuelEvery,
+      count: ITEM_CONSTANTS.magnetCaps,
+    };
+    const condition = `拾取半径 ${Math.round(before.pickupRadius)}`;
+    conditions.push(condition);
+    conditionsByItem["magnetic-return"] = condition;
+  }
+  if (counts["scrap-popcorn"] > 0) {
+    const line = `废料爆米花：每单位燃料 2 发，${formatPreviewNumber(
+      ITEM_CONSTANTS.popcornDamage *
+        before.powerFactor *
+        before.pickupBulletDamageMultiplier,
+    )} 伤害`;
+    summary.push(line);
+    byItem["scrap-popcorn"] = line;
+    readoutsByItem["scrap-popcorn"] = {
+      damage:
+        ITEM_CONSTANTS.popcornDamage *
+        before.powerFactor *
+        before.pickupBulletDamageMultiplier,
+      threshold: 1,
+      count: ITEM_CONSTANTS.popcornShotsPerFuel,
+    };
+  }
+  add(
+    "hooked-tip",
+    counts["hooked-tip"],
+    `拾取弹穿透 +${before.pickupBulletPierce}${
+      before.pickupBulletHoming ? "，磁力瓶盖会自动追敌" : ""
+    }`,
+    "必须先有磁力回潮或废料爆米花",
+    {
+      count: before.pickupBulletPierce,
+    },
+  );
+  add(
+    "siphon-bag",
+    counts["siphon-bag"],
+    `拾取弹伤害 ×${before.pickupBulletDamageMultiplier.toFixed(2)}，拾取半径 ${Math.round(
+      before.pickupRadius,
+    )}`,
+    `钱币转化率 ${coinRateMilli(counts["siphon-bag"]) / 10}%（燃料不减少）`,
+    {
+      damage: before.pickupBulletDamageMultiplier,
+      radius: before.pickupRadius,
+    },
+  );
+
+  return Object.freeze({
+    active: summary.length > 0,
+    summary: Object.freeze(summary),
+    conditions: Object.freeze(conditions),
+    byItem: Object.freeze(byItem),
+    conditionsByItem: Object.freeze(conditionsByItem),
+    activeByItem: Object.freeze(activeByItem),
+    readoutsByItem: Object.freeze(readoutsByItem),
   });
 }
 

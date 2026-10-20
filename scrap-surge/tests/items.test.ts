@@ -21,6 +21,7 @@ import {
   itemCountsFromIds,
   itemEligibility,
   itemPrice,
+  itemProcPreview,
   perVolleyDps,
   projectileCount,
   purchaseEffectPreview,
@@ -663,10 +664,69 @@ test("catalog purchase previews derive cap, uniqueness and live constants", () =
   assert.equal(milestone.unique, true);
   assert(milestone.effect.includes("90"));
   assert(milestone.effect.includes("半径 36"));
-  assert(milestone.effect.includes("30×P"));
+  assert(milestone.effect.includes("30 × 机制强度"));
   assert(ITEM_BY_ID["worn-sandals"].description.includes("12%"));
   assert(ITEM_BY_ID["short-fuse"].description.includes("-8%"));
   assert(ITEM_BY_ID["siphon-bag"].description.includes("-15%"));
+});
+
+test("proc previews report current and projected existing-derived values", () => {
+  const current = itemProcPreview(
+    itemCountsFromIds(["milestone", "undertow-board", "spike-shell"]),
+  );
+  const after = itemProcPreview(
+    itemCountsFromIds([
+      "milestone",
+      "undertow-board",
+      "undertow-board",
+      "spike-shell",
+    ]),
+  );
+  assert.equal(current.readoutsByItem.milestone?.damage, 30);
+  assert.equal(after.readoutsByItem.milestone?.damage, 30);
+  assert.equal(current.readoutsByItem["undertow-board"]?.radius, 100);
+  assert.equal(after.readoutsByItem["undertow-board"]?.radius, 110);
+  assert.equal(current.readoutsByItem["undertow-board"]?.damage, 12 * 10);
+  assert.equal(after.readoutsByItem["undertow-board"]?.damage, 16 * 10);
+  assert.equal(current.readoutsByItem["spike-shell"]?.damage, 15);
+  assert.equal(current.readoutsByItem["spike-shell"]?.interval, 0.5);
+
+  const pressured = itemProcPreview(
+    itemCountsFromIds(["spike-shell", "pressure-valve"]),
+    {},
+    { pressureActive: true },
+  );
+  assert.equal(pressured.readoutsByItem["spike-shell"]?.damage, 30);
+  assert.deepEqual(
+    itemProcPreview(
+      itemCountsFromIds(["spike-shell", "pressure-valve"]),
+      {},
+      { pressureActive: true },
+    ).readoutsByItem["spike-shell"],
+    {
+      damage: 30,
+      radius: 40,
+      interval: 0.5,
+    },
+  );
+});
+
+test("proc preview separates owned values from inactive dependency and weapon copies", () => {
+  const h2 = itemProcPreview(itemCountsFromIds(["undertow-board"]));
+  assert.equal(h2.activeByItem["undertow-board"], true);
+  assert.equal(h2.readoutsByItem["undertow-board"]?.damage, 12 * 10);
+
+  const wedgeWithoutRoot = itemProcPreview(itemCountsFromIds(["wedge-ring"]));
+  assert.equal(wedgeWithoutRoot.activeByItem["wedge-ring"], false);
+  assert.equal(wedgeWithoutRoot.readoutsByItem["wedge-ring"]?.radius, 75);
+
+  const twinWithoutGun = itemProcPreview(
+    itemCountsFromIds(["twin-trigger"]),
+    {},
+    { weapons: ["saw"] },
+  );
+  assert.equal(twinWithoutGun.activeByItem["twin-trigger"], false);
+  assert.equal(twinWithoutGun.readoutsByItem["twin-trigger"]?.count, 1);
 });
 
 test("approved queue, combat and wave caps are exported constants", () => {

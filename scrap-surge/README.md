@@ -16,7 +16,7 @@ PLAYTEST 审查是历史证据。`3305687` 之后的渲染顺序修复已在
 `01a9bf13a69ceaeeca9263ec9def1d2ba212622a` 完成三方仅限 PLAYTEST 的审查；模型
 审查不是用户验收或目标完成，本候选也不是已完成的 10–20 分钟肉鸽。**
 普通入口默认进入 20 波远征；`?mode=slice` 保留已批准的两波手感切片。当前
-P2 Stage D 套件为 **166/166**，生产构建干净。Stage D 为远征加入精英、宝箱、
+P2 repair 套件为 **172/172**，生产构建干净。Stage D 为远征加入精英、宝箱、
 真实 S3 轨迹、H3 光环和压力提示的渲染路径，并区分物品购买、精英和宝箱的合成
 音效；默认切片渲染和模拟规则不变。普通键盘与真实 CDP 触屏的 W3 视觉 fixture
 各自通过，均观察到 360 HP、半径 28 的精英，正常击败、拾取实体宝箱并在下一次
@@ -99,8 +99,8 @@ npm run test:browser:regression   # 独立正常输入回归，同样先启动 d
 npm run test:browser:lifecycle    # W7 自动接波的键盘/触屏输入生命周期回归
 npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
 npm run test:browser:p2-items     # W1 核心领取、真实 W2 触发与物品购买（键盘/触屏）
-BASE_URL=http://127.0.0.1:4192 OUTPUT_DIR=/tmp/p2-stage-d-final-visuals \
-  node tests/browser-p2-visuals.mjs # W3 精英、实体宝箱与冻结奖励视觉流程
+npm run test:browser:p2-visuals   # W3 精英、实体宝箱与冻结奖励视觉流程
+npm run test:browser:p2-lifecycle # 暂停/缩放/刷新/W3 真实失败/单条记录/重试重置
 npm run test:browser:expedition    # expedition 普通输入全程；每次独立 attempt 留证
 BASE_URL=http://127.0.0.1:4188 OUTPUT_DIR=/tmp/render-occlusion \
   node tests/browser-render-occlusion.mjs  # 固定合成遮挡 fixture；可选普通 W2 截图
@@ -114,8 +114,10 @@ npm run format
 回归脚本另支持 `BASE_URL` 与 `DIST_DIR`（默认使用仓库内 `dist/`）。
 它使用普通键鼠、实际触屏事件和只读观察数据；没有修改战斗状态或开启无敌。
 P2 物品集成 fixture 同时运行普通键盘和 CDP 触屏：W1 领取自然出现的核心奖励，
-观察 W2 的真实处理队列，再在第二次整备点击购买物品；它检查 390px 横向溢出、
-页面错误和可见按钮至少 44px。
+观察 W2 的真实处理队列，再在第二次整备点击购买物品；它要求商店三件物品、
+390px 标签无省略、选中详情只显示自身变化、无横向或嵌套滚动、无页面错误，
+且可见按钮至少 44px。生命周期 fixture 另以普通输入走到 W3 真实失败，验证
+暂停、自动暂停、刷新、单条记录和重试重置。
 自动接波回归单独运行键盘与触屏两局：在 W7 过渡中新按方向并保持到 W8，
 同时验证商店、快速选择和暂停期间不会收集移动输入。它不计入 24 项回归分母。
 失败路径由普通键盘朝最近敌人冲的独立 fixture 覆盖（固定 seed 2a/17/91，各一局）；

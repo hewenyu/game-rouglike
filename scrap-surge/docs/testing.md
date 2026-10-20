@@ -1,5 +1,49 @@
 # Validation evidence and boundaries
 
+## P2 repair verification (2026-10-20)
+
+The repair candidate preserves simulation balance, HP, waves, audio and the
+frozen slice behavior. It makes expedition weapon offers exactly three distinct
+cards, prevalidates shared rerolls, removes reward-stream mutation from rerolls,
+fixes deterministic exact-repeat fallback, and keeps failures atomic. The item
+detail path now uses the shared pure proc-preview helper and shows only the
+selected item's own readout; held proc outputs are listed only when the selected
+item changes `powerFactor`. Mobile family labels are Chinese-only so all three
+cards fit at 390px without ellipsis.
+
+| Check | Latest result |
+| --- | --- |
+| `npm test` | **172/172** |
+| `npm run build` | **clean** |
+| `git diff --check` | **clean** |
+| P2 item integration, server `4194` | **2/2**, keyboard and CDP touch, 0 page errors |
+| P2 W3 visuals, server `4194` | **2/2**, keyboard and CDP touch, 0 page errors |
+| P2 lifecycle, server `4194` | **6/6**, one real W3 loss, one record, clean retry |
+
+Latest actual successful artifacts:
+
+- `/tmp/p2-repair-items-final4-1792487480/report.json`
+  (SHA-256 `a65a9164130455fcfe19b8964e8403baf54a8c412682b4f864896729c3107ebd`)
+  records 49 consumed fuel / 98 admitted shots keyboard and 46/92 touch, both
+  with 0 rejected shots and matching `queueCounters.popcorn.processed`.
+- `/tmp/p2-repair-visuals-final2-1792487579/report.json`
+  (SHA-256 `c7f3f796eb8bccb5ecbc376bff6a816d6c509072b77c86c1e79e49e13b176af0`)
+  records natural elite `maxHp 360`, `radius 28`, defeat, chest collection,
+  frozen two-choice chest and claim in both input modes.
+- `/tmp/p2-repair-lifecycle-final2-1792487727/report.json`
+  (SHA-256 `5d92e98c798fe55277d1495c5f2c33ca2296238a1bd86caa9ede3e76520ae7ee`)
+  records all six lifecycle checks and the W3 loss at 0 HP.
+
+An earlier repair run
+`/tmp/p2-repair-items-final3-1792487381/report.json` failed because the fixture
+asserted only the W1 detail headline. The failure is preserved, not relabeled;
+the fixture was corrected to select the target card before inspecting its
+detail, and the passing run above is from the corrected source. These are
+author-run headless browser checks, not user acceptance or independent review.
+They do not establish a full ordinary-input W20 victory, late-five-route
+viability, saturation, physical-phone/Safari behavior, audio-mix acceptance or
+perform a review of the new frozen SHA.
+
 ## P2 Stage D audiovisual integration (2026-10-20)
 
 Stage D adds an expedition-only presentation path without changing simulation,
