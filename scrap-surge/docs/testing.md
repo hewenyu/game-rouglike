@@ -21,8 +21,8 @@ verification run), spent 12 scrap, changed max HP 10 -> 12, and changed the
 derived move factor 1.00 -> 0.96. Both runs had no page errors. At 390px the
 document and overlay widths were 390/390, no item card crossed the viewport, and
 every visible P2 rest action measured at least 44x44 CSS pixels. The mobile
-footer is intentionally
-static so it cannot cover lower cards, and touch buys through the selected-item
+footer is intentionally static so it cannot cover lower cards, and touch buys
+through the selected-item
 detail action. The screenshots and JSON are under `/tmp/p2-items-browser/`; they
 are author artifacts, not independent review.
 
