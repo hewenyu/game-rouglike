@@ -42,6 +42,9 @@ const SOURCE_FILES = [
   "src/style.css",
 ] as const;
 const BOSS_WAVES = [5, 10, 15, 20] as const;
+function bossIndex(wave: (typeof BOSS_WAVES)[number]) {
+  return BOSS_WAVES.indexOf(wave);
+}
 const HP_SAMPLE_STEPS = P3_POLICY.bossHpSample.everySteps;
 const ACTUAL_ITEM_ATTRIBUTION =
   "missing: the public read-only API exposes weapon/item projectile metadata and damage-source parameters but no per-hit source ledger";
@@ -682,7 +685,7 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
     forceSample: boolean,
   ) => {
     if (!enemy) return;
-    const boss = bossWindows[wave - 1]!;
+    const boss = bossWindows[bossIndex(wave)]!;
     if (!boss.everSpawned) {
       boss.everSpawned = true;
       boss.firstObserved = {
@@ -1123,7 +1126,8 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
       if (BOSS_WAVES.includes(wave as (typeof BOSS_WAVES)[number])) {
         const shown = bossSnapshot(game, wave);
         if (shown) {
-          const boss = bossWindows[wave - 1]!;
+          const boss =
+            bossWindows[bossIndex(wave as (typeof BOSS_WAVES)[number])]!;
           const first = !boss.everSpawned;
           noteBoss(
             wave as (typeof BOSS_WAVES)[number],
@@ -1131,7 +1135,8 @@ async function simulate(options: RunOptions): Promise<RunRecord> {
             first || runSteps % HP_SAMPLE_STEPS === 0,
           );
         }
-        const point = bossWindows[wave - 1]!;
+        const point =
+          bossWindows[bossIndex(wave as (typeof BOSS_WAVES)[number])]!;
         if (game.bossKilled && point.everSpawned) point.killed = true;
       }
       if (phaseAfterStep === "lost") break;
