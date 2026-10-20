@@ -1,5 +1,11 @@
 # Status
 
+P1 code at `db0cd9c71e66584515e634a9e55298255710e26e` is approved by root, the
+fresh actual Opus task `p1_opus_final_once` and the fresh actual independent
+DeepSeek task `p1_deepseek_final_once` for foundation/presentation only. The docs
+repair now needs a fresh read-only final review. Original `4188`/`19a66dd` remains
+unchanged; runtime `4190` is the ROOT static `db0` build. No performance claim.
+
 P1 current structure: six weapon slots from W1, automatic same-ID/same-tier
 fusion through IV and damage-only tier scaling. The starting gun is paid 0; an
 18-scrap purchase is paid 18; two paid 30-scrap coils merge into one paid-60
@@ -24,7 +30,7 @@ readout with unchanged geometry, 3px INK outline. Tests cover a synthetic shape
 matrix and the first 60 rendered steps; this is bounded nonmutation evidence, not
 full slice equivalence.
 
-## P1 freeze candidate based on `19a66dd` (2026-10-19)
+## P1 code approved at `db0cd9c` (based on `19a66dd`, 2026-10-19)
 
 This is the bounded P1 structural candidate, not an item-system implementation,
 late-balance approval or user acceptance. It changes expedition weapons to six
@@ -36,7 +42,7 @@ item rewards and economy assertions are recorded in `memory/goal.md` and
 `docs/design.md`, but no P2 item code, third mod slot, HP tuning or content
 expansion is part of this freeze.
 
-Current repair evidence pending freeze:
+P1 repair evidence for the approved code:
 
 | Check | Result |
 | --- | --- |

@@ -92,15 +92,15 @@ unlimited sustain.
 Tags: `damage`, `range`, `pierce`, `weapon`
 
 1. **Scrap Powder**: stack weapon damage.
-2. **Long Barrel**: movement speed `+35%`, weapon range `-25%`; the tradeoff is
+2. **Long Barrel**: attack speed `+35%`, weapon range `-25%`; the tradeoff is
    explicit and provisional.
 3. **Bent Nail**: add pierce to eligible projectiles. Pierce count and
    eligibility are UNAPPROVED HYPOTHESES.
 4. **Tier Badge**: tier-based weapon bonus. Per-tier values are UNAPPROVED
    HYPOTHESES and must not silently replace the P1 `1/2/4/8` profile.
 
-Curse: range drops `25%` on the speed-oriented item; damage/range/pierce values
-remain unapproved until measured.
+Curse: range drops `25%` on the attack-speed-oriented item; the `+35%` and `-25%`
+values remain UNAPPROVED HYPOTHESES, not a runtime change.
 
 ### 5. Pickup A/B: collection becomes firepower
 

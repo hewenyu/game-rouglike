@@ -26,6 +26,32 @@ are the verifiable evidence. This is not one model roleplaying three.
 Author self-check is not independent review. The independent DeepSeek review must
 run in a separate context against a frozen commit.
 
+## P1 code approval and docs-repair gate: `db0cd9c` (2026-10-19)
+
+Root, the fresh actual Opus task `p1_opus_final_once`, and the fresh actual independent
+DeepSeek task `p1_deepseek_final_once` approved code commit
+`db0cd9c71e66584515e634a9e55298255710e26e` for the bounded P1
+foundation/presentation scope only. Both reviewers returned **code PASS** and
+**docs BLOCK** on these exact three documentation defects: the stale
+two-slot/manual-capacity line in `README.md`, Long Barrel's movement-speed wording in
+`docs/growth-items-proposal.md`, and the unmarked historical tier-II requirements in
+`docs/expedition20-proposal.md`. Root agrees with that disposition. The docs repair
+requires a fresh read-only final review.
+
+Evidence, not merged across parties:
+
+- **Root:** 105 tests and an isolated production build passed; ordinary keyboard and
+  touch runs played W1/W2, completed the merge, and reached W3.
+- **Opus:** the ordinary first-merge run passed 2/2 screens, and the 390px layout
+  had no overflow (`/tmp/opus-db0-1792472497`; diagnostics in
+  `/tmp/opus-db0-diag/out`).
+- **Independent DeepSeek:** 105 tests and the build passed, the old render fixture
+  matched by hash, and the browser merge check passed 2/2
+  (`/tmp/db0-browser-merge.PD0geU/report.json`).
+
+This approval excludes P2 items, balance approval, a full ordinary-input W20 run,
+user acceptance and any performance claim.
+
 ## PLAYTEST triad review: source identity `db74a8c` (2026-10-19)
 
 Astra, Opus and independent DeepSeek approved the bounded `db74a8c` evidence for

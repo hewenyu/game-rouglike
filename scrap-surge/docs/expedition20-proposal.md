@@ -1,10 +1,13 @@
-# Expedition20 approved implementation spec
+# Expedition20 historical implementation snapshot
 
-Status: **implemented candidate, not user-accepted and not validation-complete**.
-Astra, Opus, author DeepSeek and independent DeepSeek approved implementation text
-**058951fc84994abb8ee24a2c587bb9232c1c1ccd**. The normal page now defaults to
-`expedition20`; `?mode=slice` preserves the two-wave slice. Any later tuning or
-rule change needs three-party agreement.
+Status: **HISTORICAL SNAPSHOT — CURRENT RULES REQUIRE CODE AND CURRENT DOCS.**
+This document preserves the proposal approved as
+**058951fc84994abb8ee24a2c587bb9232c1c1ccd** and its chronology. It is not a current
+rules reference. P1 later changed weapons to six slots from W1, with automatic
+same-ID/same-tier fusion through IV and no manual tier-II upgrade or capacity ramp.
+Current behavior must be read from the code and current documents such as `README.md`,
+`docs/design.md` and `memory/status.md`. Local notes below record known contradictions
+without deleting the historical proposal.
 
 **HISTORICAL — SUPERSEDED BY P1:** the slot-growth ramp and manual tier-II
 upgrade plan in Sections 2.4-2.5 and 3.2 are retained as historical design text
@@ -555,7 +558,10 @@ existing audio limiter; no audio refactor.
 
 ## 9. Gun tier II
 
-- Opens at the **wave-8 shop**, gated by the capacity ramp in §2.5.
+**HISTORICAL — SUPERSEDED BY P1.** Tier II is not opened by a wave-8 shop or gated
+by the capacity ramp in §2.5. P1 uses automatic same-ID/same-tier fusion through IV,
+with no manual upgrade or capacity ramp.
+
 - One tier only. Interval is never changed.
 - Damage multiplier is **×1.0** for guns whose tier II doubles projectiles/hit points and
   **×1.4** for shotgun and coil; the effective output lands near ×2 for the doubling
@@ -627,9 +633,12 @@ one assertion per row where stated):
 - spitter born 0.8 counts to the 6-unit cap; an over-cap attempt falls back to a bag
   and increments `spitterFallbackToBag`; each over-cap attempt is independent (a
   rejected fallback bag is not retried);
-- tier-II capacity ramp 1..6 counts currently held tier-II slots (including duplicate
-  types), upgrading a selected slot, capacity-limit no charge, selling frees capacity,
-  refund 35%, last gun unsellable;
+- **HISTORICAL — SUPERSEDED BY P1:** the tier-II capacity-ramp test requirement below
+  is retained as proposal history, not current test scope. P1 tests six-slot accounting,
+  automatic same-ID/same-tier fusion through IV, and no manual upgrade/capacity ramp.
+  The old requirement was: capacity ramp 1..6 counts currently held tier-II slots
+  (including duplicate types), upgrading a selected slot, capacity-limit no charge,
+  selling frees capacity, refund 35%, last gun unsellable;
 - offers satisfy the unowned-type constraint when one exists and do not require an
   owned type; reroll 0/6/8/10;
 - price integer formula and the **144** slinger tier-II case;
