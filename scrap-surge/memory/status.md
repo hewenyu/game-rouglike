@@ -16,8 +16,9 @@ frozen-slice behavior and injects no state, timer or invulnerability. The old
 172-test and browser evidence remains attributed to `e478497`; exact final-tree
 evidence is **173/173** tests, clean build and clean diff check, plus the
 ordinary-input browser fixture **2/2** with zero page errors. The frozen
-follow-up SHA is recorded with the commit. Fresh Opus and independent DeepSeek
-review of that SHA, root integration review and user acceptance remain open.
+follow-up source SHA is `447af109d4a07d218ae33466c75bc5b1266b092c`. Fresh Opus
+and independent DeepSeek review of that SHA, root integration review and user
+acceptance remain open.
 
 The frozen P2 repair candidate replaces the Stage D checkpoint with the bounded
 R1-R5 repair agreed by Astra, Opus and independent DeepSeek on `27c3503`.

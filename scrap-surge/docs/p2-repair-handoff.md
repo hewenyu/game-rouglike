@@ -96,11 +96,12 @@ performance, late-build, full-W20 or user-feel acceptance.
 
 ## Follow-up verification on the new frozen SHA
 
-At the exact follow-up tree, the unit suite passes **173/173**, the production
-build is clean and `git diff --check` is clean. The repository browser fixture
-passes **2/2** in ordinary keyboard and real CDP touch with zero page errors,
-testing the seed-1 same-index shop/reward sequence and then the prior W1/W2
-flow. The successful report is `/tmp/ds-e478-r5-final2/report.json` (SHA-256
+At follow-up source SHA `447af10`, the unit suite passes **173/173**, the
+production build is clean and `git diff --check` is clean. The repository
+browser fixture passes **2/2** in ordinary keyboard and real CDP touch with zero
+page errors, testing the seed-1 same-index shop/reward sequence and then the
+prior W1/W2 flow. The successful report is
+`/tmp/ds-e478-r5-final2/report.json` (SHA-256
 `c281ca0620b69dc8a424d4a9b7ca256e1796d736e180e371052e9b5dff8f0067`). The earlier
 `/tmp/ds-e478-r5-final/report.json` failed on radius display and remains
 unrelabeled. Full evidence and boundaries are in `docs/testing.md`.

@@ -15,7 +15,8 @@ index 0 (`siphon-bag`), then inspect still-unclaimed reward index 0
 core claim and W2 `厚壳` purchase. No game state, HP, timer or invulnerability is
 injected.
 
-The exact follow-up tree passed `npm test` **173/173** and `npm run build` clean.
+The exact follow-up tree `447af10` passed `npm test` **173/173** and
+`npm run build` clean.
 The repository browser fixture passed **2/2** in ordinary keyboard and real CDP
 touch, with zero page errors. Both modes observed shop index 0 and reward index
 0, `siphon-bag` held 1 while unclaimed `magnetic-return` remained held 0 in the
