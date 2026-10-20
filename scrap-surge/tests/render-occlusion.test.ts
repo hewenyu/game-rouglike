@@ -1,0 +1,510 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { Renderer } from "../src/render";
+import { Game } from "../src/sim";
+import { BLAST, DT } from "../src/data";
+import type { Bullet, Enemy } from "../src/sim";
+
+type Matrix = [number, number, number, number, number, number];
+type DrawOp = {
+  kind: "fill" | "stroke" | "text";
+  fill?: string;
+  stroke?: string;
+  width?: number;
+  x?: number;
+  y?: number;
+  rx?: number;
+  ry?: number;
+  w?: number;
+  h?: number;
+  text?: string;
+};
+
+const INK = "#273b35";
+const ENEMY_RED = "#e9695b";
+const CAP = "#fff3c8";
+const BONUS = "#e9cf4a";
+const ROCKET = "#e88951";
+
+class RecordingContext {
+  private state: Matrix = [1, 0, 0, 1, 0, 0];
+  private stack: Matrix[] = [];
+  private path: {
+    ellipse?: { x: number; y: number; rx: number; ry: number };
+    fill?: string;
+  } = {};
+  fillStyle = "#000000";
+  strokeStyle = "#000000";
+  lineWidth = 1;
+  globalAlpha = 1;
+  lineCap = "butt";
+  lineJoin = "miter";
+  font = "";
+  textAlign = "start";
+  ops: DrawOp[] = [];
+
+  constructor(private record = true) {}
+
+  private point(x: number, y: number) {
+    const [a, b, c, d, e, f] = this.state;
+    return { x: a * x + c * y + e, y: b * x + d * y + f };
+  }
+  private scales() {
+    const [a, b, c, d] = this.state;
+    return { x: Math.hypot(a, b), y: Math.hypot(c, d) };
+  }
+  save() {
+    this.stack.push([...this.state]);
+  }
+  restore() {
+    this.state = this.stack.pop() ?? [1, 0, 0, 1, 0, 0];
+  }
+  setTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
+    this.state = [a, b, c, d, e, f];
+  }
+  translate(x: number, y: number) {
+    const [a, b, c, d, e, f] = this.state;
+    this.state = [a, b, c, d, e + a * x + c * y, f + b * x + d * y];
+  }
+  scale(x: number, y: number) {
+    const [a, b, c, d, e, f] = this.state;
+    this.state = [a * x, b * x, c * y, d * y, e, f];
+  }
+  rotate(angle: number) {
+    const [a, b, c, d, e, f] = this.state;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    this.state = [
+      a * cos + c * sin,
+      b * cos + d * sin,
+      -a * sin + c * cos,
+      -b * sin + d * cos,
+      e,
+      f,
+    ];
+  }
+  beginPath() {
+    this.path = {};
+  }
+  moveTo() {}
+  lineTo() {}
+  quadraticCurveTo() {}
+  closePath() {}
+  setLineDash() {}
+  strokeRect() {}
+  fillRect(x: number, y: number, w: number, h: number) {
+    if (!this.record) return;
+    const point = this.point(x, y);
+    const scale = this.scales();
+    this.ops.push({
+      kind: "fill",
+      fill: String(this.fillStyle),
+      x: point.x,
+      y: point.y,
+      w: w * scale.x,
+      h: h * scale.y,
+    });
+  }
+  createRadialGradient() {
+    return { addColorStop() {} };
+  }
+  ellipse(
+    x: number,
+    y: number,
+    rx: number,
+    ry: number,
+    _rotation: number,
+    _start: number,
+    _end: number,
+  ) {
+    const scale = this.scales();
+    const point = this.point(x, y);
+    this.path.ellipse = {
+      x: point.x,
+      y: point.y,
+      rx: rx * scale.x,
+      ry: ry * scale.y,
+    };
+  }
+  roundRect() {}
+  fill() {
+    this.path.fill = String(this.fillStyle);
+    if (!this.record) return;
+    const ellipse = this.path.ellipse;
+    this.ops.push({
+      kind: "fill",
+      fill: String(this.fillStyle),
+      x: ellipse?.x,
+      y: ellipse?.y,
+      rx: ellipse?.rx,
+      ry: ellipse?.ry,
+    });
+  }
+  stroke() {
+    if (!this.record || !this.path.ellipse) return;
+    this.ops.push({
+      kind: "stroke",
+      fill: this.path.fill,
+      stroke: String(this.strokeStyle),
+      width: this.lineWidth,
+      x: this.path.ellipse.x,
+      y: this.path.ellipse.y,
+      rx: this.path.ellipse.rx,
+      ry: this.path.ellipse.ry,
+    });
+  }
+  fillText(text: string, x: number, y: number) {
+    if (!this.record) return;
+    const point = this.point(x, y);
+    this.ops.push({
+      kind: "text",
+      fill: String(this.fillStyle),
+      x: point.x,
+      y: point.y,
+      text,
+    });
+  }
+  strokeText() {}
+}
+
+function rendererWith(ctx: RecordingContext) {
+  const renderer = Object.create(Renderer.prototype) as Renderer;
+  renderer.ctx = ctx as unknown as CanvasRenderingContext2D;
+  renderer.width = 1260;
+  renderer.height = 890;
+  renderer.dpr = 1;
+  renderer.scale = 1;
+  renderer.ox = 0;
+  renderer.oy = 0;
+  renderer.reserveTop = 0;
+  renderer.reserveBottom = 0;
+  renderer.reduced = true;
+  return renderer;
+}
+
+function bullet(
+  x: number,
+  y: number,
+  kind: Bullet["kind"],
+  id: number,
+  r = kind === "enemy" ? 7 : 5,
+): Bullet {
+  return {
+    x,
+    y,
+    id,
+    vx: 100,
+    vy: 0,
+    damage: 1,
+    life: 1,
+    kind,
+    target: 0,
+    r,
+    homing: false,
+  };
+}
+
+function visualGame() {
+  const g = new Game(42, "expedition20");
+  g.enemies = [];
+  g.guns = [];
+  g.bullets = [
+    bullet(500, 450, "cap", 1),
+    bullet(520, 450, "bonus", 2),
+    bullet(540, 450, "rocket", 3),
+    bullet(580, 450, "enemy", 4, 6),
+    bullet(620, 450, "enemy", 5, 7),
+  ];
+  g.fx = [
+    {
+      kind: "blast",
+      x: 600,
+      y: 450,
+      life: 0.7,
+      max: 1,
+      color: "#efaa39",
+      size: 130,
+    },
+    {
+      kind: "domino-blast",
+      x: 600,
+      y: 450,
+      life: 0.4,
+      max: 0.8,
+      color: "#f6c35c",
+      size: 70,
+    },
+    {
+      kind: "ember",
+      x: 600,
+      y: 450,
+      life: 0.3,
+      max: 0.6,
+      color: BLAST.ring,
+      size: 55,
+    },
+  ];
+  g.chainCount = 5;
+  g.chainTimer = 0.5;
+  g.phase = "sweep";
+  return g;
+}
+
+function enemy(kind: Enemy["kind"], id: number, maxHp: number): Enemy {
+  const hp = maxHp / 2;
+  return {
+    x: 240 + id * 70,
+    y: 360,
+    id,
+    kind,
+    hp,
+    maxHp,
+    r:
+      kind === "boss"
+        ? 48
+        : kind === "chip"
+          ? 10
+          : kind === "splitter"
+            ? 20
+            : kind === "spitter"
+              ? 19
+              : kind === "can"
+                ? 24
+                : kind === "runner"
+                  ? 14
+                  : 17,
+    vx: 0,
+    vy: 0,
+    knockX: 0,
+    knockY: 0,
+    flash: 0,
+    age: 0.4,
+    born: 0,
+    attack: 0,
+    bowled: new Set(),
+    bossStage: kind === "boss" ? 2 : undefined,
+    volleys: kind === "boss" ? 0 : undefined,
+    tell: 0,
+  };
+}
+
+function snapshot(game: Game) {
+  return JSON.stringify(game, (_key, value) => {
+    if (value instanceof Map)
+      return { __map: [...value.entries()] };
+    if (value instanceof Set)
+      return { __set: [...value] };
+    return value;
+  });
+}
+
+function rects(ctx: RecordingContext) {
+  return ctx.ops.filter(
+    (op) => op.kind === "fill" && op.w !== undefined && op.h !== undefined,
+  );
+}
+
+test("expedition hurt bars add only bag, runner and chip at damaged health", () => {
+  for (const [index, kind] of (["bag", "runner", "chip"] as const).entries()) {
+    const rendered = rendererWith(new RecordingContext());
+    const e = enemy(kind, index + 1, 2);
+    const before = snapshot(e as unknown as Game);
+    rendered.enemy(e, "expedition20");
+    assert.equal(snapshot(e as unknown as Game), before, `${kind} mutated`);
+
+    const width = kind === "runner" ? 24 : 20;
+    assert.deepEqual(rects(rendered.ctx as unknown as RecordingContext), [
+      {
+        kind: "fill",
+        fill: INK,
+        x: e.x - width / 2,
+        y: e.y - e.r - 9,
+        w: width,
+        h: 3,
+      },
+      {
+        kind: "fill",
+        fill: "#a6d2af",
+        x: e.x - width / 2 + 1,
+        y: e.y - e.r - 8,
+        w: ((width - 2) * e.hp) / e.maxHp,
+        h: 1,
+      },
+    ]);
+
+    const full = rendererWith(new RecordingContext());
+    full.enemy(
+      { ...enemy(kind, index + 1, 2), hp: 2 },
+      "expedition20",
+    );
+    assert.deepEqual(rects(full.ctx as unknown as RecordingContext), []);
+  }
+});
+
+test("existing can, splitter and spitter hurt bars are unchanged", () => {
+  for (const [index, kind] of (
+    ["can", "splitter", "spitter"] as const
+  ).entries()) {
+    for (const mode of ["slice", "expedition20"] as const) {
+      const rendered = rendererWith(new RecordingContext());
+      const e = enemy(kind, index + 10, 2);
+      const before = snapshot(e as unknown as Game);
+      rendered.enemy(e, mode);
+      assert.equal(snapshot(e as unknown as Game), before, `${kind} mutated`);
+
+      const y = kind === "can" ? e.y - 34 : e.y - e.r - 12;
+      assert.deepEqual(rects(rendered.ctx as unknown as RecordingContext), [
+        {
+          kind: "fill",
+          fill: INK,
+          x: e.x - 20,
+          y,
+          w: 40,
+          h: 4,
+        },
+        {
+          kind: "fill",
+          fill:
+            mode === "expedition20" && kind === "spitter"
+              ? "#e5a04d"
+              : kind === "spitter"
+                ? "#e5a04d"
+                : kind === "splitter"
+                  ? "#e08a65"
+                  : "#a6d2af",
+          x: e.x - 19,
+          y: y + 1,
+          w: 19,
+          h: 2,
+        },
+      ]);
+    }
+  }
+});
+
+test("bag, runner and chip keep frozen slice rendering and get no new bars", () => {
+  const rendered = rendererWith(new RecordingContext());
+  let id = 20;
+  for (const kind of (["bag", "runner", "chip"] as const)) {
+    rendered.enemy(enemy(kind, id++, 2));
+    rendered.enemy({ ...enemy(kind, id++, 2), hp: 2 });
+  }
+  const ctx = rendered.ctx as unknown as RecordingContext;
+  assert.deepEqual(rects(ctx), []);
+  const hash = createHash("sha256")
+    .update(JSON.stringify(ctx.ops))
+    .digest("hex");
+  assert.equal(
+    hash,
+    "4ba5006bbeb0835ae7fc1d9ce8deecf1f41926250d2303ebfe1be15e02d80abf",
+    "default slice enemy drawing must remain byte-identical to the pre-bar behavior",
+  );
+});
+
+test("synthetic bullet matrix preserves player pass and draws each enemy once last", () => {
+  const ctx = new RecordingContext();
+  const renderer = rendererWith(ctx);
+  renderer.render(visualGame(), 1);
+
+  const enemyFills = ctx.ops.filter(
+    (op) => op.kind === "fill" && op.fill === ENEMY_RED,
+  );
+  const enemyStrokes = ctx.ops.filter(
+    (op) => op.kind === "stroke" && op.fill === ENEMY_RED,
+  );
+  assert.equal(enemyFills.length, 2);
+  assert.equal(enemyStrokes.length, 2);
+
+  const smallFill = enemyFills.find((op) => op.rx === 6);
+  const roundFill = enemyFills.find((op) => op.rx === 7);
+  const smallStroke = enemyStrokes.find((op) => op.rx === 6);
+  const roundStroke = enemyStrokes.find((op) => op.rx === 7);
+  assert(smallFill && roundFill && smallStroke && roundStroke);
+  assert.equal(smallFill.rx, 6);
+  assert.equal(smallFill.ry, 4.5);
+  assert.equal(roundFill.rx, 7);
+  assert.equal(roundFill.ry, 7);
+  assert.deepEqual(
+    [smallStroke.stroke, smallStroke.width],
+    [INK, 3],
+    "r<7 enemy oval must keep the agreed 3px INK outline",
+  );
+  assert.deepEqual(
+    [roundStroke.stroke, roundStroke.width],
+    [INK, 3],
+    "r>=7 enemy circle must keep the agreed 3px INK outline",
+  );
+
+  const cap = ctx.ops.findIndex((op) => op.kind === "fill" && op.fill === CAP);
+  const bonus = ctx.ops.findIndex(
+    (op) => op.kind === "fill" && op.fill === BONUS,
+  );
+  const rocket = ctx.ops.findIndex(
+    (op) => op.kind === "fill" && op.fill === ROCKET,
+  );
+  const blast = ctx.ops.findIndex(
+    (op) => op.kind === "fill" && op.fill === BLAST.core,
+  );
+  const sweep = ctx.ops.findIndex(
+    (op) => op.kind === "text" && op.text === "退潮了！统统收回来",
+  );
+  const chainText = ctx.ops.findIndex(
+    (op) => op.kind === "text" && op.text === "×5",
+  );
+
+  assert.equal(
+    ctx.ops.filter((op) => op.kind === "fill" && op.fill === CAP).length,
+    1,
+  );
+  assert.equal(
+    ctx.ops.filter((op) => op.kind === "fill" && op.fill === BONUS).length,
+    1,
+  );
+  assert.equal(
+    ctx.ops.filter((op) => op.kind === "fill" && op.fill === ROCKET).length,
+    1,
+  );
+  assert(cap >= 0, "player cap bullet was not rendered");
+  assert(bonus >= 0, "player bonus bullet was not rendered");
+  assert(rocket >= 0, "player rocket was not rendered");
+  assert(blast >= 0, "opaque blast core was not rendered");
+  assert(sweep >= 0, "sweep text was not rendered");
+  assert(chainText >= 0, "chain readout was not rendered");
+  assert(cap < blast, "player bullets should keep their original world pass");
+  assert(bonus < blast, "bonus bullet should keep its original world pass");
+  assert(rocket < blast);
+  assert(blast < sweep, "world FX must precede the sweep text");
+  assert(sweep < chainText, "sweep text must precede the chain readout");
+  for (const enemy of [...enemyFills, ...enemyStrokes])
+    assert(
+      ctx.ops.indexOf(enemy) > chainText,
+      "every enemy projectile must be after sweep text, FX and chain text",
+    );
+});
+
+test("first 60 rendered steps leave slice and expedition state unchanged for three seeds", () => {
+  for (const mode of ["slice", "expedition20"] as const) {
+    for (const seed of [42, 23, 145]) {
+      const rendered = new Game(seed, mode);
+      const control = new Game(seed, mode);
+      const renderer = rendererWith(new RecordingContext(false));
+      assert.equal(snapshot(rendered), snapshot(control));
+
+      for (let i = 0; i < 60; i++) {
+        const input = {
+          x: Math.sin(i * 0.11) * 0.8,
+          y: Math.cos(i * 0.17) * 0.6,
+        };
+        rendered.step(DT, input);
+        control.step(DT, input);
+        renderer.render(rendered, i / 60);
+        assert.equal(
+          snapshot(rendered),
+          snapshot(control),
+          `${mode} seed ${seed} diverged in the first 60 steps after render step ${i}`,
+        );
+      }
+    }
+  }
+});

@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-20T11:01:48.772Z",
+  "sourceSHA": "447af109d4a07d218ae33466c75bc5b1266b092c",
+  "checkpointSHA": "6ba784466e9a3f814a8fb4700438c44f3825d633",
+  "policySHA256": "e78ef5512c0a968bde0ebe080f4532bd78cfaf7c0ff08468d2f21de6640e2353",
+  "driverSHA256": "e5c398e9658bfc014014c753e2682fcf9e6fabe8019247ddef148ef530a7d202",
+  "harnessSHA256": "a1f43dd42131fbfffbd2ff8b7dce2e542973ca7a62d3a8d85d0e9dcc1c4dad43",
+  "sourceManifestSHA256": "148b63298d86f30bf952696723f2e55546fc3008bb0f8becb9710f74db650075",
+  "reportPath": "docs/data/p3-measurement-v2/generated/data/report.json",
+  "reportSHA256": "1fc6e65f333d72e1ece8deba2a4948901bcebec0604b6d265c901b31fb63ead3",
+  "tracePath": "docs/data/p3-measurement-v2/generated/artifacts/runs.jsonl",
+  "traceSHA256": "ee531e7d8516f7cffbd8cd7575e9cfd67bb646f99e66649f08082dbaf87b6c1e",
+  "primaryRuns": 21,
+  "replayEqual": true
+}
