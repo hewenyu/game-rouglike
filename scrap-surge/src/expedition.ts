@@ -1,4 +1,5 @@
 import { WEAPONS, type ModId, type WeaponId } from "./data";
+import type { WeaponItemModifiers } from "./items";
 
 export type Formation = "ring" | "stream" | "two-cluster";
 export type Stop = "full" | "quick" | "auto" | "end";
@@ -81,6 +82,7 @@ export type EffectiveWeaponProfile = {
   blastRadius: number;
   sawOrbitRadius: number;
   sawContactRadius: number;
+  pierce?: number;
 };
 export type PurchasePreview = {
   accepted: boolean;
@@ -227,17 +229,35 @@ export function gunTierLabel(tier?: number) {
 export function effectiveWeaponProfile(
   id: WeaponId,
   tier?: number,
+  modifiers?: WeaponItemModifiers,
 ): EffectiveWeaponProfile {
   const normalized = gunTier(tier);
   const base = WEAPONS[id];
   const behavior = WEAPON_BEHAVIOR[id];
-  return {
+  const baseline: EffectiveWeaponProfile = {
     tier: normalized,
     damage: base.damage * GUN_TIER_DAMAGE_MULT[normalized - 1],
     interval: base.interval,
     range: base.range,
     ...behavior,
   };
+  if (!modifiers) return baseline;
+
+  const profile: EffectiveWeaponProfile = {
+    ...baseline,
+    damage: baseline.damage * modifiers.damageMultiplier,
+    interval: baseline.interval / modifiers.attackSpeedMultiplier,
+    range: baseline.range * modifiers.rangeMultiplier,
+    shots: baseline.shots + modifiers.extraProjectiles,
+    jumps: baseline.jumps + modifiers.extraJumps,
+    blastRadius:
+      baseline.blastRadius * modifiers.rocketRadiusMultiplier,
+    sawContactRadius:
+      baseline.sawContactRadius + modifiers.sawContactRadiusBonus,
+  };
+  if (modifiers.extraPierce > 0)
+    profile.pierce = modifiers.extraPierce;
+  return profile;
 }
 
 export function enemyHp(kind: ExpeditionEnemyKind, wave: number) {

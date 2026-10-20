@@ -1,5 +1,12 @@
 # Status
 
+P1 documentation commit `6d15c7f6f335809773bf3bdd051851a9328cbe45` completed
+fresh Opus and DeepSeek review. Stage A of P2 contract v2 now implements the pure
+20-item catalog and rule layer in `src/items.ts`, the optional item-modifier profile
+extension and focused unit coverage. This is not a P2 integration: runtime remains
+P1 until the next agent wires simulation and UI. P2 is not complete or reviewed;
+P3 balance over 20 waves, five-route viability and user feel remain pending.
+
 P1 code at `db0cd9c71e66584515e634a9e55298255710e26e` is approved by root, the
 fresh actual Opus task `p1_opus_final_once` and the fresh actual independent
 DeepSeek task `p1_deepseek_final_once` for foundation/presentation only. The docs
