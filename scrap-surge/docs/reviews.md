@@ -134,8 +134,8 @@ DeepSeek task `p1_deepseek_final_once` approved code commit
 foundation/presentation scope only. Both reviewers returned **code PASS** and
 **docs BLOCK** on these exact three documentation defects: the stale
 two-slot/manual-capacity line in `README.md`, Long Barrel's movement-speed wording in
-`docs/growth-items-proposal.md`, and the unmarked historical tier-II requirements in
-`docs/expedition20-proposal.md`. Root agrees with that disposition. The docs repair
+`docs/archive/growth-items-proposal.md`, and the unmarked historical tier-II requirements in
+`docs/archive/expedition20-proposal.md`. Root agrees with that disposition. The docs repair
 requires a fresh read-only final review.
 
 Evidence, not merged across parties:

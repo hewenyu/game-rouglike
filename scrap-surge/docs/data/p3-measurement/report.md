@@ -1,5 +1,10 @@
 # P3A natural-simulation measurement
 
+> **Superseded (v1).** The reroll and weapon-offer claims in this report are false:
+> the corrected trace has 306 accepted rerolls, all free. Use
+> `docs/data/p3-measurement-v2/report.md`. This file is kept unchanged otherwise
+> as historical evidence.
+
 Status: finite diagnostic evidence; not pass-by-definition, browser play, human
 victory, route viability, performance or user acceptance.
 

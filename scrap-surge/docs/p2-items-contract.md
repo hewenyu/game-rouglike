@@ -1,5 +1,11 @@
 # P2 items and rules contract
 
+> Status (2026-10-20): implemented through Stages A-D and repairs; merged at
+> `447af10` / `6ba7844`. Values are approved for prototype, not measured balance.
+> Stage-scoping sentences below are historical. Later clarifications (three
+> weapon offers, atomic shared reroll, popcorn `processed` = consumed fuel) are
+> recorded at the end and in `docs/archive/p2-repair-handoff.md`.
+
 This repository copy is the self-contained approved contract for the Stage A pure
 item/rules layer and the Stage B simulation integration. It has no runtime or test
 dependency on a temporary host path.

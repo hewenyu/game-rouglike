@@ -73,8 +73,8 @@ balance or dependency change is part of this follow-up.
 - `docs/testing.md`
 - `docs/reviews.md`
 - `docs/p2-items-contract.md`
-- `docs/p2-stage-b-handoff.md`
-- `docs/p2-repair-handoff.md`
+- `docs/archive/p2-stage-b-handoff.md`
+- `docs/archive/p2-repair-handoff.md`
 - `memory/status.md`
 
 ## Verification at `e478497`

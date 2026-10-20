@@ -1,5 +1,12 @@
 # Validation evidence and boundaries
 
+> How to read this file (2026-10-20): sections are newest first and each records
+> evidence for its own checkpoint. Current totals are **178/178** unit tests on
+> `ac6bcd9` (source `447af10`); counts such as 93/93 below are historical. Many
+> artifact paths are local `/tmp` directories that may no longer exist. The
+> durable method notes are "Browser method" and the pitfalls in
+> `docs/lessons.md`.
+
 ## P3A natural-simulation measurement (2026-10-20)
 
 The P3A diagnostic ran 21 preregistered cohort/seed simulations on frozen
@@ -236,8 +243,8 @@ visible repeat replacement, source cash/fuel and zero-coin collection, shotgun
 milestone trail, fist remnants, source attribution and bounded queues. It also
 pins voluntary rest exit with unclaimed rewards, reroll independence from reward
 rows, stale unique-claim rejection, and H3 healing only for actual `contactProc`
-aura/contact kills. The migration ledger is `docs/p2-test-migration.md`; the Stage
-C handoff is `docs/p2-stage-c-handoff.md`.
+aura/contact kills. The migration ledger is `docs/archive/p2-test-migration.md`; the Stage
+C handoff is `docs/archive/p2-stage-c-handoff.md`.
 
 The UI checkpoint has no audio event assertion, elite/chest visual acceptance,
 ordinary-input W20 victory, full W20 viability, cohort balance, item-led late
@@ -367,9 +374,9 @@ stable run is the bounded 7/7 result. No full ordinary-input W20 victory,
 item-led boss cohort, physical-device performance, Safari, audio-mix or user
 acceptance is established by these checks.
 
-## Automated rules
+## Automated rules (historical, `b4c87e3`)
 
-Current `npm test` at test checkpoint
+`npm test` at test checkpoint
 **b4c87e3340c654f89a2807edf7fde197eeb28fec** runs **93/93**: the original
 **89/89** rules assertions across `tests/rules.test.ts` and
 `tests/expedition.test.ts`, plus 2 render-order tests in

@@ -4,7 +4,7 @@
 simulation checkpoint. The normal `expedition20` mode now exposes the
 contract-v2 rule/inventory/reward state; Stage C added the shop/rest UI, reward
 presentation and browser fixtures, and Stage D added elite and chest rendering
-plus audio hooks. The repair documented in `docs/p2-repair-handoff.md` then fixed
+plus audio hooks. The repair documented in `docs/archive/p2-repair-handoff.md` then fixed
 the offer count, reroll atomicity, owned-item previews, mobile card text and
 popcorn accounting presentation. Full-run acceptance and independent review of
 the new frozen SHA remain open.

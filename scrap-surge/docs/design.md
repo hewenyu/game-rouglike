@@ -1,5 +1,11 @@
 # 废潮 / SCRAP SURGE
 
+> Status note (2026-10-20): P1 (six slots, auto-fusion) and P2 (20 items, rarity,
+> elites, chests, rest screen) are implemented and merged. Sections below that
+> were written before P2 have been annotated; item numbers live in
+> `docs/p2-items-contract.md`, current state in `memory/status.md`, and the next
+> designed change in `docs/p3b-fullslot-bundle.md`.
+
 User decision: completely reject drawing/folding combat. Borrow only Brotato's
 experience traits: moving while auto-firing, many simultaneous weapons, readable
 swarming enemies, collecting drops and shopping between short waves. Do not borrow
@@ -38,8 +44,8 @@ be written up as the user approving the concept, the feel or the visuals.
 Current P1 starts with **six weapon slots** and automatically fuses equal same-ID
 weapons of the same tier through tier IV. P1's `1/2/4/8` tier ladder is structural,
 not approved late balance. The five growth sketches and every provisional number
-are non-approved hypotheses in `docs/growth-items-proposal.md`; they do not
-implement P2 or change the live P1 code.
+were non-approved hypotheses in `docs/archive/growth-items-proposal.md`, since
+superseded by the implemented P2 contract `docs/p2-items-contract.md`.
 
 ## User clarification: positive-feedback builds
 
@@ -66,14 +72,13 @@ and do not add content as an unapproved substitute for measurement.
 Future validation compares three cohorts on the same frozen source and seeds:
 weapon-only, items without coordinated synergy, and a coordinated item build. Each
 must record actual boss encounter windows, damage, survival and engagement, not just
-the terminal win/loss. This is a validation contract; implementing a new item system
-still requires its own approved scope.
+the terminal win/loss. This is a validation contract. P3A ran a first version of
+it (7 cohorts, 21 runs); see `memory/status.md`.
 
 Weapons are the early baseline, scattered items form the middle game and coherent
 items must lead the late game. The three cohorts above are validation controls,
 not three mandatory player classes. Items are mixable tags, not exclusive classes.
-No implementation phase beyond P1 is part of the current freeze; P2 phases remain
-pending and explicitly not done.
+P2 implemented the item system at `447af10`; balance remains unmeasured.
 
 ### Item rarity and repeatability (three-party decision, 2026-10-19)
 
@@ -100,10 +105,9 @@ per-wave guarantee. Boss chests do not become a second weapon shop.
 
 Rarity effects must differ in more than color or label. Their intended distinctions
 can include proc strength, support breadth or build-defining interaction, but the
-specific effects and numbers remain to be reviewed. This section records future P2
-direction only: P1 must not implement items, rarity weights, stack formulas, chest
-curves or reward-content changes, and exact numeric rates require separate three-party
-approval after economic and combat measurement.
+specific effects and numbers remain to be reviewed. P2 implemented this
+direction with prototype numbers; exact rates still need measurement before they
+count as balance.
 
 Offer generation respects the actual legal pool after filtering. If fewer than three
 eligible items remain, show only those items; do not manufacture duplicates merely to
@@ -118,7 +122,7 @@ decision adds it. Item resale and curse removal are not approved and must not ap
 as side effects of the P2 work.
 
 Boss rewards at W5, W10 and W15 use higher-quality weights from the same
-nonweapon pool. Planned elites at W3, W7, W11, W14, W17 and W19 use lower-quality
+nonweapon pool. Elites at W3, W7, W11, W14, W17 and W19 use lower-quality
 weights and real kills, drops, pickups and a sweep. W20 is terminal. Rarity and
 repeatability are orthogonal: items may be repeatable or unique by definition,
 and some proc effects may stack. Items are mixable tags, not exclusive classes.
@@ -129,7 +133,7 @@ not alter spawns, targeting, collisions or projectile outcomes. The current P1
 storefront's isolated stream is the precedent. Future reward work must add a paired-
 seed test that changes one stream's consumption without moving the other.
 
-The planned 19 consolidated rest screens contain a weapon row, an item row and a
+The 19 consolidated rest screens contain a weapon row, an item row and a
 stat-or-mechanic choice, with chest handling inside that rest surface rather than
 an extra modal. Income, drop and elite-rarity rates remain unapproved seeds for a
 seeded ledger to be measured. They authorize no confiscation, curse-only money,
@@ -137,7 +141,7 @@ fake counters, hard six-generation cap or arbitrary boss-HP inflation. Positive
 feedback must use finite actual enemies, settle each death once and retain queued
 per-frame work budgets rather than assuming loop gain below one.
 
-Planned P2 tests:
+P2 tests (implemented in `tests/p2-sim.test.ts` and `tests/items.test.ts`):
 
 - the same seed yields the same reward offers across different combat RNG consumption,
   while adding shop/reward draws leaves combat unchanged;
@@ -148,7 +152,8 @@ Planned P2 tests:
 - W5/W10/W15 draw meaningful nonweapon item rewards, and W20 requires no extra reward
   interaction to complete.
 
-Two free, stackable shop modifications create real feedback: enemy death -> scrap ->
+Slice only (the expedition replaced mods with items): two free, stackable shop
+modifications create real feedback: enemy death -> scrap ->
 pickup projectiles -> enemy death and explosions -> more scrap. Secondary kills do
 trigger more explosions. Each enemy settles death once; explosion work uses a queue
 with a per-frame processing budget (12), retaining remaining work. Limits protect
@@ -161,8 +166,8 @@ single-target guns do not knowingly spend both shots on the same nearly-dead tar
 Unassigned shotgun pellets and area damage can still overkill; no claim of optimal aim.
 
 Safety limits: enemies 180, projectiles 420, drop objects 250 (merge excess value),
-visual effects 300. No external assets or backend. Low-level geometry is copied from
-our own rejected prototype; no rejected drawing mechanics or UI are reused.
+visual effects 300. No external assets or backend. Some low-level geometry was copied from
+our own rejected prototype; its unused helpers in `src/math.ts` are dead code.
 
 ## Frozen slice rules (S1 + S1b)
 

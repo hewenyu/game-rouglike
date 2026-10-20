@@ -1,7 +1,9 @@
 # Current goal
 
-This file records the user's latest directly specified goal. It supplements, and
-does not replace, the live built-in goal while that goal remains active.
+This file records the user's directly specified goal and the design contracts
+derived from it. It is authoritative over any tool's built-in goal card (the
+Codex goal card text still reads "two-wave slice" and is stale). Implementation
+state lives in `memory/status.md`, not here.
 
 ## Product goal
 
@@ -14,6 +16,21 @@ The central experience is a genuine positive-feedback loop ("left foot steps on
 right foot and goes to the sky"): deaths, drops, pickups, weapons and explosions
 must feed each other in a real, readable chain rather than being simulated by
 fake counters or reduced to numeric stat inflation.
+
+## User requirements, verbatim (2026-10-20, 03:14-04:07)
+
+- "我希望武器是自动升级的……两把武器自动合成一把……一开始就开放6个武器槽，这样子不会钱多得花不出去,理论上，钱应该是永远紧缺的才对"
+- "明确要标好武器的攻击力和怪物的生命力，要有合适的成长曲线"
+- "我觉得它没有'肉鸽'的味道……精英怪会掉宝箱，宝箱里会给物品。这些物品不包括武器，只包括商店的物品。商店物品可能有特殊 build，也可能有负面效果，但是有些 build 就是靠这些负面效果来实现的"
+- "至少给我规划 5 种不一样的成长路线,都能直接爽玩到后期的build,不要雷同" - e.g. speed-for-output, chain reaction, collision explosion (raise HP, explode on contact), strong firepower, and "左脚踩右脚" (A triggers B, B triggers A).
+- "武器只能提供基础输出，各种物品可以提供额外的武器加成输出，以及额外的特效输出……后期单纯靠武器已经输出不够了，而是需要各种物品的 build 来实现"
+- "相同的物品可以重复购买，而且有些是高级物品、唯一物品，是不能重复购买的……商店刷新和爆率的稀有度，以及 Boss 可以爆更好的物品"
+
+Implemented in P1/P2 (see `memory/status.md`): six slots, auto-fusion, ATK/DPS/HP
+labels, 20 items in five families, rarity vs stackability, elite chests, boss
+chests. **Not yet achieved:** a tuned growth curve, measured item-led late game,
+late viability of all five routes, and money scarcity (blocked by the full-slot
+deadlock, `docs/p3b-fullslot-bundle.md`).
 
 ## Current P1 structure (explicit goal)
 
@@ -35,8 +52,8 @@ Expedition bag, runner and chip draw small read-only hurt bars. Can, splitter
 and spitter keep their existing bars, while default renderer calls retain the
 frozen slice behavior. No bar feeds back into combat or RNG.
 
-This is a structure and presentation freeze only. It does not approve item
-numbers, late balance or user feel.
+P1 approved structure and presentation only. It does not approve item numbers,
+late balance or user feel.
 
 ## Wave-count target (user playtest, 2026-10-19)
 
@@ -112,11 +129,10 @@ The agreed interpretation is:
   effects. This is a direction for item design, not approval of arbitrary raw-stat
   inflation.
 
-This establishes the design contract only. The P1 freeze does not implement a new
-item system. Exact rarity weights, item-level caps, stack formulas, elite frequencies
-and wave-by-wave shop curves require a separate three-party approval with measured
-economic and combat effects. No item implementation, rarity tuning or extra reward
-content is part of this structural freeze.
+This contract was implemented in P2 (`6ba7844`, source `447af10`) with the
+prototype values in `docs/p2-items-contract.md`. Those rarity weights, caps, stack
+formulas, elite frequencies and shop curves are approved for prototype only, not
+as measured balance.
 
 Offer generation respects the actual legal pool. If fewer than three eligible items
 remain after unique ownership filtering, show only those items; do not force
@@ -136,7 +152,8 @@ change spawns, targeting, projectile outcomes or any combat result. The existing
 storefront stream is the precedent; future reward work must prove this separation
 with paired-seed tests.
 
-Planned P2 tests, to be written only when that scope is approved:
+P2 tests covering the following now exist in `tests/p2-sim.test.ts` and
+`tests/items.test.ts`:
 
 - reward offers with a fixed seed stay unchanged when combat consumes a different
   number of random values, while shop/reward draws leave combat unchanged;
@@ -150,16 +167,16 @@ Planned P2 tests, to be written only when that scope is approved:
 
 Items are mixable tags, not classes. The five candidate paths - speed, chain,
 HP/contact, firepower and pickup A/B - are recorded with provisional numbers and
-curses in `docs/growth-items-proposal.md`. Every omitted value there is an
+curses in `docs/archive/growth-items-proposal.md`. Every omitted value there is an
 UNAPPROVED HYPOTHESIS, not approved balance. Some procs may stack, and it must not
 be assumed that every core item is unique. Rarity and repeatability remain
 orthogonal.
 
 Boss rewards at W5/W10/W15 draw higher-quality items from the same nonweapon
-pool; planned elites at W3/W7/W11/W14/W17/W19 use lower-quality weights and
-real kills/drops/pickups/sweeps. W20 is terminal. The planned 19 consolidated
-rest screens contain a weapon row, an item row and a stat-or-mechanic choice;
-chests do not add another modal.
+pool; elites at W3/W7/W11/W14/W17/W19 use lower-quality weights and real
+kills/drops/pickups/sweeps. W20 is terminal. The 19 consolidated rest screens
+contain a weapon row, an item row and a stat-or-mechanic choice; chests do not
+add another modal. (All implemented in P2.)
 
 Income, drop and elite rates remain unapproved and must be seeded in a measured
 ledger. There is no confiscation, curse-only money, fake counter, hard
@@ -174,34 +191,24 @@ approved implementation spec is `058951fc84994abb8ee24a2c587bb9232c1c1ccd`, and 
 runnable `expedition20` candidate now exists. The normal page defaults to that mode;
 `?mode=slice` preserves the approved two-wave slice. This is implementation approval
 only, not user acceptance or validation victory. Any later tuning or rule change needs
-three-party agreement. The approved spec keeps two mod slots; do not add a third mod
-slot without that agreement.
+agreement (three-party for Codex sessions; see `AGENTS.md` / `CLAUDE.md`). Mods
+now exist only in the slice; the expedition uses items and mechanism rewards
+instead.
 
 ## Collaboration and ownership
 
-- Astra coordinates, defines architecture boundaries and reviews integration;
-  Astra does not write implementation.
-- Opus reviews gameplay, aesthetics, audiovisual direction and feel.
-- DeepSeek implements, tests and fixes the product.
-- Astra, Opus and DeepSeek have equal standing. A decision is implemented only
-  after all three explicitly agree. Silence or absence is not approval.
-- Author self-checks are not independent review. The independent DeepSeek review
-  must run in a separate context.
-- DeepSeek is the only writer in this directory while the role remains active.
-- One-shot agents use `fork_turns=none`, receive one bounded assignment and do not
-  follow up after their final answer. Independent DeepSeek review is never the
-  author of the reviewed change.
-- The current project documents are the shared source of truth; chat history is
-  context, not authoritative project state.
+How agents collaborate is defined in `AGENTS.md` (shared rules and the Codex
+three-model workflow) and `CLAUDE.md` (Claude Code develops directly). The user
+set this split on 2026-10-20. The current project documents are the shared source
+of truth; chat history is context, not authoritative project state.
 
 ## Delivery gates
 
-- Create the goal before starting work.
-- Freeze a feel-validation slice and review that exact commit before expanding.
-- Freeze a final candidate and review that exact commit before calling it done.
-- The original seven acceptance sections remain in force. The slice is not the
-  final scope. User acceptance is still pending.
+- Codex sessions create the goal before starting work.
+- Review the exact frozen commit before calling a candidate done.
+- The original seven acceptance sections of the user's first prompt remain in
+  force. User acceptance is still pending.
 - The rejected `nightfold/` prototype has been deleted under the user's direct
   authorization.
-- Do not push, deploy, publish or use paid services without explicit user
-  authorization.
+- Do not push, merge, deploy, publish or use paid services without explicit user
+  authorization. (The user authorized the 2026-10-20 merge/push of `b045332`.)

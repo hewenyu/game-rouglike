@@ -42,7 +42,7 @@ chest and item-purchase cues in this stage.
 - `tests/audio-p2.test.ts`
 - `tests/browser-p2-visuals.mjs`
 - `docs/testing.md`
-- `docs/p2-stage-d-handoff.md`
+- `docs/archive/p2-stage-d-handoff.md`
 - `memory/status.md`
 - `README.md`
 

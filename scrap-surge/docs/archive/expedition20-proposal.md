@@ -192,7 +192,7 @@ tier, through IV. Selling remains available from the owned-slot surface.
 
 ### 3.5 Static ledger (estimate, not a promise)
 
-`docs/expedition20-ledger.mjs` is the reproducible calculator for the table in §4 and the
+`docs/archive/expedition20-ledger.mjs` is the reproducible calculator for the table in §4 and the
 shop ledger below. All figures are **static estimates under stated assumptions**, not
 measurements:
 
@@ -585,7 +585,7 @@ multiplier.
 Coil I is **28.75** single-target and **143.75** across 5 targets. Coil II is **40.25**
 single-target and **281.75** across 7 targets. The applicable group multiplier is
 **1.96**, not single-target ×9.8. All other figures are nominal single-target. The
-reproducible source is `docs/expedition20-ledger.mjs`. Every tier-II form also gets a
+reproducible source is `docs/archive/expedition20-ledger.mjs`. Every tier-II form also gets a
 distinct short cue through the existing audio limiter; no audio refactor.
 
 ## 10. Visual and audio
