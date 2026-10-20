@@ -7,6 +7,27 @@ readout with unchanged geometry, 3px INK outline. Tests cover a synthetic shape
 matrix and the first 60 rendered steps; this is bounded nonmutation evidence, not
 full slice equivalence.
 
+## Current test checkpoint: `b4c87e3` (2026-10-19)
+
+`npm test` passes **93/93**: 89 original rules assertions, 2 render-order
+checks and 2 W20 lifecycle checks. Source is unchanged from
+`fdfabaee278c9e0f16f76737328e176a3aefbf43`. The 2 W20 tests use explicitly
+marked synthetic clock boundaries and prove only the spawn/warning, real boss
+death, one-sweep victory and >90-second deadline lifecycle; they do not prove a
+normal 20-wave win, a completed final-boss fight, difficulty or user acceptance.
+
+The earlier `9e2ac556cfc0d095f3e8637ad094905775fef1db` loss fixture reached
+HP 0 at `waveTime 74.18333333333236`, before `90s`, so its `lost` result was a
+false-positive for deadline coverage. The corrected
+`b4c87e3340c654f89a2807edf7fde197eeb28fec` fixture first proves no boss before
+57s, then proves the spawn and warning behavior, then checks that `90s` remains
+`fight` with HP above zero and a live boss; the next step crosses the deadline
+and settles exactly one `lost` / `end`. Prior **89/89** and **91/91** counts
+remain historical and their logs are unchanged. Three-party bounded approval
+for the `b4c87e3` tests is complete, with no pending test-review claim. This
+docs-only checkpoint requires review after freeze. The next gate is user
+feedback from a full run, not another bot strategy or difficulty edit.
+
 ## Simulation/input baseline: `db74a8c` (2026-10-19)
 
 This is the final 20-wave simulation/input baseline for user playtesting. It is

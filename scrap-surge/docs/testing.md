@@ -16,9 +16,31 @@ depend on a `/tmp` path. `/tmp` paths appear only as raw evidence locations.
 
 ## Automated rules
 
-Current `npm test` runs **91/91**: the original **89/89** rules assertions across
-`tests/rules.test.ts` and `tests/expedition.test.ts`, plus 2 render-order tests in
-`tests/render-occlusion.test.ts`. The original rules assertions cover automatic first kill,
+Current `npm test` at test checkpoint
+**b4c87e3340c654f89a2807edf7fde197eeb28fec** runs **93/93**: the original
+**89/89** rules assertions across `tests/rules.test.ts` and
+`tests/expedition.test.ts`, plus 2 render-order tests in
+`tests/render-occlusion.test.ts` and 2 W20 lifecycle tests in
+`tests/w20-victory.test.ts`. Source is unchanged from
+**fdfabaee278c9e0f16f76737328e176a3aefbf43**. The prior **91/91** result at
+that source checkpoint and the **89/89** result on `851cd13` remain dated
+historical counts; their logs and evidence are not rewritten.
+
+The 2 W20 tests use explicitly marked synthetic clock jumps. They check the
+57-second boss spawn and warning gate, real lethal-hit settlement and one sweep,
+and the deadline branch at `90s`; they do **not** establish a normal-play W20
+victory, final-boss completion, difficulty, reachability or user acceptance.
+The preceding **9e2ac556cfc0d095f3e8637ad094905775fef1db** loss fixture was a
+false-positive lifecycle check: its stationary run reached HP 0 at
+`waveTime 74.18333333333236`, before `90s`, so `lost` alone did not prove the
+deadline branch. The corrected fixture requires phase `fight`, HP above zero and
+a live boss at exactly `90s` with no `end` event, then one `lost` and one `end`
+step past `90s`. The bounded revision at `b4c87e3` completed three-party
+approval for these tests. No new pending test-review claim is needed; this
+docs-only revision is to be reviewed after its commit freezes. The next gate is
+user feedback from a full run, not a new bot strategy or difficulty edit.
+
+The original rules assertions cover automatic first kill,
 one-time death settlement, multigeneration explosions, budgeted queue retention,
 pickup uniqueness, pickup -> kill -> explosion -> drop feedback, stacked mod
 validation, shop transactions, isolated shop RNG, incoming-damage reservations,
