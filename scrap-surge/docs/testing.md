@@ -1,23 +1,45 @@
 # Validation evidence and boundaries
 
-## P2 Stage B simulation checkpoint (2026-10-19)
+## P2 Stage C runnable-UI checkpoint (2026-10-19)
 
-Stage B wires contract-v2 item, reward, chest and elite rules into the expedition
-simulation. The author suite covers 19 consolidated rests, W1 core choices,
-item/stat rows, purchase and eligibility atomicity, chest freeze/decline/loss,
-reroll rollback and visible repeat replacement, source cash/fuel and zero-coin
-collection, shotgun 5x3 firing, H2/H3/pressure, terminal return ordering, elite
-reservation/escape, milestone trail, fist remnants, source attribution and bounded
-queues. It also pins voluntary rest exit with unclaimed rewards, reroll independence
-from reward rows, stale unique-claim rejection, and H3 healing only for actual
-`contactProc` aura/contact kills. The migration ledger is
-`docs/p2-test-migration.md`; the Stage C handoff is `docs/p2-stage-b-handoff.md`.
+Stage C presents the Stage B contract-v2 item, reward, chest and elite state in
+the expedition rest UI. The shop/rest panel now has separate free-reward, weapon,
+item, inventory and stat sections; shows all 20 item shapes, rarity frames and
+labels, caps/uniqueness/dependencies, prices, wallet shortfalls and projected
+central-derived deltas; exposes a selected-item detail area without hover; and
+keeps a start-next-wave control at the top as well as in the footer. Item cards
+and inventory rows select the in-panel detail, while the hidden per-card detail
+source stays out of layout. Owned and offered weapon panels call the same central
+item modifiers, including `pellets * shots` projectile counts for F4.
 
-This is a simulation checkpoint only. The shop/rest UI, reward cards, chest/elite
-rendering and item audio are not implemented or browser-verified. No ordinary-input
-W20 victory, full W20 viability, cohort balance, item-led late output, saturation,
-physical-device performance or user-feel claim follows. Author self-checks are not
-independent review.
+`BASE_URL=http://127.0.0.1:4192 node tests/browser-p2-items.mjs` is the
+reproducible integration fixture. On seed `1`, ordinary keyboard and real CDP
+touch each played W1, clicked the naturally offered `scrap-popcorn` core, reached
+W2 and bought the naturally offered `厚壳` item at the W2 rest. The runs observed
+real `queueCounters.popcorn` processing (keyboard 50, touch 46 in the final
+verification run), spent 12 scrap, changed max HP 10 -> 12, and changed the
+derived move factor 1.00 -> 0.96. Both runs had no page errors. At 390px the
+document and overlay widths were 390/390, no item card crossed the viewport, and
+every visible P2 rest action measured at least 44x44 CSS pixels. The mobile
+footer is intentionally
+static so it cannot cover lower cards, and touch buys through the selected-item
+detail action. The screenshots and JSON are under `/tmp/p2-items-browser/`; they
+are author artifacts, not independent review.
+
+The author suite covers 19 consolidated rests, W1 core choices, item/stat rows,
+purchase and eligibility atomicity, chest freeze/decline/loss, reroll rollback and
+visible repeat replacement, source cash/fuel and zero-coin collection, shotgun
+5x3 firing, H2/H3/pressure, terminal return ordering, elite reservation/escape,
+milestone trail, fist remnants, source attribution and bounded queues. It also
+pins voluntary rest exit with unclaimed rewards, reroll independence from reward
+rows, stale unique-claim rejection, and H3 healing only for actual `contactProc`
+aura/contact kills. The migration ledger is `docs/p2-test-migration.md`; the Stage
+C handoff is `docs/p2-stage-c-handoff.md`.
+
+The UI checkpoint has no audio event assertion, elite/chest visual acceptance,
+ordinary-input W20 victory, full W20 viability, cohort balance, item-led late
+output, saturation, physical-device performance or user-feel claim. Author
+self-checks are not independent review.
 
 ## P1 label, hurt-bar and documentation repair (2026-10-19)
 
@@ -82,8 +104,9 @@ depend on a `/tmp` path. `/tmp` paths appear only as raw evidence locations.
 
 This candidate implements six expedition slots, automatic same-ID/same-tier
 merging through IV, damage-only tier profiles, atomic purchase previews and
-committed purchase-result display. It is a structural P1 freeze candidate only:
-P2 items, rarity/stackability, chests and item-led balance are not implemented.
+committed purchase-result display. It is a structural P1 freeze candidate only.
+P2 item rules and their expedition UI now exist, but the combined candidate is
+not independently reviewed, balance-tuned over 20 waves, or user-accepted.
 
 | Check | Result |
 | --- | --- |

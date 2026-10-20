@@ -10,6 +10,7 @@
     "test:browser": "node tests/browser.mjs",
     "test:browser:expedition": "node tests/browser-expedition.mjs",
     "test:browser:first-shop": "node tests/browser-first-shop.mjs",
+    "test:browser:p2-items": "node tests/browser-p2-items.mjs",
     "test:browser:lifecycle": "node tests/browser-input-lifecycle.mjs",
     "test:astra:perf": "tsx tests/astra-perf.ts",
     "test:astra:ranged": "node tests/astra-ranged-run.mjs",

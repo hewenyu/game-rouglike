@@ -2,19 +2,38 @@
 
 P1 documentation commit `6d15c7f6f335809773bf3bdd051851a9328cbe45` completed
 fresh Opus and DeepSeek review. Stage A of P2 contract v2 implements the pure
-20-item catalog and rule layer in `src/items.ts`. Stage B now integrates the item
-rules into the expedition simulation: inventory, stat rewards, core/item offers,
+20-item catalog and rule layer in `src/items.ts`. Stage B integrates the rules
+into the expedition simulation: inventory, stat rewards, core/item offers,
 purchases, chests, elites, item procs, source fuel/cash accounting and bounded
-queues. The normal runtime is still not a playable P2 delivery because the
-shop/rest/reward UI and elite/chest rendering remain Stage C. P2 is not complete
-or independently reviewed; P3 balance over 20 waves, five-route viability,
-browser behavior, performance and user feel remain pending.
+queues. Stage C now gives those systems a runnable rest interface with separate
+reward, weapon, item, inventory and stat sections, all 20 item silhouettes,
+rarity/unique/cap/dependency text, prices and central-derived previews.
 
-The Stage B handoff and its known UI gaps are in `docs/p2-stage-b-handoff.md`.
-The obsolete-assertion ledger is `docs/p2-test-migration.md`. The contract source
-hash remains `9e1097315911b3e6fb9b7c14900cc3fae1b92f24b3b3b1e1bcb9a7b8cbf84cde`.
-No full W20 viability, browser/runtime playability, balance or user-acceptance
-claim is made by Stage B.
+Stage C is an implementation checkpoint only. P2 is not complete or independently
+reviewed; P3 balance over 20 waves, five-route viability, full-run browser
+behavior, performance and user feel remain pending. The stage handoffs are
+`docs/p2-stage-b-handoff.md` and `docs/p2-stage-c-handoff.md`; the obsolete-
+assertion ledger is `docs/p2-test-migration.md`. The contract source hash remains
+`9e1097315911b3e6fb9b7c14900cc3fae1b92f24b3b3b1e1bcb9a7b8cbf84cde`.
+
+At this checkpoint `npm test` passes **156/156**, `npm run build` is clean and
+`git diff --check` is clean. The ordinary-input `tests/browser-p2-items.mjs` run
+on dev server `4192` passed keyboard and real-CDP touch: each claimed the natural
+W1 `scrap-popcorn`, observed actual W2 popcorn queue processing (50 keyboard / 46
+touch at the W2 rest read), then bought the natural W2 `厚壳` for 12 scrap. Max HP
+went 10 -> 12 and the central derived move factor went 1.00 -> 0.96. At 390px the
+document and overlay remained 390 wide, no item card overflowed and visible P2
+rest actions measured at least 44x44. The mobile P2 footer stays static so lower
+cards remain fully reachable, and touch buys through the selected-item detail.
+No page errors occurred. Artifacts are in `/tmp/p2-items-browser/`; exact counts
+vary with browser timing.
+
+No Stage C evidence establishes elite/chest visual acceptance, new item audio
+identities, an ordinary-input W20 victory, W16-W20 or physical-device performance,
+cohort balance or item-led late output. The stage commit still needs independent
+review on its frozen SHA. The UI was authored in `src/main.ts` and `src/style.css`;
+the browser fixture is `tests/browser-p2-items.mjs`, exposed as
+`npm run test:browser:p2-items`.
 
 P1 code at `db0cd9c71e66584515e634a9e55298255710e26e` is approved by root, the
 fresh actual Opus task `p1_opus_final_once` and the fresh actual independent
@@ -169,13 +188,15 @@ baselines. The model review is not user acceptance or goal completion.
 
 ### Current rules
 
-- The expedition has 20 waves, with nine full shops and six quick choices.
+- The expedition has 20 waves, with 19 consolidated rests and no quick-choice
+  stops; rest rows contain the mechanism, stat or chest reward, weapon, item and
+  inventory surfaces.
 - Entering W1-W10 restores 3 health; entering expedition W11-W20 restores 4.
   Slice entries still restore 3. The destination wave decides the amount, and
   recovery is capped at 10. Lost and won states cannot be revived.
 - Movement input is accepted in `fight`, `sweep` and `interlude`, so a direction
   pressed during the automatic transition moves immediately in the next wave.
-  Quick, shop and paused phases still reject movement.
+  Rest, legacy quick-choice and paused phases still reject movement.
 - `shootAcceptedEnemy` counts enemy projectiles admitted before the shared
   420-projectile cap. It does not count hits or attribute player injury.
 

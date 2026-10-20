@@ -655,6 +655,12 @@ h1 > i {
   overflow: auto;
   overflow-anchor: none;
 }
+#overlay.shop-open {
+  display: block;
+}
+#overlay.shop-open > section {
+  margin: 0 auto;
+}
 #overlay > section {
   animation: arrive 0.25s both;
 }
@@ -1900,6 +1906,706 @@ h1 > i {
   }
 }
 
+/* P2 rest surface. The warm beach/scrap identity stays, while items get a
+   separate visual grammar from weapons and use shape + text + rarity frames. */
+.p2-rest {
+  width: min(1120px, 100%);
+  overflow-x: clip;
+}
+.p2-rest .shop-heading h2 {
+  max-width: 760px;
+}
+.p2-rest .shop-heading h2 span {
+  display: block;
+  margin-left: 0;
+}
+.p2-rest .shop-sticky {
+  flex-wrap: wrap;
+  row-gap: 5px;
+}
+.p2-rest .shop-sticky button {
+  min-height: 44px;
+}
+.rest-brief {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 16px;
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border: 2px solid #946f45;
+  border-radius: 6px;
+  background: #f8ddb0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.rest-brief > b {
+  padding: 3px 7px;
+  border-radius: 3px;
+  background: #e67b50;
+  color: #fff8df;
+  font-size: 10px;
+}
+.rest-start-row {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px 0 0;
+  padding: 9px 11px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #b7d4aa;
+  box-shadow: 2px 2px 0 #526c4c;
+}
+.rest-start-row > span {
+  font-size: 9px;
+  line-height: 1.5;
+}
+.rest-start-row > .primary {
+  min-width: 190px;
+  min-height: 44px;
+  padding: 9px 13px;
+  font-size: 11px;
+}
+.rest-choice-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 2px solid #273b3540;
+}
+.rest-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.rest-section-heading h3 {
+  margin: 3px 0 0;
+  font-size: 19px;
+  line-height: 1.3;
+}
+.section-kicker {
+  display: block;
+  color: #86612e;
+  font:
+    700 9px/1.4 "Courier New",
+    monospace;
+  letter-spacing: 1px;
+}
+.section-note {
+  color: #69725e;
+  font-size: 9px;
+  line-height: 1.6;
+}
+.rest-section-heading > .text-button {
+  flex: none;
+  min-height: 44px;
+}
+.reward-row {
+  padding: 12px;
+  border: 2px solid #a87942;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, #fff3cf 0 55%, #f6dfad 55% 56%, #fff3cf 56%);
+  box-shadow: 3px 3px 0 #b09a6f;
+}
+.rest-choice-section.reward-row {
+  margin-top: 14px;
+}
+.reward-row .rest-section-heading {
+  margin-bottom: 9px;
+}
+.item-card-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.p2-item-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #f8eac4;
+  box-shadow: 3px 3px 0 #ab976a;
+  outline: none;
+  overflow: hidden;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.p2-item-card[data-select-item]:hover,
+.p2-item-card:focus-visible,
+.p2-item-card.selected {
+  transform: translateY(-2px);
+  box-shadow: 4px 5px 0 #796b4d;
+}
+.p2-item-card[data-select-item].selected {
+  outline: 3px solid #d78643;
+  outline-offset: -3px;
+}
+.p2-item-card.rarity-uncommon {
+  border-top-right-radius: 0;
+  background:
+    linear-gradient(135deg, #f9edc6 0 93%, #a8c59d 93%);
+}
+.p2-item-card.rarity-rare {
+  border: 4px double var(--ink);
+  background:
+    linear-gradient(#f1c56f 0 4px, transparent 4px calc(100% - 4px), #f1c56f calc(100% - 4px)),
+    #f9e8b9;
+}
+.p2-item-card.sold {
+  opacity: 0.55;
+}
+.p2-item-card.stale {
+  filter: grayscale(0.65);
+}
+.item-detail-template {
+  display: none;
+}
+.item-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 9px 4px;
+}
+.item-code,
+.rarity-label {
+  font:
+    700 8px/1.3 "Courier New",
+    monospace;
+  letter-spacing: 0.7px;
+  white-space: nowrap;
+}
+.item-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #5e654a;
+}
+.rarity-label {
+  flex: none;
+  padding: 2px 5px;
+  border: 1px solid #273b3555;
+  border-radius: 3px;
+  background: #fff3cc;
+}
+.rarity-uncommon .rarity-label {
+  background: #bed8ac;
+}
+.rarity-rare .rarity-label {
+  background: #efb55e;
+}
+.item-art {
+  position: relative;
+  min-height: 79px;
+  padding: 0 10px;
+  background:
+    radial-gradient(circle at 80% 32%, #ffffff80 0 2px, transparent 3px),
+    linear-gradient(170deg, #fff2cba0, #e9cf98a0);
+}
+.item-icon {
+  width: 100%;
+  height: 79px;
+}
+.rarity-mark {
+  position: absolute;
+  right: 7px;
+  bottom: 4px;
+  color: #273b3560;
+  font:
+    900 7px "Courier New",
+    monospace;
+  letter-spacing: 0.7px;
+}
+.rarity-uncommon .rarity-mark {
+  color: #55754d;
+}
+.rarity-rare .rarity-mark {
+  color: #9b6121;
+}
+.p2-item-card h3 {
+  margin: 2px 10px 4px;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  padding: 0 10px;
+  color: #65684f;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.item-meta > span {
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: #273b350d;
+}
+.p2-item-card > p {
+  flex: 1;
+  margin: 7px 10px 5px;
+  color: #4d5949;
+  font-size: 9px;
+  line-height: 1.55;
+}
+.item-delta {
+  margin: 0 10px 7px;
+  padding: 4px 5px;
+  border-left: 3px solid #a6b981;
+  background: #ffffff6b;
+  color: #49634d;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.item-buy-row,
+.reward-choice-row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 5px 7px;
+  border-top: 1.5px solid #273b3544;
+}
+.item-price {
+  color: #764d1f;
+  font-weight: 900;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.item-buy-row small,
+.reward-choice-row small {
+  flex: 1;
+  color: #6f6a53;
+  font-size: 8px;
+  line-height: 1.35;
+}
+.item-buy {
+  min-width: 58px;
+  min-height: 44px;
+  padding: 5px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 5px;
+  background: #a9d0a3;
+  box-shadow: 2px 2px 0 #526c4c;
+  font-size: 10px;
+  font-weight: 900;
+}
+.item-buy:hover:not(:disabled) {
+  background: #c2dfae;
+}
+.item-buy:disabled {
+  box-shadow: none;
+  background: #d1c8ae;
+  color: #675e4d;
+}
+.stat-choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.stat-choice {
+  display: flex;
+  min-height: 112px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  background: #f5e7be;
+  box-shadow: 2px 2px 0 #ac956c;
+  padding: 9px;
+  text-align: left;
+}
+.stat-choice:hover {
+  background: #d8e4bc;
+}
+.stat-choice > span {
+  font-size: 9px;
+  letter-spacing: 0.4px;
+}
+.stat-choice > strong {
+  margin: 3px 0;
+  font-size: 16px;
+}
+.stat-choice > small {
+  color: #59624e;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.stat-weapons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 5px;
+  color: #596452;
+  font-size: 8px;
+}
+.stat-weapons b {
+  color: var(--ink);
+}
+.item-detail-panel {
+  display: none;
+}
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+.row-actions > span {
+  color: #6a715e;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.row-actions .text-button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.inventory-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.inventory-item {
+  display: flex;
+  min-width: 0;
+  min-height: 54px;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid #273b3570;
+  border-radius: 5px;
+  background: #f7eac2;
+  padding: 4px;
+  text-align: left;
+}
+.inventory-item.rarity-uncommon {
+  border-top-right-radius: 0;
+}
+.inventory-item.rarity-rare {
+  border-style: double;
+  border-width: 3px;
+}
+.inventory-shape {
+  flex: none;
+  width: 38px;
+}
+.inventory-shape .item-icon {
+  display: block;
+  width: 38px;
+  height: 35px;
+}
+.inventory-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.inventory-copy b {
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inventory-copy small {
+  overflow: hidden;
+  color: #617056;
+  font-size: 7px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inventory-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #6b705b;
+  font-size: 9px;
+}
+.detail-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1.5px solid #273b3544;
+  font-size: 10px;
+}
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.detail-tags > span {
+  padding: 2px 5px;
+  border: 1px solid #273b3544;
+  border-radius: 3px;
+  background: #fff7dc;
+}
+.weapon-before {
+  color: #647257;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.p2-rest .weapon-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.p2-rest .owned-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 800px) {
+  .p2-rest {
+    padding: 18px 15px;
+  }
+  .p2-rest .shop-sticky {
+    top: -18px;
+    margin-inline: -15px;
+    padding-inline: 15px;
+  }
+  .p2-rest .shop-heading {
+    gap: 10px;
+  }
+  .p2-rest .shop-heading h2 {
+    font-size: 27px;
+  }
+  .p2-rest .shop-heading p {
+    font-size: 9px;
+  }
+  .item-card-row,
+  .stat-choice-row,
+  .p2-rest .weapon-cards,
+  .p2-rest .owned-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .inventory-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .p2-rest {
+    padding: 15px 11px;
+  }
+  .p2-rest .shop-sticky {
+    top: -15px;
+    margin-inline: -11px;
+    padding-inline: 11px;
+  }
+  .p2-rest .shop-heading {
+    display: block;
+  }
+  .p2-rest .shop-wallet {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 7px;
+    margin-top: 8px;
+    text-align: left;
+  }
+  .p2-rest .shop-wallet > strong {
+    font-size: 25px;
+  }
+  .p2-rest .shop-heading h2 {
+    font-size: 25px;
+  }
+  .p2-rest .shop-sticky > span:nth-child(4) {
+    display: none;
+  }
+  .rest-section-heading {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .rest-start-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rest-start-row > .primary {
+    width: 100%;
+    min-height: 44px;
+  }
+  .rest-section-heading h3 {
+    font-size: 16px;
+  }
+  .section-note {
+    font-size: 8px;
+    text-align: right;
+  }
+  .reward-row {
+    padding: 9px;
+  }
+  .item-card-row,
+  .stat-choice-row,
+  .p2-rest .weapon-cards,
+  .p2-rest .owned-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .p2-item-card {
+    border-width: 2px;
+    border-radius: 6px;
+    box-shadow: 2px 2px 0 #ab976a;
+  }
+  .p2-item-card.rarity-rare {
+    border-width: 3px;
+  }
+  .item-card-top {
+    padding: 4px 5px 1px;
+  }
+  .item-code {
+    font-size: 6px;
+    letter-spacing: 0;
+  }
+  .rarity-label {
+    display: none;
+  }
+  .item-art {
+    min-height: 55px;
+    padding: 0 2px;
+  }
+  .item-icon {
+    height: 55px;
+  }
+  .rarity-mark {
+    right: 3px;
+    bottom: 1px;
+    font-size: 5px;
+  }
+  .p2-item-card h3 {
+    margin: 1px 5px 3px;
+    font-size: 12px;
+  }
+  .item-meta {
+    gap: 2px;
+    padding: 0 5px;
+    font-size: 6px;
+  }
+  .item-meta > span {
+    padding: 1px 2px;
+  }
+  .p2-item-card > p {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 4px 5px;
+    font-size: 7px;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+  .item-delta {
+    display: none;
+  }
+  .item-buy-row,
+  .reward-choice-row {
+    min-height: 48px;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 3px;
+  }
+  .item-price {
+    font-size: 11px;
+  }
+  .item-buy-row small,
+  .reward-choice-row small {
+    width: 100%;
+    flex-basis: 100%;
+    font-size: 6px;
+  }
+  .item-buy {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 1px;
+    padding: 3px;
+    font-size: 9px;
+  }
+  .stat-choice {
+    min-height: 102px;
+    padding: 5px;
+  }
+  .stat-choice > span {
+    font-size: 7px;
+  }
+  .stat-choice > strong {
+    font-size: 11px;
+  }
+  .stat-choice > small {
+    display: none;
+  }
+  .stat-weapons {
+    font-size: 6px;
+  }
+  .inventory-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .inventory-item {
+    min-height: 48px;
+  }
+  .item-detail-panel {
+    display: block;
+    margin-top: 10px;
+    padding: 10px;
+    border: 2px solid var(--ink);
+    border-radius: 7px;
+    background: #f4e3b5;
+    box-shadow: 2px 2px 0 #ab956d;
+  }
+  .item-detail-panel:empty {
+    display: none;
+  }
+  .item-detail-panel .detail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+  }
+  .item-detail-panel h4 {
+    margin: 4px 0;
+    font-size: 16px;
+  }
+  .item-detail-panel p {
+    margin: 3px 0 6px;
+    color: #4e5c4d;
+    font-size: 9px;
+    line-height: 1.55;
+  }
+  .item-detail-panel .detail-tags {
+    font-size: 8px;
+  }
+  .item-detail-panel .rarity-label {
+    display: inline;
+  }
+  .row-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .row-actions .text-button {
+    align-self: flex-end;
+  }
+  .p2-rest .shop-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 7px;
+  }
+  .p2-rest .shop-footer > .primary {
+    width: 100%;
+    min-height: 44px;
+  }
+  .p2-rest .empty-slots {
+    font-size: 8px;
+  }
+}
+
 #overlay > .shop-panel {
   animation: none;
 }
@@ -2229,7 +2935,7 @@ h1 > i {
   .quick-grid {
     grid-template-columns: 1fr;
   }
-  .expedition-shop .shop-footer {
+  .expedition-shop:not(.p2-rest) .shop-footer {
     position: sticky;
     bottom: 0;
     z-index: 4;

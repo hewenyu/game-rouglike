@@ -2,13 +2,14 @@
 
 一只小蟹，六把破烂，一整片怪潮。
 
-**当前分支状态：** `codex/scrap-growth` 的 P1 冻结线是在 W1 直接开放六个枪位，
-同名同阶武器自动合成到 IV。经营账本保持“免费起始枪 paid 0、18 废料枪 paid
-18、两把 paid 30 的电池合成 paid 60 且只扣一次款”；`六槽 + 一件 - 一次正向
-合成 <= 六槽`，不会在合成后超容量。设计中的 P2 物品仍只是未批准假设，见
-[物品成长假设](docs/growth-items-proposal.md) 与 [产品目标](memory/goal.md)。
-商店中的 `理论DPS` 是面板估算；共享说明写明单目标、散弹全中与餐叉持续
-接触假设，不代表当前实战总输出。
+**当前分支状态：** `codex/scrap-growth` 在 W1 直接开放六个枪位，同名同阶武器
+自动合成到 IV。经营账本保持“免费起始枪 paid 0、18 废料枪 paid 18、两把
+paid 30 的电池合成 paid 60 且只扣一次款”；`六槽 + 一件 - 一次正向合成
+<= 六槽`，不会在合成后超容量。P2 的 20 件物品规则、库存、奖励、宝箱、精英与
+整备界面已进入运行候选；这些实现尚待独立审查和后续 20 波平衡验证，不是用户
+验收。设计假设见[物品成长假设](docs/growth-items-proposal.md)与
+[产品目标](memory/goal.md)。商店中的 `理论DPS` 是面板估算；共享说明写明单目标、
+散弹全中与餐叉持续接触假设，不代表当前实战总输出。
 
 **当前是 `expedition20` 的 20 波运行候选。模拟与输入基线为 `db74a8c`；其三方
 PLAYTEST 审查是历史证据。`3305687` 之后的渲染顺序修复已在
@@ -62,8 +63,9 @@ npm run dev
 ```
 
 运行后终端会打印实际 Vite 地址；本地默认通常为 http://127.0.0.1:5173 。
-默认是 20 波远征；两波切片入口为 `/?mode=slice`。远征包含 9 次枪店、6 次快速选择、
-5/10/15/20 波首领和一次永久分支选择。
+默认是 20 波远征；两波切片入口为 `/?mode=slice`。远征包含 W1-W19 共 19 次整备、
+W5/10/15/20 四场首领战；机制、数值和宝箱奖励都在整备面板中结算，不再插入快速选择或
+永久分支选择。
 
 切片入口仍是第一波 20 秒，商店买武器并免费选 **两种** 改装，第二波 35 秒，
 击败罐头大王后结束。商店时间不计入战斗时间。
@@ -92,6 +94,7 @@ npm run test:browser    # 先启动 dev server；默认本机 macOS Google Chrom
 npm run test:browser:regression   # 独立正常输入回归，同样先启动 dev server
 npm run test:browser:lifecycle    # W7 自动接波的键盘/触屏输入生命周期回归
 npm run test:browser:first-shop   # 首商店可达性烟测（键盘/触屏各 3 seed）
+npm run test:browser:p2-items     # W1 核心领取、真实 W2 触发与物品购买（键盘/触屏）
 npm run test:browser:expedition    # expedition 普通输入全程；每次独立 attempt 留证
 BASE_URL=http://127.0.0.1:4188 OUTPUT_DIR=/tmp/render-occlusion \
   node tests/browser-render-occlusion.mjs  # 固定合成遮挡 fixture；可选普通 W2 截图
@@ -104,6 +107,9 @@ npm run format
 浏览器测试可用 `CHROME_PATH` 指定 Chromium 可执行文件、`TEST_URL` 指定站点。
 回归脚本另支持 `BASE_URL` 与 `DIST_DIR`（默认使用仓库内 `dist/`）。
 它使用普通键鼠、实际触屏事件和只读观察数据；没有修改战斗状态或开启无敌。
+P2 物品集成 fixture 同时运行普通键盘和 CDP 触屏：W1 领取自然出现的核心奖励，
+观察 W2 的真实处理队列，再在第二次整备点击购买物品；它检查 390px 横向溢出、
+页面错误和可见按钮至少 44px。
 自动接波回归单独运行键盘与触屏两局：在 W7 过渡中新按方向并保持到 W8，
 同时验证商店、快速选择和暂停期间不会收集移动输入。它不计入 24 项回归分母。
 失败路径由普通键盘朝最近敌人冲的独立 fixture 覆盖（固定 seed 2a/17/91，各一局）；
