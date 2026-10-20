@@ -1,9 +1,11 @@
 # Status
 
-Render-order fix after `3305687`, pending review at freeze: every enemy projectile
-draws once above blasts and the chain readout with unchanged geometry, 3px INK
-outline. Tests cover a synthetic shape matrix and the first 60 rendered steps; this
-is bounded nonmutation evidence, not full slice equivalence.
+Render-order fix after `3305687` at
+`01a9bf13a69ceaeeca9263ec9def1d2ba212622a`, with completed three-party
+PLAYTEST-only review: every enemy projectile draws once above blasts and the chain
+readout with unchanged geometry, 3px INK outline. Tests cover a synthetic shape
+matrix and the first 60 rendered steps; this is bounded nonmutation evidence, not
+full slice equivalence.
 
 ## Simulation/input baseline: `db74a8c` (2026-10-19)
 
@@ -19,7 +21,7 @@ The historical test and diagnostic baseline is
 subsequent render-order fix changes rendering only; it does not change
 simulation, input, collision, waves, economy or recovery rules, so the historical
 rule, input and slice-equivalence evidence remains attributed to those recorded
-baselines. The render fix is pending review at freeze.
+baselines. The model review is not user acceptance or goal completion.
 
 ### Current rules
 

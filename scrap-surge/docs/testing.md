@@ -3,7 +3,8 @@
 The simulation/input baseline is
 **db74a8cc95806976bcdaf6896b79a4ccdb48afcc**. Its three-party PLAYTEST review
 is historical evidence only. A render-order fix follows `3305687`; that fix is
-pending review at freeze. This is not final goal completion or user acceptance,
+**01a9bf13a69ceaeeca9263ec9def1d2ba212622a**, with a completed three-party
+PLAYTEST-only review. That model review is not user acceptance or goal completion,
 and `?mode=slice` retains the approved two-wave behavior.
 
 The frozen slice reviewed at **8cb0e8f104d4150ceca8f8660ae6a6c62972e208**, the F0
