@@ -249,7 +249,10 @@ export type EffectiveWeaponProfile = {
 export type PurchasePreview = {
   accepted: boolean;
   reason: "no-space" | null;
+  // Highest tier in the loadout after the purchase.
   tier: GunTier;
+  // Final tier of the bought gun after every fusion it triggers (despite the
+  // name, not the tier of the incoming copy, which is always I).
   incomingTier: GunTier;
   merged: boolean;
 };

@@ -1,4 +1,4 @@
-import type { Event } from "./sim";
+import type { Event } from "./sim-types";
 export class Sound {
   context: AudioContext | null = null;
   master: GainNode | null = null;

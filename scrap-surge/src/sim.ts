@@ -1,4 +1,11 @@
-import { clamp, dist, rng, segmentDistance, type Vec } from "./math";
+import {
+  SeededStream,
+  clamp,
+  dist,
+  rng,
+  segmentDistance,
+  type Vec,
+} from "./math";
 import {
   WEAPONS,
   ARENA_W,
@@ -71,6 +78,26 @@ import {
   type ItemStats,
   type StatRewardId,
 } from "./items";
+import {
+  type Phase,
+  type Enemy,
+  type Bullet,
+  type Scrap,
+  type Corpse,
+  type Fx,
+  type Gun,
+  type WakePoint,
+  type TrailPoint,
+  type ChestPickup,
+  type FrozenChestChoice,
+  type QueueMetrics,
+  type DamageSource,
+  type PendingBlast,
+  type PocketBatch,
+  type Event,
+} from "./sim-types";
+export type * from "./sim-types";
+import { planGunPurchase, type PurchasePlan } from "./economy";
 // Chase speeds (px/s). Spitters only walk while farther than
 // SPITTER_HOLD_DISTANCE, then stand and shoot.
 const ENEMY_SPEED: Readonly<Record<Enemy["kind"], number>> = Object.freeze({
@@ -84,231 +111,12 @@ const ENEMY_SPEED: Readonly<Record<Enemy["kind"], number>> = Object.freeze({
 });
 const SPITTER_HOLD_DISTANCE = 320;
 const ELITE_FALLBACK_SPEED = 71.4;
-export type Phase =
-  | "fight"
-  | "sweep"
-  | "interlude"
-  | "shop"
-  | "quick"
-  | "paused"
-  | "won"
-  | "lost";
-export type Enemy = Vec & {
-  id: number;
-  kind: ExpeditionEnemyKind | "boss";
-  hp: number;
-  maxHp: number;
-  r: number;
-  vx: number;
-  vy: number;
-  knockX: number;
-  knockY: number;
-  flash: number;
-  age: number;
-  born: number;
-  attack: number;
-  bowled: Set<number>;
-  bossStage?: 1 | 2 | 3 | 4;
-  elite?: boolean;
-  eliteWave?: number;
-  volleys?: number;
-  tell?: number;
-};
-export type Bullet = Vec & {
-  id: number;
-  vx: number;
-  vy: number;
-  damage: number;
-  life: number;
-  kind: "cap" | "rocket" | "bonus" | "enemy";
-  target: number;
-  r: number;
-  homing: boolean;
-  pierce?: number;
-  hitIds?: Set<number>;
-  mod?: ModId;
-  tier?: number;
-  blastRadius?: number;
-  source?: DamageSource | "enemy";
-};
-export type Scrap = Vec & {
-  id: number;
-  value: number;
-  rawCash?: number;
-  fuelUnits?: number;
-  collected?: boolean;
-  vx: number;
-  vy: number;
-  age: number;
-  heat?: number;
-  root?: number;
-  exploded?: boolean;
-};
-// S1b: a lethal spring-fist hit leaves a flying, non-targetable remnant that
-// still bowls into other enemies. It is kept out of the live-enemy cap.
-export type Corpse = Vec & {
-  id: number;
-  vx: number;
-  vy: number;
-  life: number;
-  max: number;
-  r: number;
-  chain: number;
-  hitIds: Set<number>;
-  damage?: number;
-  source?: DamageSource;
-};
-export type Fx = {
-  kind:
-    | "pop"
-    | "blast"
-    | "arc"
-    | "punch"
-    | "number"
-    | "pickup"
-    | "wake"
-    | "ember"
-    | "split"
-    | "tell"
-    | "domino-ring"
-    | "domino-blast"
-    | "ring";
-  x: number;
-  y: number;
-  life: number;
-  max: number;
-  color: string;
-  size: number;
-  points?: Vec[];
-  text?: string;
-};
-export type Gun = {
-  id: WeaponId;
-  cooldown: number;
-  angle: number;
-  recoil: number;
-  tier?: GunTier;
-  paid?: number;
-};
-type PurchaseNode = {
-  tier: GunTier;
-  sourceIndices: number[];
-  cooldown: number;
-  paid: number;
-};
-type PurchasePlan = PurchasePreview & { result: Gun[]; cooldown: number };
-export type WakePoint = Vec & {
-  id: number;
-  life: number;
-  max: number;
-  radius: number;
-  damage: number;
-  root: number;
-  hitIds: Set<number>;
-};
-export type TrailPoint = WakePoint & {
-  kind: "milestone";
-};
-export type ChestPickup = Vec & {
-  id: number;
-  source: ItemLootSource;
-  wave: number;
-  vx: number;
-  vy: number;
-  age: number;
-};
-export type FrozenChestChoice = {
-  chestId: number;
-  source: ItemLootSource;
-  wave: number;
-  itemIds: readonly ItemId[];
-};
-export type QueueMetrics = {
-  admitted: number;
-  // Contract v2 calls admission rejection `deferred`; this counter is that
-  // admission-rejection count, not a promise of later processing.
-  rejected: number;
-  dropped: number;
-  // Queue-specific completed work. Popcorn counts consumed fuel units here,
-  // not emitted bullets; use the popcorn shot counters for emitted output.
-  processed: number;
-};
-export type DamageSource =
-  "weapon" | "secondaryWeapon" | "contactProc" | "chain" | "itemProc";
-export type PendingBlast = {
-  p: Vec;
-  radius: number;
-  damage: number;
-  chain: number;
-  source: DamageSource;
-  dualRing?: boolean;
-  tier3?: boolean;
-};
 function sameOfferSet<T>(left: readonly T[], right: readonly T[]) {
   if (left.length !== right.length) return false;
   const leftSet = new Set(left);
   if (leftSet.size !== new Set(right).size) return false;
   return right.every((value) => leftSet.has(value));
 }
-class SeededStream {
-  #state: number;
-  constructor(seed: number) {
-    this.#state = seed >>> 0;
-  }
-  state() {
-    return this.#state;
-  }
-  setState(state: number) {
-    this.#state = state >>> 0;
-  }
-  next = () => {
-    this.#state = (this.#state + 0x6d2b79f5) >>> 0;
-    let t = this.#state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-export type PocketBatch = {
-  wave: number;
-  time: number;
-  requested: number;
-  spawned: number;
-  rejected: number;
-  formation: Formation;
-  center: Vec;
-};
-export type Event = {
-  type:
-    | "fire"
-    | "hit"
-    | "kill"
-    | "explode"
-    | "pickup"
-    | "hurt"
-    | "wave"
-    | "boss"
-    | "branch"
-    | "tier"
-    | "buy"
-    | "wake-hit"
-    | "ember-blast"
-    | "split"
-    | "spitter-tell"
-    | "mod-cue"
-    | "tier-fire"
-    | "merge"
-    | "ring"
-    | "elite"
-    | "chest"
-    | "end";
-  kind?: WeaponId;
-  item?: ItemId;
-  stat?: StatRewardId;
-  value?: number;
-  mod?: ModId;
-  tier?: number;
-};
 export class Game {
   mode: GameMode;
   phase: Phase = "fight";
@@ -1135,122 +943,7 @@ export class Game {
   expeditionPurchasePreview(index: number): PurchasePlan {
     const id = this.offers[index];
     const price = id ? gunPrice(id, this.wave) : 0;
-    const incomingCooldown = this.guns.length * 0.08;
-    const existingNodes: PurchaseNode[] = this.guns
-      .map((gun, slotIndex) => ({ gun, slotIndex }))
-      .filter(({ gun }) => gun.id === id)
-      .map(({ gun, slotIndex }) => ({
-        tier: gunTier(gun.tier),
-        sourceIndices: [slotIndex],
-        cooldown: gun.cooldown,
-        paid: gun.paid ?? 0,
-      }));
-    let incomingNode: PurchaseNode = {
-      tier: 1,
-      sourceIndices: [],
-      cooldown: incomingCooldown,
-      paid: price,
-    };
-    let mergedNode: PurchaseNode | null = null;
-    let incomingTier: GunTier = 1;
-    const consumedSlots = new Set<number>();
-    while (incomingNode.tier < 4) {
-      const tier = incomingNode.tier;
-      const partner = existingNodes
-        .filter(
-          (node) =>
-            node.tier === incomingNode.tier &&
-            !consumedSlots.has(node.sourceIndices[0]!),
-        )
-        .sort(
-          (a, b) =>
-            (a.sourceIndices[0] ?? Number.POSITIVE_INFINITY) -
-            (b.sourceIndices[0] ?? Number.POSITIVE_INFINITY),
-        )[0];
-      if (!partner) break;
-      consumedSlots.add(partner.sourceIndices[0]!);
-      const allConsumed = [
-        ...new Set([...incomingNode.sourceIndices, ...partner.sourceIndices]),
-      ];
-      mergedNode = {
-        tier: (incomingNode.tier + 1) as GunTier,
-        sourceIndices: allConsumed,
-        cooldown: Math.max(incomingNode.cooldown, partner.cooldown),
-        paid: incomingNode.paid + partner.paid,
-      };
-      incomingNode = mergedNode;
-      incomingTier = mergedNode.tier;
-    }
-    const survivors = existingNodes
-      .filter(
-        (node) => !mergedNode?.sourceIndices.includes(node.sourceIndices[0]!),
-      )
-      .map((node) => {
-        const source = node.sourceIndices[0]!;
-        return {
-          order: source,
-          gun: { ...this.guns[source]!, id, tier: node.tier },
-        };
-      });
-    if (mergedNode) {
-      const survivorIndex = Math.min(
-        ...mergedNode.sourceIndices.filter(Number.isFinite),
-      );
-      survivors.push({
-        order: survivorIndex,
-        gun: {
-          ...this.guns[survivorIndex]!,
-          id,
-          tier: mergedNode.tier,
-          cooldown: mergedNode.cooldown,
-          paid: mergedNode.paid,
-        },
-      });
-    } else {
-      survivors.push({
-        order: Number.POSITIVE_INFINITY,
-        gun: {
-          id,
-          cooldown: incomingNode.cooldown,
-          angle: 0,
-          recoil: 0,
-          tier: 1,
-          paid: incomingNode.paid,
-        },
-      });
-    }
-    const untouched = this.guns
-      .map((gun, slotIndex) => ({ order: slotIndex, gun }))
-      .filter(({ gun }) => gun.id !== id);
-    const result = [...untouched, ...survivors]
-      .sort((a, b) => a.order - b.order)
-      .map(({ gun }) => gun);
-    const merged = mergedNode !== null;
-    if (result.length > this.slotCap)
-      return {
-        accepted: false,
-        tier: result.reduce<GunTier>(
-          (best, gun) => (gun.tier! > best ? gun.tier! : best),
-          1,
-        ),
-        incomingTier,
-        merged,
-        result,
-        cooldown: incomingNode.cooldown,
-        reason: "no-space",
-      };
-    return {
-      accepted: true,
-      tier: result.reduce<GunTier>(
-        (best, gun) => (gun.tier! > best ? gun.tier! : best),
-        1,
-      ),
-      incomingTier,
-      merged,
-      result,
-      cooldown: incomingNode.cooldown,
-      reason: null,
-    };
+    return planGunPurchase(this.guns, id, price, this.slotCap);
   }
   sell(index: number) {
     if (this.mode !== "expedition20" || this.phase !== "shop") return false;
