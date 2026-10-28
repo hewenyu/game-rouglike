@@ -1,3 +1,4 @@
+import type { Vec } from "./math";
 export type WeaponId =
   "slinger" | "shotgun" | "saw" | "coil" | "rocket" | "fist";
 export type ModId = "popcorn" | "domino" | "magnet";
@@ -93,9 +94,17 @@ export const MODS: Record<ModId, { name: string; desc: string; icon: string }> =
       icon: "◎",
     },
   };
-export const W = 1200,
-  H = 800,
-  DT = 1 / 60;
+export const ARENA_W = 1200;
+export const ARENA_H = 800;
+export const DT = 1 / 60;
+// Player spawn and per-wave reset point. It sits 50 px below the arena centre
+// (y 400) by design of the reviewed slice; do not "fix" it to ARENA_H / 2.
+export const PLAYER_START: Readonly<Vec> = Object.freeze({ x: 600, y: 450 });
+export const PLAYER_SPEED = 230;
+// Closest the player centre may get to an arena edge.
+export const PLAYER_WALL_MARGIN = 30;
+// Bosses and the elite enter on the far side from the player.
+export const BOSS_ENTRY = Object.freeze({ nearX: 300, farX: 900, y: 220 });
 // Approved explosion palette (S1). Explosions are saturated orange-yellow:
 // `core` is the flash centre, `ring` the outer shock stroke. Chain (secondary)
 // blasts must use this same family, never a new hue - the reviewed slice shipped

@@ -308,7 +308,10 @@ export const BRANCHES: Record<
   },
 };
 
-export const WEAPON_BASE_PRICE: Record<WeaponId, number> = {
+// Expedition gun prices. Deliberately separate from `WEAPONS[id].price`, which
+// the frozen slice shop charges flat: tuning the 20-wave economy here must not
+// move the slice. The values start out equal.
+export const WEAPON_BASE_PRICE: Readonly<Record<WeaponId, number>> = {
   slinger: 15,
   shotgun: 22,
   saw: 21,

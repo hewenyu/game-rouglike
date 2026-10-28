@@ -1,5 +1,16 @@
 import { clamp, dist, rng, segmentDistance, type Vec } from "./math";
-import { WEAPONS, W, H, BLAST, type WeaponId, type ModId } from "./data";
+import {
+  WEAPONS,
+  ARENA_W,
+  ARENA_H,
+  BLAST,
+  BOSS_ENTRY,
+  PLAYER_SPEED,
+  PLAYER_START,
+  PLAYER_WALL_MARGIN,
+  type WeaponId,
+  type ModId,
+} from "./data";
 import {
   BAG_HP,
   BOSS_STAGES,
@@ -289,7 +300,14 @@ export class Game {
   mode: GameMode;
   phase: Phase = "fight";
   beforePause: Phase = "fight";
-  player = { x: 600, y: 450, hp: 10, maxHp: 10, invulnerable: 2, walk: 0 };
+  player = {
+    x: PLAYER_START.x,
+    y: PLAYER_START.y,
+    hp: 10,
+    maxHp: 10,
+    invulnerable: 2,
+    walk: 0,
+  };
   enemies: Enemy[] = [];
   bullets: Bullet[] = [];
   scraps: Scrap[] = [];
@@ -347,7 +365,7 @@ export class Game {
   directContactKills = 0;
   waveKillHeals = 0;
   rootSecondaryKills = new Map<number, number>();
-  lastMilestone: Vec = { x: 600, y: 450 };
+  lastMilestone: Vec = { ...PLAYER_START };
   eliteSpawned = false;
   eliteEscaped = false;
   queueMetrics: Record<
@@ -413,7 +431,7 @@ export class Game {
   modTiers = new Map<ModId, number>();
   branch: ExpeditionBranch | null = null;
   wakePoints: WakePoint[] = [];
-  wakeAnchor: Vec = { x: 600, y: 450 };
+  wakeAnchor: Vec = { ...PLAYER_START };
   popcornCredits = 0;
   popcornDrained = 0;
   popcornPendingCancelled = 0;
@@ -475,8 +493,8 @@ export class Game {
     for (let i = 0; i < 10; i++) {
       const a = -Math.PI * 0.9 + (i / 9) * Math.PI * 0.8;
       this.spawn("bag", {
-        x: 600 + Math.cos(a) * 270,
-        y: 450 + Math.sin(a) * 270,
+        x: PLAYER_START.x + Math.cos(a) * 270,
+        y: PLAYER_START.y + Math.sin(a) * 270,
       });
     }
   }
@@ -743,13 +761,13 @@ export class Game {
       return false;
     if (!p) {
       p = {
-        x: clamp(this.player.x + Math.cos(a) * r, 28, W - 28),
-        y: clamp(this.player.y + Math.sin(a) * r, 28, H - 28),
+        x: clamp(this.player.x + Math.cos(a) * r, 28, ARENA_W - 28),
+        y: clamp(this.player.y + Math.sin(a) * r, 28, ARENA_H - 28),
       };
       if (dist(p, this.player) < 200)
         p = {
-          x: this.player.x < W / 2 ? W - 35 : 35,
-          y: 60 + variant * (H - 120),
+          x: this.player.x < ARENA_W / 2 ? ARENA_W - 35 : 35,
+          y: 60 + variant * (ARENA_H - 120),
         };
     }
     const exp = this.mode === "expedition20",
@@ -822,18 +840,18 @@ export class Game {
   spawnPocket(count: number) {
     const angle = this.random() * Math.PI * 2,
       radius = 340 + this.random() * 100;
-    let cx = clamp(this.player.x + Math.cos(angle) * radius, 60, W - 60),
-      cy = clamp(this.player.y + Math.sin(angle) * radius, 60, H - 60);
+    let cx = clamp(this.player.x + Math.cos(angle) * radius, 60, ARENA_W - 60),
+      cy = clamp(this.player.y + Math.sin(angle) * radius, 60, ARENA_H - 60);
     if (dist({ x: cx, y: cy }, this.player) < 310) {
-      cx = this.player.x < W / 2 ? W - 70 : 70;
-      cy = 80 + this.random() * (H - 160);
+      cx = this.player.x < ARENA_W / 2 ? ARENA_W - 70 : 70;
+      cy = 80 + this.random() * (ARENA_H - 160);
     }
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2 + (this.random() - 0.5) * 0.42,
         r = 30 + this.random() * 45,
         p = {
-          x: clamp(cx + Math.cos(a) * r, 28, W - 28),
-          y: clamp(cy + Math.sin(a) * r, 28, H - 28),
+          x: clamp(cx + Math.cos(a) * r, 28, ARENA_W - 28),
+          y: clamp(cy + Math.sin(a) * r, 28, ARENA_H - 28),
         },
         roll = this.random(),
         kind: Enemy["kind"] =
@@ -864,15 +882,15 @@ export class Game {
       const angle = this.random() * Math.PI * 2,
         distance = 340 + this.random() * 100;
       const p = {
-        x: clamp(this.player.x + Math.cos(angle) * distance, 60, W - 60),
-        y: clamp(this.player.y + Math.sin(angle) * distance, 60, H - 60),
+        x: clamp(this.player.x + Math.cos(angle) * distance, 60, ARENA_W - 60),
+        y: clamp(this.player.y + Math.sin(angle) * distance, 60, ARENA_H - 60),
       };
       if (dist(p, this.player) >= 310 && (!other || dist(p, other) >= 200))
         return p;
     }
-    const y = other ? 80 : clamp(this.player.y, 80, H - 80);
+    const y = other ? 80 : clamp(this.player.y, 80, ARENA_H - 80);
     return {
-      x: this.player.x < W / 2 ? W - 70 : 70,
+      x: this.player.x < ARENA_W / 2 ? ARENA_W - 70 : 70,
       y,
     };
   }
@@ -887,25 +905,25 @@ export class Game {
       )
         return [first, second];
     }
-    const x = this.player.x < W / 2 ? W - 70 : 70;
+    const x = this.player.x < ARENA_W / 2 ? ARENA_W - 70 : 70;
     return [
       { x, y: 80 },
-      { x, y: H - 80 },
+      { x, y: ARENA_H - 80 },
     ];
   }
   randomPocketCenter() {
     const angle = this.random() * Math.PI * 2,
       distance = 340 + this.random() * 100;
     return {
-      x: clamp(this.player.x + Math.cos(angle) * distance, 60, W - 60),
-      y: clamp(this.player.y + Math.sin(angle) * distance, 60, H - 60),
+      x: clamp(this.player.x + Math.cos(angle) * distance, 60, ARENA_W - 60),
+      y: clamp(this.player.y + Math.sin(angle) * distance, 60, ARENA_H - 60),
     };
   }
   pocketMemberPoint(center: Vec, radius: number, angle: number): Vec {
     const rr = 30 + this.random() * Math.max(1, radius - 30);
     let p = {
-      x: clamp(center.x + Math.cos(angle) * rr, 28, W - 28),
-      y: clamp(center.y + Math.sin(angle) * rr, 28, H - 28),
+      x: clamp(center.x + Math.cos(angle) * rr, 28, ARENA_W - 28),
+      y: clamp(center.y + Math.sin(angle) * rr, 28, ARENA_H - 28),
     };
     if (dist(p, this.player) >= 235) return p;
     // Clamping a ring point at an arena edge must never move it inside the
@@ -915,14 +933,14 @@ export class Game {
       dy = p.y - this.player.y,
       d = Math.hypot(dx, dy) || 1;
     p = {
-      x: clamp(this.player.x + (dx / d) * 236, 28, W - 28),
-      y: clamp(this.player.y + (dy / d) * 236, 28, H - 28),
+      x: clamp(this.player.x + (dx / d) * 236, 28, ARENA_W - 28),
+      y: clamp(this.player.y + (dy / d) * 236, 28, ARENA_H - 28),
     };
     if (dist(p, this.player) >= 235) return p;
     for (const a of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
       const q = {
-        x: clamp(this.player.x + Math.cos(a) * 236, 28, W - 28),
-        y: clamp(this.player.y + Math.sin(a) * 236, 28, H - 28),
+        x: clamp(this.player.x + Math.cos(a) * 236, 28, ARENA_W - 28),
+        y: clamp(this.player.y + Math.sin(a) * 236, 28, ARENA_H - 28),
       };
       if (dist(q, this.player) >= 235) return q;
     }
@@ -1473,8 +1491,8 @@ export class Game {
     this.bullets = [];
     this.corpses = [];
     this.fx = [];
-    this.player.x = 600;
-    this.player.y = 450;
+    this.player.x = PLAYER_START.x;
+    this.player.y = PLAYER_START.y;
     this.spawnTimer = 0.2;
     this.setPocketSchedule();
     this.phase = "fight";
@@ -1482,8 +1500,8 @@ export class Game {
     for (let i = 0; i < 14; i++) {
       const a = (i / 14) * Math.PI * 2;
       this.spawn("bag", {
-        x: 600 + Math.cos(a) * 300,
-        y: 400 + Math.sin(a) * 280,
+        x: ARENA_W / 2 + Math.cos(a) * 300,
+        y: ARENA_H / 2 + Math.sin(a) * 280,
       });
     }
   }
@@ -1525,9 +1543,9 @@ export class Game {
     this.magnetPulse = 0;
     this.magnetPulseCooldown = 0;
     this.expeditionBonusBudget = 0;
-    this.player.x = 600;
-    this.player.y = 450;
-    this.wakeAnchor = { x: 600, y: 450 };
+    this.player.x = PLAYER_START.x;
+    this.player.y = PLAYER_START.y;
+    this.wakeAnchor = { ...PLAYER_START };
     this.spawnTimer = 0.2;
     this.bossSpawned = false;
     this.bossKilled = false;
@@ -1540,7 +1558,7 @@ export class Game {
     this.rootSecondaryKills.clear();
     this.movedThisTick = false;
     this.distanceSinceMilestone = 0;
-    this.lastMilestone = { x: 600, y: 450 };
+    this.lastMilestone = { ...PLAYER_START };
     this.pocketIndex = 0;
     this.pocketRejected = 0;
     this.buildExpeditionPocketSchedule();
@@ -1579,20 +1597,23 @@ export class Game {
   }
   hurt(amount = 1, source: "contact" | "bullet" = "contact") {
     if (this.player.invulnerable > 0 || this.phase !== "fight") return;
-    if (this.mode !== "expedition20") {
-      this.player.hp--;
-      this.damageTaken++;
-      this.player.invulnerable = 1.05;
-      this.shake = 0.3;
-      this.effect("blast", this.player, 0.35, "#ed7552", 35);
-      this.event("hurt");
-      if (this.player.hp <= 0) {
-        this.phase = "lost";
-        this.event("end");
-      }
-      return;
+    if (this.mode === "expedition20") this.hurtExpedition(amount, source);
+    else this.hurtSlice();
+  }
+  // Frozen slice: every hit costs exactly one HP.
+  hurtSlice() {
+    this.player.hp--;
+    this.damageTaken++;
+    this.player.invulnerable = 1.05;
+    this.shake = 0.3;
+    this.effect("blast", this.player, 0.35, "#ed7552", 35);
+    this.event("hurt");
+    if (this.player.hp <= 0) {
+      this.phase = "lost";
+      this.event("end");
     }
-    // Only expedition20 reaches here; the slice returned above.
+  }
+  hurtExpedition(amount: number, source: "contact" | "bullet") {
     const derived = this.derivedItemStats();
     const accepted = amount + derived.acceptedHurtDamageBonus;
     this.player.hp -= accepted;
@@ -1600,17 +1621,12 @@ export class Game {
     this.damageTaken += accepted;
     this.player.invulnerable = 1.05;
     this.shake = 0.3;
-    if (this.mode === "expedition20" && this.player.hp <= 0) {
+    if (this.player.hp <= 0) {
       this.player.hp = 0;
       this.settleExpeditionLoss();
       return;
     }
-    if (
-      this.mode === "expedition20" &&
-      source === "contact" &&
-      derived &&
-      derived.counts["undertow-board"] > 0
-    ) {
+    if (source === "contact" && derived.counts["undertow-board"] > 0) {
       this.queueBlast({
         p: { x: this.player.x, y: this.player.y },
         radius: derived.hurtExplosion.radius,
@@ -1619,9 +1635,7 @@ export class Game {
         source: "contactProc",
       });
     }
-    if (this.mode === "expedition20" && derived?.counts["pressure-valve"]) {
-      this.pressureTimer = 4;
-    }
+    if (derived.counts["pressure-valve"]) this.pressureTimer = 4;
     this.effect("blast", this.player, 0.35, "#ed7552", 35);
     this.event("hurt");
   }
@@ -1812,8 +1826,8 @@ export class Game {
     this.effect("split", e, 0.34, "#f0b071", 28);
     for (const offset of [-Math.PI / 3, Math.PI / 3]) {
       const p = {
-        x: clamp(e.x + Math.cos(angle + offset) * 60, 18, W - 18),
-        y: clamp(e.y + Math.sin(angle + offset) * 60, 18, H - 18),
+        x: clamp(e.x + Math.cos(angle + offset) * 60, 18, ARENA_W - 18),
+        y: clamp(e.y + Math.sin(angle + offset) * 60, 18, ARENA_H - 18),
       };
       this.spawn("chip", p);
     }
@@ -2451,6 +2465,12 @@ export class Game {
       }
     }
   }
+  bossEntryPoint(): Vec {
+    return {
+      x: this.player.x < ARENA_W / 2 ? BOSS_ENTRY.farX : BOSS_ENTRY.nearX,
+      y: BOSS_ENTRY.y,
+    };
+  }
   mount(index: number) {
     const a =
       -Math.PI / 2 + (index / Math.max(3, this.guns.length)) * Math.PI * 2;
@@ -2500,18 +2520,18 @@ export class Game {
       if (l) {
         const derived =
           this.mode === "expedition20" ? this.derivedItemStats() : null;
-        const speed = 230 * (derived?.moveFactor ?? 1);
+        const speed = PLAYER_SPEED * (derived?.moveFactor ?? 1);
         const beforeX = this.player.x,
           beforeY = this.player.y;
         this.player.x = clamp(
           this.player.x + (input.x / Math.max(1, l)) * speed * dt,
-          30,
-          W - 30,
+          PLAYER_WALL_MARGIN,
+          ARENA_W - PLAYER_WALL_MARGIN,
         );
         this.player.y = clamp(
           this.player.y + (input.y / Math.max(1, l)) * speed * dt,
-          30,
-          H - 30,
+          PLAYER_WALL_MARGIN,
+          ARENA_H - PLAYER_WALL_MARGIN,
         );
         this.player.walk += dt * 15;
         this.movedThisTick =
@@ -2582,12 +2602,7 @@ export class Game {
       }
       if (this.mode === "expedition20" && this.pendingBoss) {
         const boss = bossForWave(this.wave)!;
-        if (
-          this.spawn("boss", {
-            x: this.player.x < 600 ? 900 : 300,
-            y: 220,
-          })
-        ) {
+        if (this.spawn("boss", this.bossEntryPoint())) {
           this.bossSpawned = true;
           this.event("wave");
           this.event("boss", undefined, boss.stage);
@@ -2595,17 +2610,7 @@ export class Game {
       }
       if (this.mode === "expedition20" && this.pendingElite) {
         const info = eliteForWave(this.wave);
-        if (
-          info &&
-          this.spawn(
-            "can",
-            {
-              x: this.player.x < 600 ? 900 : 300,
-              y: 220,
-            },
-            true,
-          )
-        ) {
+        if (info && this.spawn("can", this.bossEntryPoint(), true)) {
           this.eliteSpawned = true;
           this.effect("tell", this.enemies.at(-1)!, 0.9, "#ffe071", 50);
         }
@@ -2628,9 +2633,7 @@ export class Game {
         // cap-rejected attempt cannot fake "the boss is here" (or the HUD
         // prompt). If the cap is full this step the boss retries next step,
         // once the dead enemy is cleaned up at the end of a step.
-        if (
-          this.spawn("boss", { x: this.player.x < 600 ? 900 : 300, y: 220 })
-        ) {
+        if (this.spawn("boss", this.bossEntryPoint())) {
           this.bossSpawned = true;
           this.event("wave");
         }
@@ -2704,8 +2707,8 @@ export class Game {
               if (this.phase !== "fight") return;
             }
           }
-        e.x = clamp(e.x + (e.vx + e.knockX) * dt, 18, W - 18);
-        e.y = clamp(e.y + (e.vy + e.knockY) * dt, 18, H - 18);
+        e.x = clamp(e.x + (e.vx + e.knockX) * dt, 18, ARENA_W - 18);
+        e.y = clamp(e.y + (e.vy + e.knockY) * dt, 18, ARENA_H - 18);
         e.knockX *= Math.exp(-dt * 7);
         e.knockY *= Math.exp(-dt * 7);
         if (dist(e, this.player) < e.r + 17) {
@@ -2745,15 +2748,15 @@ export class Game {
             if (stage === 3 && volley % 3 === 0) {
               for (let i = 0; i < 3; i++)
                 this.spawn("runner", {
-                  x: clamp(e.x + (i - 1) * 35, 28, W - 28),
-                  y: clamp(e.y + 50, 28, H - 28),
+                  x: clamp(e.x + (i - 1) * 35, 28, ARENA_W - 28),
+                  y: clamp(e.y + 50, 28, ARENA_H - 28),
                 });
             }
             if (stage === 4 && volley % 4 === 0) {
               for (let i = 0; i < 4; i++)
                 this.spawn("chip", {
-                  x: clamp(e.x + (i - 1.5) * 26, 18, W - 18),
-                  y: clamp(e.y + 58, 18, H - 18),
+                  x: clamp(e.x + (i - 1.5) * 26, 18, ARENA_W - 18),
+                  y: clamp(e.y + 58, 18, ARENA_H - 18),
                 });
             }
             this.effect("blast", e, 0.3, "#ed7552", 60);
@@ -2781,8 +2784,8 @@ export class Game {
       // targetable and never touch the player; each enemy can be bowled once.
       for (const k of this.corpses) {
         k.life -= dt;
-        k.x = clamp(k.x + k.vx * dt, 18, W - 18);
-        k.y = clamp(k.y + k.vy * dt, 18, H - 18);
+        k.x = clamp(k.x + k.vx * dt, 18, ARENA_W - 18);
+        k.y = clamp(k.y + k.vy * dt, 18, ARENA_H - 18);
         k.vx *= Math.exp(-dt * 7);
         k.vy *= Math.exp(-dt * 7);
         for (const e of this.enemies) {
@@ -3023,7 +3026,11 @@ export class Game {
     this.enemies = this.enemies.filter((e) => e.hp > 0);
     this.bullets = this.bullets.filter(
       (b) =>
-        b.life > 0 && b.x > -30 && b.x < W + 30 && b.y > -30 && b.y < H + 30,
+        b.life > 0 &&
+        b.x > -30 &&
+        b.x < ARENA_W + 30 &&
+        b.y > -30 &&
+        b.y < ARENA_H + 30,
     );
     this.scraps = this.scraps.filter((s) =>
       this.mode === "expedition20" ? s.collected !== true : s.value > 0,
