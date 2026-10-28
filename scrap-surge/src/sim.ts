@@ -1592,11 +1592,11 @@ export class Game {
       }
       return;
     }
-    const derived =
-      this.mode === "expedition20" ? this.derivedItemStats() : null;
-    const accepted = amount + (derived?.acceptedHurtDamageBonus ?? 0);
+    // Only expedition20 reaches here; the slice returned above.
+    const derived = this.derivedItemStats();
+    const accepted = amount + derived.acceptedHurtDamageBonus;
     this.player.hp -= accepted;
-    this.player.maxHp = this.mode === "expedition20" ? derived!.maxHp : 10;
+    this.player.maxHp = derived.maxHp;
     this.damageTaken += accepted;
     this.player.invulnerable = 1.05;
     this.shake = 0.3;

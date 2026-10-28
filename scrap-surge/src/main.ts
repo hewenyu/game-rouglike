@@ -8,6 +8,7 @@ import {
   ITEM_BY_ID,
   ITEM_IDS,
   ITEM_CONSTANTS,
+  STAT_REWARD_AMOUNTS,
   applyStatReward,
   deriveItemStats,
   itemCount,
@@ -24,13 +25,16 @@ import {
 } from "./items";
 import {
   BAG_HP,
+  BOSS_STAGES,
   BRANCHES,
   HP_MULT,
   ELITE_STATS,
   ELITE_TIMER_SHARE,
+  ELITE_WAVES,
   bossForWave,
   clampedWave,
   effectiveWeaponProfile,
+  gunPrice,
   gunTierLabel,
   isEliteWave,
   modTierLabel,
@@ -176,13 +180,29 @@ const STAT_REWARD_LABEL: Record<
   StatRewardId,
   { name: string; detail: string }
 > = {
-  damage: { name: "武器伤害", detail: "+6%" },
-  as: { name: "攻击速度", detail: "+6%" },
-  hpFlat: { name: "壳甲上限", detail: "+1 并回复 1" },
-  move: { name: "移动速度", detail: "+5%" },
-  pickup: { name: "拾取范围", detail: "+15%" },
-  power: { name: "机制强度", detail: "+8%（影响爆炸、星痕与拾取弹伤害）" },
+  damage: { name: "武器伤害", detail: `+${statPercent("damage")}` },
+  as: { name: "攻击速度", detail: `+${statPercent("as")}` },
+  hpFlat: {
+    name: "壳甲上限",
+    detail: `+${STAT_REWARD_AMOUNTS.hpFlat} 并回复 ${STAT_REWARD_AMOUNTS.hpFlat}`,
+  },
+  move: { name: "移动速度", detail: `+${statPercent("move")}` },
+  pickup: { name: "拾取范围", detail: `+${statPercent("pickup")}` },
+  power: {
+    name: "机制强度",
+    detail: `+${statPercent("power")}（影响爆炸、星痕与拾取弹伤害）`,
+  },
 };
+// Labels read the reward table so the card can never drift from the rule.
+function statPercent(id: StatRewardId) {
+  return `${Math.round(STAT_REWARD_AMOUNTS[id] * 100)}%`;
+}
+// Derived once from the wave tables so the shop note cannot drift from them.
+const BOSS_WAVES_TEXT = Object.keys(BOSS_STAGES)
+  .map(Number)
+  .sort((a, b) => a - b)
+  .join(" / ");
+const ELITE_WAVES_TEXT = ELITE_WAVES.join(" / ");
 const SHAPE_ART: Record<ItemDefinition["shape"], string> = {
   sandal:
     '<path d="M23 26c-8 10-9 25 0 31 9 5 35 0 45-6 8-6 5-17-5-21l-25-9c-4-1-9-1-15 5Z"/><path d="M34 31c15 1 24 7 24 15M38 61h15"/>',
@@ -672,7 +692,7 @@ function expeditionShop(g: Game) {
       const w = WEAPONS[id],
         sold = g.sold.has(index),
         record = sold ? g.purchaseRecords.get(index) : undefined,
-        price = Math.ceil((w.price * (g.wave + 4)) / 5),
+        price = gunPrice(id, g.wave),
         afford = g.money >= price,
         preview = sold ? null : g.expeditionPurchasePreview(index),
         full = preview?.reason === "no-space";
@@ -759,7 +779,7 @@ function expeditionShop(g: Game) {
     <div class="owned-heading"><h3>壳上的火力</h3><span>实时面板值 · 已计物品</span></div>
     <div class="owned-grid">${owned}</div>
     <div class="empty-slots">${g.guns.length < g.slotCap ? `还有 ${g.slotCap - g.guns.length} 个空槽可以买新武器。` : "六个槽位已满；同名同阶仍可合成。"} 枪位是容量，不是免费武器。</div>
-    <div class="wave-armor"><b>下一波 ${g.wave + 1} 装甲</b><span>${g.wave >= 19 ? "W20 终点战，胜利即结束" : waveHpLabel(g.wave + 1)}</span><small>首领在 5 / 10 / 15 / 20 波；精英在 3 / 7 / 11 / 14 / 17 / 19 波。</small></div>
+    <div class="wave-armor"><b>下一波 ${g.wave + 1} 装甲</b><span>${g.wave >= 19 ? "W20 终点战，胜利即结束" : waveHpLabel(g.wave + 1)}</span><small>首领在 ${BOSS_WAVES_TEXT} 波；精英在 ${ELITE_WAVES_TEXT} 波。</small></div>
     <div class="shop-footer"><small>下一波回复 ${waveRecovery(g.mode, g.wave + 1)} 格生命 · 可滚动查看全部卡面 · 商店不计战斗时间</small><button id="next" class="primary">${g.wave >= 19 ? "迎战最终潮汐" : "带着这批破烂下海"} <b>→</b></button></div></section>`,
   );
   // Every detail is already present in the card, so touch users need no hover.
