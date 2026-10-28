@@ -72,6 +72,11 @@ approved, **not implemented**: `docs/p3b-fullslot-bundle.md`.
 5. Hygiene (any time, small commits): prettier the 9 files, add `typecheck` and
    `format:check` scripts, unify browser-test default ports, emit the declared
    `elite` event, remove unreachable quick/branch code, rerun the 24-item browser regression on current source.
+6. Code-structure debt from the 2026-10-28 review (`docs/code-review-2026-10-28.md`,
+   branch `claude/code-review-ts-skill`, not merged): split `sim.ts` `Game`
+   (88 mode branches, 570-line `step()`), split `main.ts` templates, name arena
+   magic numbers. Plan it as its own reviewed work; keep the slice hash.
+   TS conventions for Claude: `.claude/skills/ts-best-practices/SKILL.md`.
 
 ## Open gates (none established yet)
 
