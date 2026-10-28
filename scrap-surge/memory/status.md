@@ -8,10 +8,11 @@ move superseded text to `docs/status-history.md` instead of stacking new
 
 - 2026-10-28: branch `claude/code-review-ts-skill` (behavior-neutral refactor
   from `docs/code-review-2026-10-28.md` plus the TS skill
-  `.claude/skills/ts-best-practices/SKILL.md`) was merged to `master` and pushed.
-  A playtester asked for it through the project bot (Discord), and the push
-  auto-deploys through Cloudflare Pages. Before that, `master` was `b6c9e13`
-  (`ac6bcd9` plus doc/cleanup commits).
+  `.claude/skills/ts-best-practices/SKILL.md`) is pushed and ready to merge. A
+  playtester asked for the merge through the project bot (Discord), but merging
+  to `master` auto-deploys through Cloudflare Pages, so it waits for the
+  maintainer's approval. `master` = `b6c9e13` (`ac6bcd9` plus doc/cleanup
+  commits).
 - Gameplay is unchanged since `447af10` (P2 repair). The 2026-10-28 refactor
   changes `src` structure only: `npm run test:golden` (16 headless full games)
   gives digests identical to `b6c9e13`. New modules: `sim-types.ts`,
