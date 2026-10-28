@@ -16,8 +16,17 @@ import { movementInput } from "./p3-driver";
 const SEEDS = [1, 42, 145, 2024];
 const STEP_CAP = 60 * 60 * 25;
 
+// Every scalar field on Game (counters, timers, flags), so a refactor that
+// drifts any instrument shows up too.
+function scalars(g: Game) {
+  return Object.entries(g).filter(
+    ([, v]) => v === null || ["number", "string", "boolean"].includes(typeof v),
+  );
+}
+
 function snapshot(g: Game) {
   return {
+    scalars: scalars(g),
     phase: g.phase,
     wave: g.wave,
     time: g.time,
