@@ -113,3 +113,28 @@ Do this as its own planned piece of work with review, not mixed with P3B.
 - `npm test` 178/178, `npm run build` clean, `browser-p2-items` 2/2
   (keyboard + CDP touch, dev server 127.0.0.1:4188).
 - Not verified: phones, Safari, feel.
+
+## Resolution (same day, branch `claude/code-review-ts-skill`)
+
+The requester asked to fix the findings on the branch and merge. Every step
+was checked against a behavior lock, `tests/golden-trace.ts`
+(`npm run test:golden`). It plays 16 full headless games: 4 seeds x
+slice/expedition20 x a buying-and-selling policy and an idle policy that loses.
+It hashes every scalar `Game` field plus the entity lists on every step. The
+digests equal `b6c9e13` after each commit. A 0.001 change to `PLAYER_SPEED`
+changes all of them.
+
+| Finding | Status |
+| --- | --- |
+| F1 duplicated UI numbers | fixed. `WEAPON_BASE_PRICE` stays separate from `WEAPONS.price` on purpose (the frozen slice charges the latter); a comment now says so |
+| F2 dead branches in `hurt()` | fixed: `hurtSlice()` / `hurtExpedition()` |
+| F3 `sim.ts` cohesion | partly fixed. `step()` went from ~570 lines to ~45 and now calls 14 named sub-steps. Shapes moved to `sim-types.ts`, the purchase planner to `economy.ts` (pure `planGunPurchase`), and `SeededStream` to `math.ts`. `ENEMY_SPEED` replaces a 7-level ternary. Still open: instrument counters as one `metrics` object (tests and `scrapMetrics` read the flat fields), and further subsystem modules |
+| F4 `main.ts` readability | partly fixed. Card art and labels moved to `ui-cards.ts`. The weapon-card `preview!` ternary chain became `weaponOfferOutcome()`. `frozenChest!` assertions were removed. Still open: the shop and rest templates in general, and module-level state |
+| F5 magic numbers | arena/player/boss-entry constants named (`ARENA_W/H`, `PLAYER_START`, `PLAYER_SPEED`, `PLAYER_WALL_MARGIN`, `BOSS_ENTRY`). Spawn clamps (28/60/70/80) and per-weapon tuning remain inline |
+| F6 naming/style | Prettier clean. Added `typecheck`, `format:check`, `test:golden`. `W/H` renamed. `incomingTier` documented rather than renamed (frozen P3 measurement code reads it). `elite` event and unreachable quick/branch code still open |
+
+Review: a fresh-context subagent reviewed `b6c9e13..5426096` and found no
+behavior change. Its esbuild-minified output for the Prettier commit was
+byte-identical. In response to its coverage notes, the golden trace gained
+the losing and selling runs, and `purchaseRecords` is now hashed.
+`browser-expedition` provenance now fingerprints every `src` file.

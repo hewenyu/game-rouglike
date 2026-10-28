@@ -67,13 +67,17 @@ try {
   sourceFingerprint = await fingerprint([
     "src/audio.ts",
     "src/data.ts",
+    "src/economy.ts",
     "src/expedition.ts",
     "src/input.ts",
+    "src/items.ts",
     "src/main.ts",
     "src/math.ts",
     "src/render.ts",
+    "src/sim-types.ts",
     "src/sim.ts",
     "src/style.css",
+    "src/ui-cards.ts",
   ]);
   testFingerprint = await fingerprint([
     "tests/browser-expedition.mjs",

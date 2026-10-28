@@ -2,20 +2,29 @@
 
 Single page of current facts. Update this page in place at each checkpoint;
 move superseded text to `docs/status-history.md` instead of stacking new
-"current" sections. Last refreshed 2026-10-20 after a full session retrospective.
+"current" sections. Last refreshed 2026-10-28 after the code-review refactor merge.
 
 ## Where things are
 
-- `master` = `origin/master` = `ac6bcd9` "Merge reviewed Scrap Surge playtest
-  release" (merges `b045332`). The user explicitly asked for this merge and push
-  on 2026-10-20 and paused development. No deployment has been done by an agent.
-- Production source last changed at `447af10` (P2 repair). Everything after it is
-  tests, measurement data and docs: `git diff 447af10..HEAD -- scrap-surge/src`
-  is empty.
-- Verified on `ac6bcd9`: `npm test` **178/178**, `npm run build` clean,
-  `browser-first-shop` 6/6 and `browser-p2-items` 2/2 (ordinary keyboard + CDP
-  touch). `npx prettier --check src tests vite.config.ts` reports 9 drifted files.
-  The 24-item `test:browser:regression` was last run at `851cd13`, before P1/P2.
+- 2026-10-28: branch `claude/code-review-ts-skill` (behavior-neutral refactor
+  from `docs/code-review-2026-10-28.md` plus the TS skill
+  `.claude/skills/ts-best-practices/SKILL.md`) was merged to `master` and pushed.
+  A playtester asked for it through the project bot (Discord), and the push
+  auto-deploys through Cloudflare Pages. Before that, `master` was `b6c9e13`
+  (`ac6bcd9` plus doc/cleanup commits).
+- Gameplay is unchanged since `447af10` (P2 repair). The 2026-10-28 refactor
+  changes `src` structure only: `npm run test:golden` (16 headless full games)
+  gives digests identical to `b6c9e13`. New modules: `sim-types.ts`,
+  `economy.ts` (`planGunPurchase`, formerly inside
+  `expeditionPurchasePreview`), and `ui-cards.ts`. `step()` is now a list of
+  named sub-steps. `W`/`H` were renamed to `ARENA_W`/`ARENA_H`.
+- Verified on the branch head before merge: `npm test` 178/178, `npm run build`,
+  `format:check` clean, golden equal. Browser (dev server 4188, keyboard + CDP
+  touch): first-shop, p2-items, p2-visuals, p2-lifecycle, render-occlusion,
+  regression 24/24 and a full expedition run pass. `browser-input-lifecycle`
+  (waits for a W7 interlude) and `browser-merge-purchase` ("did not reach the
+  W2 shop") fail the same way on `b6c9e13`. They are stale since P2 (every
+  wave now opens the rest screen) and need rewriting.
 - Branches: only `master` plus `codex/scrap-surge-expansion-draft` (`8e1542e`), an
   unapproved WIP draft with known defects; do not merge. The merged `codex/*`
   branches and the Codex `scrap-growth` worktree were removed on 2026-10-20.
@@ -69,14 +78,17 @@ approved, **not implemented**: `docs/p3b-fullslot-bundle.md`.
 4. Balance phase: item-led late game, five-route comparison
    (weapon-only / scattered items / coordinated build), boss windows. Do not raise
    enemy HP to force item dependence.
-5. Hygiene (any time, small commits): prettier the 9 files, add `typecheck` and
-   `format:check` scripts, unify browser-test default ports, emit the declared
-   `elite` event, remove unreachable quick/branch code, rerun the 24-item browser regression on current source.
-6. Code-structure debt from the 2026-10-28 review (`docs/code-review-2026-10-28.md`,
-   branch `claude/code-review-ts-skill`, not merged): split `sim.ts` `Game`
-   (88 mode branches, 570-line `step()`), split `main.ts` templates, name arena
-   magic numbers. Plan it as its own reviewed work; keep the slice hash.
+5. Hygiene (any time, small commits): rewrite the stale
+   `browser-input-lifecycle` and `browser-merge-purchase` fixtures for the
+   per-wave rest screen, unify browser-test default ports, emit the declared
+   `elite` event, remove unreachable quick/branch code.
+6. Remaining structure debt (`docs/code-review-2026-10-28.md`, "Resolution"):
+   group instrument counters into one `metrics` object, more `sim.ts` subsystem
+   modules, `main.ts` shop/rest templates, spawn-clamp literals. Check every
+   refactor with `npm run test:golden` against its base commit.
    TS conventions for Claude: `.claude/skills/ts-best-practices/SKILL.md`.
+   P3B will touch `src/economy.ts` (`planGunPurchase`) instead of
+   `Game.expeditionPurchasePreview`.
 
 ## Open gates (none established yet)
 
