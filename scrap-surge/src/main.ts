@@ -406,9 +406,7 @@ function itemDeltaMarkup(before: DerivedItemStats, after: DerivedItemStats) {
         : `${b > a ? "+" : ""}${Math.round((b / Math.max(0.0001, a) - 1) * 100)}%`;
     additions.push(`${label} ${delta}`);
   }
-  return additions.length
-    ? additions.slice(0, 5).join(" · ")
-    : "";
+  return additions.length ? additions.slice(0, 5).join(" · ") : "";
 }
 function previewNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -447,8 +445,7 @@ function previewReadout(
     if (from === undefined && to === undefined) return;
     if (from === undefined) parts.push(`${label} ${format(to!)}`);
     else if (to === undefined) parts.push(`${label} ${format(from)}`);
-    else if (Math.abs(from - to) < 0.0001)
-      parts.push(`${label} ${format(to)}`);
+    else if (Math.abs(from - to) < 0.0001) parts.push(`${label} ${format(to)}`);
     else parts.push(`${label} ${format(from)} → ${format(to)}`);
   };
   add("伤害", "damage");
@@ -804,9 +801,7 @@ function expeditionShop(g: Game) {
         definition &&
         card.classList.contains("p2-item-card") &&
         g.itemEligibility(definition.id).eligible &&
-        !(
-          card.closest(".shop-item-section") && g.soldItems.has(cardIndex)
-        );
+        !(card.closest(".shop-item-section") && g.soldItems.has(cardIndex));
       const projected = shouldProject
         ? itemCountsWith(g.inventory, definition.id)
         : g.inventory;

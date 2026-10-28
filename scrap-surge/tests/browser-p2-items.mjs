@@ -431,9 +431,7 @@ async function run(browser, kind) {
           .locator("#selected-item-detail")
           .innerText();
         assert(
-          /当前：伤害 25 · 半径 375 · 触发 8 · 数量 10/.test(
-            previewDetail,
-          ),
+          /当前：伤害 25 · 半径 375 · 触发 8 · 数量 10/.test(previewDetail),
           `unclaimed reward must project actual siphon outputs: ${previewDetail}`,
         );
         assert(
@@ -462,10 +460,7 @@ async function run(browser, kind) {
           "item cards must keep one selection instruction",
         );
         await page.screenshot({
-          path: join(
-            OUTPUT_DIR,
-            `${kind}-w1-after-item-buy-inspect-core.png`,
-          ),
+          path: join(OUTPUT_DIR, `${kind}-w1-after-item-buy-inspect-core.png`),
           fullPage: true,
           animations: "disabled",
         });

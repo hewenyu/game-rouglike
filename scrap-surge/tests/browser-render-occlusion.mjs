@@ -128,11 +128,7 @@ if (process.env.HARNESS_SELF_CHECK === "1") {
     },
   ];
   for (const entry of cases)
-    assert.deepEqual(
-      harnessOutcome(entry.input),
-      entry.expected,
-      entry.name,
-    );
+    assert.deepEqual(harnessOutcome(entry.input), entry.expected, entry.name);
   console.log(
     JSON.stringify(
       {
@@ -173,7 +169,9 @@ async function fixturePage(viewport) {
   });
   const page = await context.newPage();
   page.on("pageerror", (error) =>
-    report.errors.push(`${viewport.width}x${viewport.height}: ${error.message}`),
+    report.errors.push(
+      `${viewport.width}x${viewport.height}: ${error.message}`,
+    ),
   );
   await page.route("**/__render_occlusion_fixture.html", (route) =>
     route.fulfill({

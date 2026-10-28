@@ -15,8 +15,7 @@ import assert from "node:assert/strict";
 
 const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:4190";
 const SOURCE_SHA = process.env.SOURCE_SHA || process.env.REVIEW_SHA;
-if (!SOURCE_SHA)
-  throw Error("SOURCE_SHA (or legacy REVIEW_SHA) is required");
+if (!SOURCE_SHA) throw Error("SOURCE_SHA (or legacy REVIEW_SHA) is required");
 const OUTPUT_DIR =
   process.env.OUTPUT_DIR ||
   join(
@@ -182,10 +181,7 @@ try {
         const chosen = page.locator(`[data-quick="${pick}"]`);
         const box = await chosen.boundingBox();
         if (box)
-          await page.mouse.click(
-            box.x + box.width / 2,
-            box.y + box.height / 2,
-          );
+          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         assert.deepEqual((await metrics()).modTiers, after.modTiers);
 
         const count = await page.locator("[data-quick]").count();
@@ -193,16 +189,10 @@ try {
           assert(await page.locator("[data-quick]").nth(index).isDisabled());
         if ([9, 13, 17].includes(state.wave)) {
           const expected =
-            state.wave === 9
-              ? [2, 1]
-              : state.wave === 13
-                ? [3, 1]
-                : [3, 2];
+            state.wave === 9 ? [2, 1] : state.wave === 13 ? [3, 1] : [3, 2];
           assert.deepEqual(after.modTiers, expected);
         }
-        report.checks.push(
-          `W${state.wave} choice locked and continue enabled`,
-        );
+        report.checks.push(`W${state.wave} choice locked and continue enabled`);
       } else {
         // Fill legal weapon slots in the registered priority.
         for (let roll = 0; roll <= 2; roll++) {
