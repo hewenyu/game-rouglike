@@ -58,6 +58,8 @@ Output 目录 `dist`，环境变量 `NODE_VERSION=22`。
 | --- | --- |
 | `npm test` | 单元测试（`tsx --test tests/*.test.ts`，当前 178 个） |
 | `npm run build` | 类型检查和生产构建 |
+| `npm run typecheck` / `npm run format:check` | 只做类型检查 / 只检查格式 |
+| `npm run test:golden` | 确定性回放指纹（重构前后对比输出，必须完全一致） |
 | `npm run format` | prettier 格式化 src、tests |
 | `npm run test:browser:first-shop` | 首商店可达性（键盘和触屏各 3 个 seed） |
 | `npm run test:browser:lifecycle` | 自动接波时的输入生命周期 |
@@ -76,12 +78,16 @@ Output 目录 `dist`，环境变量 `NODE_VERSION=22`。
 真实 CDP 触屏输入，只读 `window.scrapMetrics`，不注入任何状态，也不开无敌。
 
 代码结构：
-- `src/sim.ts`：规则和状态
+- `src/sim.ts`：规则和状态（`Game` 类；`step()` 按 tick 顺序调用各子步骤）
+- `src/sim-types.ts`：模拟数据形状（Enemy、Bullet、Event 等），sim.ts 原样再导出
+- `src/economy.ts`：远征购枪与合成规划（纯函数 `planGunPurchase`）
 - `src/render.ts`：Canvas 表现层（只读）
 - `src/input.ts`：输入
 - `src/audio.ts`：Web Audio 程序化音效
 - `src/main.ts`：生命周期、HUD 和整备界面
-- `src/data.ts`：武器和切片改装
+- `src/ui-cards.ts`：卡面 SVG、标签和武器数值摘要（纯标记，不碰 Game/DOM）
+- `src/math.ts`：向量、种子随机数（`rng`、`SeededStream`）
+- `src/data.ts`：武器、切片改装、场地与玩家常量（`ARENA_W/H`、`PLAYER_START` 等）
 - `src/expedition.ts`：波次表、价格、首领、合成倍率
 - `src/items.ts`：物品目录、稀有度、触发预览
 

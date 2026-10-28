@@ -56,14 +56,23 @@ function snapshot(g: Game) {
     pending: g.pendingBlasts.length,
     events: g.events.map((e) => e.type),
     queueMetrics: g.queueMetrics,
+    purchaseRecords: [...g.purchaseRecords],
   };
 }
 
-function rest(g: Game) {
+// "buyer" buys everything it can (and sells now and then); "idle" stands
+// still and buys nothing, so it loses and covers the death paths.
+type Policy = "buyer" | "idle";
+
+function rest(g: Game, policy: Policy) {
   if (g.mode === "slice") {
     for (const id of ["popcorn", "domino", "magnet"] as ModId[])
       if (g.mods.length < 2) g.chooseMod(id);
-    for (let i = 0; i < g.offers.length; i++) g.buy(i);
+    if (policy === "buyer") for (let i = 0; i < g.offers.length; i++) g.buy(i);
+    g.nextWave();
+    return;
+  }
+  if (policy === "idle") {
     g.nextWave();
     return;
   }
@@ -72,7 +81,9 @@ function rest(g: Game) {
     g.claimPendingItem(0);
     if (g.frozenChest) g.skipReward();
   }
-  if (g.pendingStatChoices.length) g.chooseStatReward(0);
+  if (g.pendingStatChoices.length)
+    g.chooseStatReward(g.wave % g.pendingStatChoices.length);
+  if (g.wave % 4 === 0) g.sell(g.guns.length - 1);
   for (let pass = 0; pass < 3; pass++) {
     for (let i = 0; i < g.offers.length; i++) g.buyExpedition(i);
     for (let i = 0; i < g.itemOffers.length; i++) g.buyItem(i);
@@ -81,14 +92,14 @@ function rest(g: Game) {
   g.nextWave();
 }
 
-function run(seed: number, mode: "slice" | "expedition20") {
+function run(seed: number, mode: "slice" | "expedition20", policy: Policy) {
   const g = mode === "slice" ? new Game(seed) : new Game(seed, mode);
   const hash = createHash("sha256");
   let steps = 0;
   while (steps < STEP_CAP && g.phase !== "won" && g.phase !== "lost") {
-    if (g.phase === "shop") rest(g);
-    else if (g.phase === "quick") g.chooseQuick(0);
-    else g.step(DT, movementInput(g));
+    if (g.phase === "shop") rest(g, policy);
+    else if (g.phase === "quick") g.chooseQuick(g.wave % 2);
+    else g.step(DT, policy === "idle" ? { x: 0, y: 0 } : movementInput(g));
     hash.update(JSON.stringify(snapshot(g)));
     g.drain();
     steps++;
@@ -96,6 +107,7 @@ function run(seed: number, mode: "slice" | "expedition20") {
   return {
     seed,
     mode,
+    policy,
     steps,
     phase: g.phase,
     wave: g.wave,
@@ -106,6 +118,7 @@ function run(seed: number, mode: "slice" | "expedition20") {
 }
 
 const results = [];
-for (const mode of ["slice", "expedition20"] as const)
-  for (const seed of SEEDS) results.push(run(seed, mode));
+for (const policy of ["buyer", "idle"] as const)
+  for (const mode of ["slice", "expedition20"] as const)
+    for (const seed of SEEDS) results.push(run(seed, mode, policy));
 console.log(JSON.stringify(results, null, 2));

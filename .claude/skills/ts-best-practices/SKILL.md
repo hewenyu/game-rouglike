@@ -45,8 +45,8 @@ The most common bug shape in this repo is the same number written twice
   without widening it: `const X = {...} as const satisfies Record<WeaponId, Spec>`.
 - Group related tuning values in one frozen object (`ITEM_CONSTANTS`,
   `QUEUE_CAPS`) rather than scattering loose `const`s.
-- One declaration per `const`. Avoid `export const W = 1200, H = 800, DT = ...`
-  chains for new code; short global names (`W`, `H`) are legacy.
+- One declaration per `const`; no `export const A = 1, B = 2` chains. Name
+  globals fully (`ARENA_W`, not `W`).
 
 ## 3. Types
 
@@ -62,8 +62,8 @@ The most common bug shape in this repo is the same number written twice
   default: { const unreachable: never = kind; throw new Error(unreachable); }
   ```
 
-- `import type` for type-only imports (`render.ts` imports `Game` only as a
-  type). Keep `readonly` on arrays and props that callers must not mutate.
+- `import type` for type-only imports (`render.ts` uses `Game` only as a
+  type; shared shapes live in `sim-types.ts`). Keep `readonly` on arrays and props that callers must not mutate.
 - Name result objects with a type (`PurchasePreview`, `ItemEligibility`) and
   return reasons as unions (`reason: "no-space" | "money"`), not booleans.
 
@@ -105,13 +105,16 @@ The most common bug shape in this repo is the same number written twice
 
 ## 7. Tests and verification
 
+- Refactors must be behavior-neutral: run `npm run test:golden` on the base
+  commit and on the change and `diff` the outputs; any digest change means
+  behavior changed.
+
 - Unit tests: `tests/*.test.ts` with `node:test` via `tsx`. Test the exported
   formula/table function, not a copy of it.
 - Browser fixtures use ordinary input and read-only `window.scrapMetrics`; no
   state injection.
 - Before handing off, in `scrap-surge/`: `npm test`, `npm run build`
-  (includes `tsc --noEmit`), `npx prettier --check src tests vite.config.ts`,
-  `git diff --check`.
+  (includes `tsc --noEmit`), `npm run format:check`, `git diff --check`.
 
 ## Review checklist
 
