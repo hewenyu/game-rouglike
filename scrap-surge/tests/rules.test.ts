@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../src/sim";
-import { DT, W, H, BLAST, WEAPONS } from "../src/data";
+import { DT, ARENA_W, ARENA_H, BLAST, WEAPONS } from "../src/data";
 function step(g: Game, n: number, x = 0, y = 0) {
   for (let i = 0; i < n; i++) g.step(DT, { x, y });
 }
@@ -181,7 +181,7 @@ test("diagonal movement normalized and bounds maintained", () => {
     ) < 0.001,
   );
   step(a, 1000, 1, -1);
-  assert(a.player.x <= W - 30 && a.player.y >= 30);
+  assert(a.player.x <= ARENA_W - 30 && a.player.y >= 30);
 });
 test("damage invulnerability, terminal defeat and retry initialization", () => {
   const g = empty();

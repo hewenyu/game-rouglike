@@ -67,13 +67,17 @@ try {
   sourceFingerprint = await fingerprint([
     "src/audio.ts",
     "src/data.ts",
+    "src/economy.ts",
     "src/expedition.ts",
     "src/input.ts",
+    "src/items.ts",
     "src/main.ts",
     "src/math.ts",
     "src/render.ts",
+    "src/sim-types.ts",
     "src/sim.ts",
     "src/style.css",
+    "src/ui-cards.ts",
   ]);
   testFingerprint = await fingerprint([
     "tests/browser-expedition.mjs",
@@ -85,7 +89,10 @@ try {
   ]);
 } catch {}
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME });
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: CHROME,
+});
 const page = await browser.newPage({
   viewport: { width: 1440, height: 960 },
   deviceScaleFactor: 1,
@@ -302,7 +309,10 @@ async function panel(s) {
     const firstFree = page.locator("#reroll");
     const rerollOpened = await firstFree.isEnabled().catch(() => false);
     await page.screenshot({
-      path: join(ATTEMPT_DIR, `shop-${String(s.wave).padStart(2, "0")}-open.png`),
+      path: join(
+        ATTEMPT_DIR,
+        `shop-${String(s.wave).padStart(2, "0")}-open.png`,
+      ),
       animations: "disabled",
     });
     // Slot capacity is capacity, not free guns. Buy cards while affordable;
@@ -312,7 +322,7 @@ async function panel(s) {
       let bought = false;
       for (let i = 0; i < now.offers.length; i++) {
         const button = page.locator(`[data-buy="${i}"]`);
-        if ((await button.isEnabled().catch(() => false))) {
+        if (await button.isEnabled().catch(() => false)) {
           await button.click();
           bought = true;
         }
@@ -405,7 +415,10 @@ try {
     spawnCount: report.result.spawnCount,
   };
   report.wallSeconds = +((Date.now() - t0) / 1000).toFixed(1);
-  report.retryVisible = await page.locator("#retry").isVisible().catch(() => false);
+  report.retryVisible = await page
+    .locator("#retry")
+    .isVisible()
+    .catch(() => false);
   report.finishedAt = new Date().toISOString();
   await page.screenshot({
     path: join(ATTEMPT_DIR, "result.png"),

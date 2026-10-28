@@ -1,5 +1,23 @@
-import { clamp, dist, rng, segmentDistance, type Vec } from "./math";
-import { WEAPONS, W, H, BLAST, type WeaponId, type ModId } from "./data";
+import {
+  SeededStream,
+  clamp,
+  dist,
+  rng,
+  segmentDistance,
+  type Vec,
+} from "./math";
+import {
+  WEAPONS,
+  ARENA_W,
+  ARENA_H,
+  BLAST,
+  BOSS_ENTRY,
+  PLAYER_SPEED,
+  PLAYER_START,
+  PLAYER_WALL_MARGIN,
+  type WeaponId,
+  type ModId,
+} from "./data";
 import {
   BAG_HP,
   BOSS_STAGES,
@@ -60,236 +78,57 @@ import {
   type ItemStats,
   type StatRewardId,
 } from "./items";
-export type Phase =
-  | "fight"
-  | "sweep"
-  | "interlude"
-  | "shop"
-  | "quick"
-  | "paused"
-  | "won"
-  | "lost";
-export type Enemy = Vec & {
-  id: number;
-  kind: ExpeditionEnemyKind | "boss";
-  hp: number;
-  maxHp: number;
-  r: number;
-  vx: number;
-  vy: number;
-  knockX: number;
-  knockY: number;
-  flash: number;
-  age: number;
-  born: number;
-  attack: number;
-  bowled: Set<number>;
-  bossStage?: 1 | 2 | 3 | 4;
-  elite?: boolean;
-  eliteWave?: number;
-  volleys?: number;
-  tell?: number;
-};
-export type Bullet = Vec & {
-  id: number;
-  vx: number;
-  vy: number;
-  damage: number;
-  life: number;
-  kind: "cap" | "rocket" | "bonus" | "enemy";
-  target: number;
-  r: number;
-  homing: boolean;
-  pierce?: number;
-  hitIds?: Set<number>;
-  mod?: ModId;
-  tier?: number;
-  blastRadius?: number;
-  source?: DamageSource | "enemy";
-};
-export type Scrap = Vec & {
-  id: number;
-  value: number;
-  rawCash?: number;
-  fuelUnits?: number;
-  collected?: boolean;
-  vx: number;
-  vy: number;
-  age: number;
-  heat?: number;
-  root?: number;
-  exploded?: boolean;
-};
-// S1b: a lethal spring-fist hit leaves a flying, non-targetable remnant that
-// still bowls into other enemies. It is kept out of the live-enemy cap.
-export type Corpse = Vec & {
-  id: number;
-  vx: number;
-  vy: number;
-  life: number;
-  max: number;
-  r: number;
-  chain: number;
-  hitIds: Set<number>;
-  damage?: number;
-  source?: DamageSource;
-};
-export type Fx = {
-  kind:
-    | "pop"
-    | "blast"
-    | "arc"
-    | "punch"
-    | "number"
-    | "pickup"
-    | "wake"
-    | "ember"
-    | "split"
-    | "tell"
-    | "domino-ring"
-    | "domino-blast"
-    | "ring";
-  x: number;
-  y: number;
-  life: number;
-  max: number;
-  color: string;
-  size: number;
-  points?: Vec[];
-  text?: string;
-};
-export type Gun = {
-  id: WeaponId;
-  cooldown: number;
-  angle: number;
-  recoil: number;
-  tier?: GunTier;
-  paid?: number;
-};
-type PurchaseNode = {
-  tier: GunTier;
-  sourceIndices: number[];
-  cooldown: number;
-  paid: number;
-};
-type PurchasePlan = PurchasePreview & { result: Gun[]; cooldown: number };
-export type WakePoint = Vec & {
-  id: number;
-  life: number;
-  max: number;
-  radius: number;
-  damage: number;
-  root: number;
-  hitIds: Set<number>;
-};
-export type TrailPoint = WakePoint & {
-  kind: "milestone";
-};
-export type ChestPickup = Vec & {
-  id: number;
-  source: ItemLootSource;
-  wave: number;
-  vx: number;
-  vy: number;
-  age: number;
-};
-export type FrozenChestChoice = {
-  chestId: number;
-  source: ItemLootSource;
-  wave: number;
-  itemIds: readonly ItemId[];
-};
-export type QueueMetrics = {
-  admitted: number;
-  // Contract v2 calls admission rejection `deferred`; this counter is that
-  // admission-rejection count, not a promise of later processing.
-  rejected: number;
-  dropped: number;
-  // Queue-specific completed work. Popcorn counts consumed fuel units here,
-  // not emitted bullets; use the popcorn shot counters for emitted output.
-  processed: number;
-};
-export type DamageSource =
-  "weapon" | "secondaryWeapon" | "contactProc" | "chain" | "itemProc";
-export type PendingBlast = {
-  p: Vec;
-  radius: number;
-  damage: number;
-  chain: number;
-  source: DamageSource;
-  dualRing?: boolean;
-  tier3?: boolean;
-};
+import {
+  type Phase,
+  type Enemy,
+  type Bullet,
+  type Scrap,
+  type Corpse,
+  type Fx,
+  type Gun,
+  type WakePoint,
+  type TrailPoint,
+  type ChestPickup,
+  type FrozenChestChoice,
+  type QueueMetrics,
+  type DamageSource,
+  type PendingBlast,
+  type PocketBatch,
+  type Event,
+} from "./sim-types";
+export type * from "./sim-types";
+import { planGunPurchase, type PurchasePlan } from "./economy";
+// Chase speeds (px/s). Spitters only walk while farther than
+// SPITTER_HOLD_DISTANCE, then stand and shoot.
+const ENEMY_SPEED: Readonly<Record<Enemy["kind"], number>> = Object.freeze({
+  bag: 57,
+  runner: 102,
+  can: 39,
+  splitter: 50,
+  chip: 118,
+  spitter: 34,
+  boss: 32,
+});
+const SPITTER_HOLD_DISTANCE = 320;
+const ELITE_FALLBACK_SPEED = 71.4;
 function sameOfferSet<T>(left: readonly T[], right: readonly T[]) {
   if (left.length !== right.length) return false;
   const leftSet = new Set(left);
   if (leftSet.size !== new Set(right).size) return false;
   return right.every((value) => leftSet.has(value));
 }
-class SeededStream {
-  #state: number;
-  constructor(seed: number) {
-    this.#state = seed >>> 0;
-  }
-  state() {
-    return this.#state;
-  }
-  setState(state: number) {
-    this.#state = state >>> 0;
-  }
-  next = () => {
-    this.#state = (this.#state + 0x6d2b79f5) >>> 0;
-    let t = this.#state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-export type PocketBatch = {
-  wave: number;
-  time: number;
-  requested: number;
-  spawned: number;
-  rejected: number;
-  formation: Formation;
-  center: Vec;
-};
-export type Event = {
-  type:
-    | "fire"
-    | "hit"
-    | "kill"
-    | "explode"
-    | "pickup"
-    | "hurt"
-    | "wave"
-    | "boss"
-    | "branch"
-    | "tier"
-    | "buy"
-    | "wake-hit"
-    | "ember-blast"
-    | "split"
-    | "spitter-tell"
-    | "mod-cue"
-    | "tier-fire"
-    | "merge"
-    | "ring"
-    | "elite"
-    | "chest"
-    | "end";
-  kind?: WeaponId;
-  item?: ItemId;
-  stat?: StatRewardId;
-  value?: number;
-  mod?: ModId;
-  tier?: number;
-};
 export class Game {
   mode: GameMode;
   phase: Phase = "fight";
   beforePause: Phase = "fight";
-  player = { x: 600, y: 450, hp: 10, maxHp: 10, invulnerable: 2, walk: 0 };
+  player = {
+    x: PLAYER_START.x,
+    y: PLAYER_START.y,
+    hp: 10,
+    maxHp: 10,
+    invulnerable: 2,
+    walk: 0,
+  };
   enemies: Enemy[] = [];
   bullets: Bullet[] = [];
   scraps: Scrap[] = [];
@@ -347,7 +186,7 @@ export class Game {
   directContactKills = 0;
   waveKillHeals = 0;
   rootSecondaryKills = new Map<number, number>();
-  lastMilestone: Vec = { x: 600, y: 450 };
+  lastMilestone: Vec = { ...PLAYER_START };
   eliteSpawned = false;
   eliteEscaped = false;
   queueMetrics: Record<
@@ -413,7 +252,7 @@ export class Game {
   modTiers = new Map<ModId, number>();
   branch: ExpeditionBranch | null = null;
   wakePoints: WakePoint[] = [];
-  wakeAnchor: Vec = { x: 600, y: 450 };
+  wakeAnchor: Vec = { ...PLAYER_START };
   popcornCredits = 0;
   popcornDrained = 0;
   popcornPendingCancelled = 0;
@@ -475,8 +314,8 @@ export class Game {
     for (let i = 0; i < 10; i++) {
       const a = -Math.PI * 0.9 + (i / 9) * Math.PI * 0.8;
       this.spawn("bag", {
-        x: 600 + Math.cos(a) * 270,
-        y: 450 + Math.sin(a) * 270,
+        x: PLAYER_START.x + Math.cos(a) * 270,
+        y: PLAYER_START.y + Math.sin(a) * 270,
       });
     }
   }
@@ -743,13 +582,13 @@ export class Game {
       return false;
     if (!p) {
       p = {
-        x: clamp(this.player.x + Math.cos(a) * r, 28, W - 28),
-        y: clamp(this.player.y + Math.sin(a) * r, 28, H - 28),
+        x: clamp(this.player.x + Math.cos(a) * r, 28, ARENA_W - 28),
+        y: clamp(this.player.y + Math.sin(a) * r, 28, ARENA_H - 28),
       };
       if (dist(p, this.player) < 200)
         p = {
-          x: this.player.x < W / 2 ? W - 35 : 35,
-          y: 60 + variant * (H - 120),
+          x: this.player.x < ARENA_W / 2 ? ARENA_W - 35 : 35,
+          y: 60 + variant * (ARENA_H - 120),
         };
     }
     const exp = this.mode === "expedition20",
@@ -822,18 +661,18 @@ export class Game {
   spawnPocket(count: number) {
     const angle = this.random() * Math.PI * 2,
       radius = 340 + this.random() * 100;
-    let cx = clamp(this.player.x + Math.cos(angle) * radius, 60, W - 60),
-      cy = clamp(this.player.y + Math.sin(angle) * radius, 60, H - 60);
+    let cx = clamp(this.player.x + Math.cos(angle) * radius, 60, ARENA_W - 60),
+      cy = clamp(this.player.y + Math.sin(angle) * radius, 60, ARENA_H - 60);
     if (dist({ x: cx, y: cy }, this.player) < 310) {
-      cx = this.player.x < W / 2 ? W - 70 : 70;
-      cy = 80 + this.random() * (H - 160);
+      cx = this.player.x < ARENA_W / 2 ? ARENA_W - 70 : 70;
+      cy = 80 + this.random() * (ARENA_H - 160);
     }
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2 + (this.random() - 0.5) * 0.42,
         r = 30 + this.random() * 45,
         p = {
-          x: clamp(cx + Math.cos(a) * r, 28, W - 28),
-          y: clamp(cy + Math.sin(a) * r, 28, H - 28),
+          x: clamp(cx + Math.cos(a) * r, 28, ARENA_W - 28),
+          y: clamp(cy + Math.sin(a) * r, 28, ARENA_H - 28),
         },
         roll = this.random(),
         kind: Enemy["kind"] =
@@ -864,15 +703,15 @@ export class Game {
       const angle = this.random() * Math.PI * 2,
         distance = 340 + this.random() * 100;
       const p = {
-        x: clamp(this.player.x + Math.cos(angle) * distance, 60, W - 60),
-        y: clamp(this.player.y + Math.sin(angle) * distance, 60, H - 60),
+        x: clamp(this.player.x + Math.cos(angle) * distance, 60, ARENA_W - 60),
+        y: clamp(this.player.y + Math.sin(angle) * distance, 60, ARENA_H - 60),
       };
       if (dist(p, this.player) >= 310 && (!other || dist(p, other) >= 200))
         return p;
     }
-    const y = other ? 80 : clamp(this.player.y, 80, H - 80);
+    const y = other ? 80 : clamp(this.player.y, 80, ARENA_H - 80);
     return {
-      x: this.player.x < W / 2 ? W - 70 : 70,
+      x: this.player.x < ARENA_W / 2 ? ARENA_W - 70 : 70,
       y,
     };
   }
@@ -887,25 +726,25 @@ export class Game {
       )
         return [first, second];
     }
-    const x = this.player.x < W / 2 ? W - 70 : 70;
+    const x = this.player.x < ARENA_W / 2 ? ARENA_W - 70 : 70;
     return [
       { x, y: 80 },
-      { x, y: H - 80 },
+      { x, y: ARENA_H - 80 },
     ];
   }
   randomPocketCenter() {
     const angle = this.random() * Math.PI * 2,
       distance = 340 + this.random() * 100;
     return {
-      x: clamp(this.player.x + Math.cos(angle) * distance, 60, W - 60),
-      y: clamp(this.player.y + Math.sin(angle) * distance, 60, H - 60),
+      x: clamp(this.player.x + Math.cos(angle) * distance, 60, ARENA_W - 60),
+      y: clamp(this.player.y + Math.sin(angle) * distance, 60, ARENA_H - 60),
     };
   }
   pocketMemberPoint(center: Vec, radius: number, angle: number): Vec {
     const rr = 30 + this.random() * Math.max(1, radius - 30);
     let p = {
-      x: clamp(center.x + Math.cos(angle) * rr, 28, W - 28),
-      y: clamp(center.y + Math.sin(angle) * rr, 28, H - 28),
+      x: clamp(center.x + Math.cos(angle) * rr, 28, ARENA_W - 28),
+      y: clamp(center.y + Math.sin(angle) * rr, 28, ARENA_H - 28),
     };
     if (dist(p, this.player) >= 235) return p;
     // Clamping a ring point at an arena edge must never move it inside the
@@ -915,14 +754,14 @@ export class Game {
       dy = p.y - this.player.y,
       d = Math.hypot(dx, dy) || 1;
     p = {
-      x: clamp(this.player.x + (dx / d) * 236, 28, W - 28),
-      y: clamp(this.player.y + (dy / d) * 236, 28, H - 28),
+      x: clamp(this.player.x + (dx / d) * 236, 28, ARENA_W - 28),
+      y: clamp(this.player.y + (dy / d) * 236, 28, ARENA_H - 28),
     };
     if (dist(p, this.player) >= 235) return p;
     for (const a of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
       const q = {
-        x: clamp(this.player.x + Math.cos(a) * 236, 28, W - 28),
-        y: clamp(this.player.y + Math.sin(a) * 236, 28, H - 28),
+        x: clamp(this.player.x + Math.cos(a) * 236, 28, ARENA_W - 28),
+        y: clamp(this.player.y + Math.sin(a) * 236, 28, ARENA_H - 28),
       };
       if (dist(q, this.player) >= 235) return q;
     }
@@ -1104,122 +943,7 @@ export class Game {
   expeditionPurchasePreview(index: number): PurchasePlan {
     const id = this.offers[index];
     const price = id ? gunPrice(id, this.wave) : 0;
-    const incomingCooldown = this.guns.length * 0.08;
-    const existingNodes: PurchaseNode[] = this.guns
-      .map((gun, slotIndex) => ({ gun, slotIndex }))
-      .filter(({ gun }) => gun.id === id)
-      .map(({ gun, slotIndex }) => ({
-        tier: gunTier(gun.tier),
-        sourceIndices: [slotIndex],
-        cooldown: gun.cooldown,
-        paid: gun.paid ?? 0,
-      }));
-    let incomingNode: PurchaseNode = {
-      tier: 1,
-      sourceIndices: [],
-      cooldown: incomingCooldown,
-      paid: price,
-    };
-    let mergedNode: PurchaseNode | null = null;
-    let incomingTier: GunTier = 1;
-    const consumedSlots = new Set<number>();
-    while (incomingNode.tier < 4) {
-      const tier = incomingNode.tier;
-      const partner = existingNodes
-        .filter(
-          (node) =>
-            node.tier === incomingNode.tier &&
-            !consumedSlots.has(node.sourceIndices[0]!),
-        )
-        .sort(
-          (a, b) =>
-            (a.sourceIndices[0] ?? Number.POSITIVE_INFINITY) -
-            (b.sourceIndices[0] ?? Number.POSITIVE_INFINITY),
-        )[0];
-      if (!partner) break;
-      consumedSlots.add(partner.sourceIndices[0]!);
-      const allConsumed = [
-        ...new Set([...incomingNode.sourceIndices, ...partner.sourceIndices]),
-      ];
-      mergedNode = {
-        tier: (incomingNode.tier + 1) as GunTier,
-        sourceIndices: allConsumed,
-        cooldown: Math.max(incomingNode.cooldown, partner.cooldown),
-        paid: incomingNode.paid + partner.paid,
-      };
-      incomingNode = mergedNode;
-      incomingTier = mergedNode.tier;
-    }
-    const survivors = existingNodes
-      .filter(
-        (node) => !mergedNode?.sourceIndices.includes(node.sourceIndices[0]!),
-      )
-      .map((node) => {
-        const source = node.sourceIndices[0]!;
-        return {
-          order: source,
-          gun: { ...this.guns[source]!, id, tier: node.tier },
-        };
-      });
-    if (mergedNode) {
-      const survivorIndex = Math.min(
-        ...mergedNode.sourceIndices.filter(Number.isFinite),
-      );
-      survivors.push({
-        order: survivorIndex,
-        gun: {
-          ...this.guns[survivorIndex]!,
-          id,
-          tier: mergedNode.tier,
-          cooldown: mergedNode.cooldown,
-          paid: mergedNode.paid,
-        },
-      });
-    } else {
-      survivors.push({
-        order: Number.POSITIVE_INFINITY,
-        gun: {
-          id,
-          cooldown: incomingNode.cooldown,
-          angle: 0,
-          recoil: 0,
-          tier: 1,
-          paid: incomingNode.paid,
-        },
-      });
-    }
-    const untouched = this.guns
-      .map((gun, slotIndex) => ({ order: slotIndex, gun }))
-      .filter(({ gun }) => gun.id !== id);
-    const result = [...untouched, ...survivors]
-      .sort((a, b) => a.order - b.order)
-      .map(({ gun }) => gun);
-    const merged = mergedNode !== null;
-    if (result.length > this.slotCap)
-      return {
-        accepted: false,
-        tier: result.reduce<GunTier>(
-          (best, gun) => (gun.tier! > best ? gun.tier! : best),
-          1,
-        ),
-        incomingTier,
-        merged,
-        result,
-        cooldown: incomingNode.cooldown,
-        reason: "no-space",
-      };
-    return {
-      accepted: true,
-      tier: result.reduce<GunTier>(
-        (best, gun) => (gun.tier! > best ? gun.tier! : best),
-        1,
-      ),
-      incomingTier,
-      merged,
-      result,
-      cooldown: incomingNode.cooldown,
-      reason: null,
-    };
+    return planGunPurchase(this.guns, id, price, this.slotCap);
   }
   sell(index: number) {
     if (this.mode !== "expedition20" || this.phase !== "shop") return false;
@@ -1473,8 +1197,8 @@ export class Game {
     this.bullets = [];
     this.corpses = [];
     this.fx = [];
-    this.player.x = 600;
-    this.player.y = 450;
+    this.player.x = PLAYER_START.x;
+    this.player.y = PLAYER_START.y;
     this.spawnTimer = 0.2;
     this.setPocketSchedule();
     this.phase = "fight";
@@ -1482,8 +1206,8 @@ export class Game {
     for (let i = 0; i < 14; i++) {
       const a = (i / 14) * Math.PI * 2;
       this.spawn("bag", {
-        x: 600 + Math.cos(a) * 300,
-        y: 400 + Math.sin(a) * 280,
+        x: ARENA_W / 2 + Math.cos(a) * 300,
+        y: ARENA_H / 2 + Math.sin(a) * 280,
       });
     }
   }
@@ -1525,9 +1249,9 @@ export class Game {
     this.magnetPulse = 0;
     this.magnetPulseCooldown = 0;
     this.expeditionBonusBudget = 0;
-    this.player.x = 600;
-    this.player.y = 450;
-    this.wakeAnchor = { x: 600, y: 450 };
+    this.player.x = PLAYER_START.x;
+    this.player.y = PLAYER_START.y;
+    this.wakeAnchor = { ...PLAYER_START };
     this.spawnTimer = 0.2;
     this.bossSpawned = false;
     this.bossKilled = false;
@@ -1540,7 +1264,7 @@ export class Game {
     this.rootSecondaryKills.clear();
     this.movedThisTick = false;
     this.distanceSinceMilestone = 0;
-    this.lastMilestone = { x: 600, y: 450 };
+    this.lastMilestone = { ...PLAYER_START };
     this.pocketIndex = 0;
     this.pocketRejected = 0;
     this.buildExpeditionPocketSchedule();
@@ -1579,38 +1303,36 @@ export class Game {
   }
   hurt(amount = 1, source: "contact" | "bullet" = "contact") {
     if (this.player.invulnerable > 0 || this.phase !== "fight") return;
-    if (this.mode !== "expedition20") {
-      this.player.hp--;
-      this.damageTaken++;
-      this.player.invulnerable = 1.05;
-      this.shake = 0.3;
-      this.effect("blast", this.player, 0.35, "#ed7552", 35);
-      this.event("hurt");
-      if (this.player.hp <= 0) {
-        this.phase = "lost";
-        this.event("end");
-      }
-      return;
+    if (this.mode === "expedition20") this.hurtExpedition(amount, source);
+    else this.hurtSlice();
+  }
+  // Frozen slice: every hit costs exactly one HP.
+  hurtSlice() {
+    this.player.hp--;
+    this.damageTaken++;
+    this.player.invulnerable = 1.05;
+    this.shake = 0.3;
+    this.effect("blast", this.player, 0.35, "#ed7552", 35);
+    this.event("hurt");
+    if (this.player.hp <= 0) {
+      this.phase = "lost";
+      this.event("end");
     }
-    const derived =
-      this.mode === "expedition20" ? this.derivedItemStats() : null;
-    const accepted = amount + (derived?.acceptedHurtDamageBonus ?? 0);
+  }
+  hurtExpedition(amount: number, source: "contact" | "bullet") {
+    const derived = this.derivedItemStats();
+    const accepted = amount + derived.acceptedHurtDamageBonus;
     this.player.hp -= accepted;
-    this.player.maxHp = this.mode === "expedition20" ? derived!.maxHp : 10;
+    this.player.maxHp = derived.maxHp;
     this.damageTaken += accepted;
     this.player.invulnerable = 1.05;
     this.shake = 0.3;
-    if (this.mode === "expedition20" && this.player.hp <= 0) {
+    if (this.player.hp <= 0) {
       this.player.hp = 0;
       this.settleExpeditionLoss();
       return;
     }
-    if (
-      this.mode === "expedition20" &&
-      source === "contact" &&
-      derived &&
-      derived.counts["undertow-board"] > 0
-    ) {
+    if (source === "contact" && derived.counts["undertow-board"] > 0) {
       this.queueBlast({
         p: { x: this.player.x, y: this.player.y },
         radius: derived.hurtExplosion.radius,
@@ -1619,9 +1341,7 @@ export class Game {
         source: "contactProc",
       });
     }
-    if (this.mode === "expedition20" && derived?.counts["pressure-valve"]) {
-      this.pressureTimer = 4;
-    }
+    if (derived.counts["pressure-valve"]) this.pressureTimer = 4;
     this.effect("blast", this.player, 0.35, "#ed7552", 35);
     this.event("hurt");
   }
@@ -1812,8 +1532,8 @@ export class Game {
     this.effect("split", e, 0.34, "#f0b071", 28);
     for (const offset of [-Math.PI / 3, Math.PI / 3]) {
       const p = {
-        x: clamp(e.x + Math.cos(angle + offset) * 60, 18, W - 18),
-        y: clamp(e.y + Math.sin(angle + offset) * 60, 18, H - 18),
+        x: clamp(e.x + Math.cos(angle + offset) * 60, 18, ARENA_W - 18),
+        y: clamp(e.y + Math.sin(angle + offset) * 60, 18, ARENA_H - 18),
       };
       this.spawn("chip", p);
     }
@@ -2451,6 +2171,12 @@ export class Game {
       }
     }
   }
+  bossEntryPoint(): Vec {
+    return {
+      x: this.player.x < ARENA_W / 2 ? BOSS_ENTRY.farX : BOSS_ENTRY.nearX,
+      y: BOSS_ENTRY.y,
+    };
+  }
   mount(index: number) {
     const a =
       -Math.PI / 2 + (index / Math.max(3, this.guns.length)) * Math.PI * 2;
@@ -2466,6 +2192,52 @@ export class Game {
       this.phase !== "interlude"
     )
       return;
+    this.tickTimers(dt);
+    if (this.phase === "interlude") {
+      this.interludeRemaining -= dt;
+      if (this.interludeRemaining <= 0) this.enterExpeditionWave(this.wave + 1);
+      else this.updateLooseScraps(dt);
+      return;
+    }
+    if (this.phase === "fight") {
+      this.movePlayer(dt, input);
+      const derived = this.derivedItemStats();
+      this.player.maxHp = derived.maxHp;
+      this.player.hp = Math.min(this.player.hp, derived.maxHp);
+      this.spawnOnTimer(dt);
+      this.spawnScheduledGroups();
+      this.spawnBossesAndElites();
+      if (this.mode === "expedition20") this.drainExpeditionPopcorn();
+      this.weapons(dt);
+      if (this.mode === "expedition20") {
+        this.updateMilestoneTrail(dt);
+        this.updateSpikeAura(dt);
+      }
+      // These return true when a hit ended the fight; the rest of the step,
+      // cleanup included, is then skipped exactly as before the split.
+      if (this.updateEnemies(dt)) return;
+      this.updateCorpses(dt);
+      if (this.updateBullets(dt)) return;
+      this.processPendingBlasts();
+      this.pruneChainRoots();
+      this.checkWaveCleared();
+      this.checkBossDeadline();
+    } else this.updateSweep(dt);
+    this.updateLooseScraps(dt);
+    this.enemies = this.enemies.filter((e) => e.hp > 0);
+    this.bullets = this.bullets.filter(
+      (b) =>
+        b.life > 0 &&
+        b.x > -30 &&
+        b.x < ARENA_W + 30 &&
+        b.y > -30 &&
+        b.y < ARENA_H + 30,
+    );
+    this.scraps = this.scraps.filter((s) =>
+      this.mode === "expedition20" ? s.collected !== true : s.value > 0,
+    );
+  }
+  tickTimers(dt: number) {
     this.time += dt;
     this.shake = Math.max(0, this.shake - dt);
     this.bonusBudget = 0;
@@ -2489,545 +2261,510 @@ export class Game {
       if (f.kind === "number") f.y -= dt * 36;
     }
     this.fx = this.fx.filter((f) => f.life > 0);
-    if (this.phase === "interlude") {
-      this.interludeRemaining -= dt;
-      if (this.interludeRemaining <= 0) this.enterExpeditionWave(this.wave + 1);
-      else this.updateLooseScraps(dt);
+  }
+  movePlayer(dt: number, input: Vec) {
+    const l = Math.hypot(input.x, input.y);
+    if (l) {
+      const derived =
+        this.mode === "expedition20" ? this.derivedItemStats() : null;
+      const speed = PLAYER_SPEED * (derived?.moveFactor ?? 1);
+      const beforeX = this.player.x,
+        beforeY = this.player.y;
+      this.player.x = clamp(
+        this.player.x + (input.x / Math.max(1, l)) * speed * dt,
+        PLAYER_WALL_MARGIN,
+        ARENA_W - PLAYER_WALL_MARGIN,
+      );
+      this.player.y = clamp(
+        this.player.y + (input.y / Math.max(1, l)) * speed * dt,
+        PLAYER_WALL_MARGIN,
+        ARENA_H - PLAYER_WALL_MARGIN,
+      );
+      this.player.walk += dt * 15;
+      this.movedThisTick =
+        Math.abs(this.player.x - beforeX) + Math.abs(this.player.y - beforeY) >
+        1e-8;
+    }
+  }
+  // Steady trickle on top of the scheduled groups.
+  spawnOnTimer(dt: number) {
+    this.spawnTimer -= dt;
+    if (this.spawnTimer > 0) return;
+    if (this.mode === "expedition20") {
+      this.spawnTimer = 1 / RATES[this.wave - 1];
+      this.spawn(this.pickKind(MIX[this.wave - 1]));
       return;
     }
-    if (this.phase === "fight") {
-      const l = Math.hypot(input.x, input.y);
-      if (l) {
-        const derived =
-          this.mode === "expedition20" ? this.derivedItemStats() : null;
-        const speed = 230 * (derived?.moveFactor ?? 1);
-        const beforeX = this.player.x,
-          beforeY = this.player.y;
-        this.player.x = clamp(
-          this.player.x + (input.x / Math.max(1, l)) * speed * dt,
-          30,
-          W - 30,
-        );
-        this.player.y = clamp(
-          this.player.y + (input.y / Math.max(1, l)) * speed * dt,
-          30,
-          H - 30,
-        );
-        this.player.walk += dt * 15;
-        this.movedThisTick =
-          Math.abs(this.player.x - beforeX) +
-            Math.abs(this.player.y - beforeY) >
-          1e-8;
-      }
-      const derived = this.derivedItemStats();
-      this.player.maxHp = derived.maxHp;
-      this.player.hp = Math.min(this.player.hp, derived.maxHp);
-      this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) {
-        if (this.mode === "expedition20")
-          this.spawnTimer = 1 / RATES[this.wave - 1];
-        else this.spawnTimer = this.wave === 1 ? 1 / 3.1 : 1 / 4.2;
-        const spawned =
-          this.mode === "expedition20"
-            ? this.spawn(this.pickKind(MIX[this.wave - 1]))
-            : this.spawn(
-                (() => {
-                  const r = this.random();
-                  return this.wave === 1
-                    ? r > 0.87
-                      ? "runner"
-                      : "bag"
-                    : r > 0.84
-                      ? "can"
-                      : r > 0.6
-                        ? "runner"
-                        : "bag";
-                })(),
-              );
-        // The frozen slice keeps its timer-only counter. Expedition counts all
-        // successful births centrally in spawn().
-        if (spawned && this.mode === "slice") this.spawnCount++;
-      }
-      if (this.mode === "expedition20") {
-        while (
-          this.expeditionBatchIndex < this.expeditionBatches.length &&
-          this.waveTime >=
-            this.expeditionBatches[this.expeditionBatchIndex].time
-        ) {
-          const batch = this.expeditionBatches[this.expeditionBatchIndex++];
-          if (batch.formation === "two-cluster") {
-            let centers = this.expeditionClusterCenters.get(batch.time);
-            if (!centers) {
-              centers = this.twoClusterCenters();
-              this.expeditionClusterCenters.set(batch.time, centers);
-            }
-            const center = centers[batch.group];
-            this.spawnExpeditionBatch(batch.formation, batch.count, 75, center);
-          } else {
-            this.spawnExpeditionBatch(
-              batch.formation,
-              batch.count,
-              batch.formation === "stream" ? 45 : 75,
-            );
-          }
-        }
-      } else {
-        while (
-          this.pocketIndex < this.pocketTimes.length &&
-          this.waveTime >= this.pocketTimes[this.pocketIndex]
-        ) {
-          this.pocketIndex++;
-          this.spawnPocket(this.pocketSize);
-        }
-      }
-      if (this.mode === "expedition20" && this.pendingBoss) {
-        const boss = bossForWave(this.wave)!;
-        if (
-          this.spawn("boss", {
-            x: this.player.x < 600 ? 900 : 300,
-            y: 220,
-          })
-        ) {
-          this.bossSpawned = true;
-          this.event("wave");
-          this.event("boss", undefined, boss.stage);
-        }
-      }
-      if (this.mode === "expedition20" && this.pendingElite) {
-        const info = eliteForWave(this.wave);
-        if (
-          info &&
-          this.spawn(
-            "can",
-            {
-              x: this.player.x < 600 ? 900 : 300,
-              y: 220,
-            },
-            true,
-          )
-        ) {
-          this.eliteSpawned = true;
-          this.effect("tell", this.enemies.at(-1)!, 0.9, "#ffe071", 50);
-        }
-      }
-      if (
-        this.mode === "expedition20" &&
-        this.waveTime >= this.duration &&
-        isEliteWave(this.wave) &&
-        !this.eliteSpawned
+    this.spawnTimer = this.wave === 1 ? 1 / 3.1 : 1 / 4.2;
+    // The frozen slice keeps its timer-only counter. Expedition counts all
+    // successful births centrally in spawn().
+    if (this.spawn(this.sliceTimerKind())) this.spawnCount++;
+  }
+  // Frozen slice mix: one random draw per timer spawn.
+  sliceTimerKind(): Enemy["kind"] {
+    const r = this.random();
+    if (this.wave === 1) return r > 0.87 ? "runner" : "bag";
+    if (r > 0.84) return "can";
+    return r > 0.6 ? "runner" : "bag";
+  }
+  spawnScheduledGroups() {
+    if (this.mode === "expedition20") {
+      while (
+        this.expeditionBatchIndex < this.expeditionBatches.length &&
+        this.waveTime >= this.expeditionBatches[this.expeditionBatchIndex].time
       ) {
-        this.eliteEscaped = true;
-      }
-      if (
-        this.mode === "slice" &&
-        this.wave === 2 &&
-        this.waveTime >= 18 &&
-        !this.bossSpawned
-      ) {
-        // F0: only a real spawn flips the flag and fires the event, so a
-        // cap-rejected attempt cannot fake "the boss is here" (or the HUD
-        // prompt). If the cap is full this step the boss retries next step,
-        // once the dead enemy is cleaned up at the end of a step.
-        if (
-          this.spawn("boss", { x: this.player.x < 600 ? 900 : 300, y: 220 })
-        ) {
-          this.bossSpawned = true;
-          this.event("wave");
-        }
-      }
-      if (this.mode === "expedition20") this.drainExpeditionPopcorn();
-      this.weapons(dt);
-      if (this.mode === "expedition20") {
-        this.updateMilestoneTrail(dt);
-        this.updateSpikeAura(dt);
-      }
-      for (const e of this.enemies) {
-        if (e.hp <= 0) continue;
-        e.age += dt;
-        e.born = Math.max(0, e.born - dt);
-        e.flash = Math.max(0, e.flash - dt);
-        if (e.born > 0) continue;
-        const dx = this.player.x - e.x,
-          dy = this.player.y - e.y,
-          l = Math.hypot(dx, dy) || 1,
-          speed = e.elite
-            ? (eliteForWave(this.wave)?.speed ?? 71.4)
-            : e.kind === "boss"
-              ? 32
-              : e.kind === "spitter"
-                ? l > 320
-                  ? 34
-                  : 0
-                : e.kind === "chip"
-                  ? 118
-                  : e.kind === "splitter"
-                    ? 50
-                    : e.kind === "can"
-                      ? 39
-                      : e.kind === "runner"
-                        ? 102
-                        : 57;
-        e.vx = (dx / l) * speed;
-        e.vy = (dy / l) * speed;
-        // Simple symmetric soft separation; contact and targeting still use world geometry.
-        for (const other of this.enemies) {
-          if (other.id <= e.id || other.hp <= 0 || other.born > 0) continue;
-          const d = dist(e, other),
-            need = (e.r + other.r) * 0.8;
-          if (d > 0 && d < need) {
-            const push = (need - d) * 0.07;
-            e.x += ((e.x - other.x) / d) * push;
-            e.y += ((e.y - other.y) / d) * push;
-            other.x -= ((e.x - other.x) / d) * push;
-            other.y -= ((e.y - other.y) / d) * push;
+        const batch = this.expeditionBatches[this.expeditionBatchIndex++];
+        if (batch.formation === "two-cluster") {
+          let centers = this.expeditionClusterCenters.get(batch.time);
+          if (!centers) {
+            centers = this.twoClusterCenters();
+            this.expeditionClusterCenters.set(batch.time, centers);
           }
-        }
-        if (Math.hypot(e.knockX, e.knockY) > 250)
-          for (const other of this.enemies) {
-            if (
-              other.id !== e.id &&
-              other.hp > 0 &&
-              !e.bowled.has(other.id) &&
-              dist(other, e) < other.r + e.r
-            ) {
-              e.bowled.add(other.id);
-              this.hit(
-                other,
-                30,
-                e,
-                "secondary",
-                170,
-                0,
-                false,
-                "secondaryWeapon",
-              );
-              if (this.phase !== "fight") return;
-            }
-          }
-        e.x = clamp(e.x + (e.vx + e.knockX) * dt, 18, W - 18);
-        e.y = clamp(e.y + (e.vy + e.knockY) * dt, 18, H - 18);
-        e.knockX *= Math.exp(-dt * 7);
-        e.knockY *= Math.exp(-dt * 7);
-        if (dist(e, this.player) < e.r + 17) {
-          this.hurt(1, "contact");
-          if (this.phase !== "fight") return;
-        }
-        if (e.kind === "boss") {
-          e.attack -= dt;
-          if (e.tell && e.tell > 0) {
-            e.tell = Math.max(0, e.tell - dt);
-            if (e.tell === 0) e.attack = 0;
-          }
-          if (e.attack <= 0) {
-            const stage = this.mode === "expedition20" ? (e.bossStage ?? 1) : 1,
-              info =
-                this.mode === "expedition20"
-                  ? bossForWave(this.wave)!
-                  : { interval: 2.4, radial: 8, stage: 1 as const };
-            e.attack = info.interval;
-            e.volleys = (e.volleys ?? 0) + 1;
-            const volley = e.volleys;
-            if ((stage === 2 || stage === 4) && volley % 3 === 0) {
-              const a = Math.atan2(this.player.y - e.y, this.player.x - e.x);
-              for (const offset of [-0.24, 0, 0.24])
-                this.shoot(e, a + offset, 1, "enemy", 0, 150);
-            } else {
-              for (let i = 0; i < info.radial; i++)
-                this.shoot(
-                  e,
-                  (i * Math.PI * 2) / info.radial + e.age * 0.15,
-                  1,
-                  "enemy",
-                  0,
-                  120,
-                );
-            }
-            if (stage === 3 && volley % 3 === 0) {
-              for (let i = 0; i < 3; i++)
-                this.spawn("runner", {
-                  x: clamp(e.x + (i - 1) * 35, 28, W - 28),
-                  y: clamp(e.y + 50, 28, H - 28),
-                });
-            }
-            if (stage === 4 && volley % 4 === 0) {
-              for (let i = 0; i < 4; i++)
-                this.spawn("chip", {
-                  x: clamp(e.x + (i - 1.5) * 26, 18, W - 18),
-                  y: clamp(e.y + 58, 18, H - 18),
-                });
-            }
-            this.effect("blast", e, 0.3, "#ed7552", 60);
-          }
-        } else if (e.kind === "spitter") {
-          e.attack -= dt;
-          if (e.attack <= 0) {
-            if (!e.tell) {
-              this.event("spitter-tell");
-              this.effect("tell", e, 0.8, "#e5a04d", 34);
-            }
-            e.attack = 2.2;
-            e.tell = 0.8;
-          }
-          if (e.tell && e.tell > 0) {
-            e.tell = Math.max(0, e.tell - dt);
-            if (e.tell === 0) {
-              const a = Math.atan2(this.player.y - e.y, this.player.x - e.x);
-              this.shoot(e, a, 1, "enemy", 0, 190, false, 3.5);
-            }
-          }
-        }
-      }
-      // S1b: spring-fist remnants keep flying after a lethal hit. They are not
-      // targetable and never touch the player; each enemy can be bowled once.
-      for (const k of this.corpses) {
-        k.life -= dt;
-        k.x = clamp(k.x + k.vx * dt, 18, W - 18);
-        k.y = clamp(k.y + k.vy * dt, 18, H - 18);
-        k.vx *= Math.exp(-dt * 7);
-        k.vy *= Math.exp(-dt * 7);
-        for (const e of this.enemies) {
-          if (e.hp <= 0 || e.born > 0 || k.hitIds.has(e.id)) continue;
-          if (dist(e, k) < e.r + k.r) {
-            k.hitIds.add(e.id);
-            const damage =
-              this.mode === "expedition20"
-                ? this.derivedItemStats().fistRemnantDamage
-                : (k.damage ?? 30);
-            this.hit(
-              e,
-              damage,
-              k,
-              "secondary",
-              170,
-              k.chain,
-              false,
-              "secondaryWeapon",
-            );
-          }
-        }
-      }
-      if (this.corpses.length)
-        this.corpses = this.corpses.filter((k) => k.life > 0);
-      for (const b of this.bullets) {
-        if (b.life <= 0) continue;
-        const old = { x: b.x, y: b.y };
-        if (b.homing) {
-          const target = this.enemies.find(
-            (e) => e.id === b.target && e.hp > 0,
-          );
-          if (target) {
-            const d = dist(target, b) || 1,
-              speed = b.kind === "rocket" ? 390 : 500;
-            b.vx += (((target.x - b.x) / d) * speed - b.vx) * dt * 5;
-            b.vy += (((target.y - b.y) / d) * speed - b.vy) * dt * 5;
-          }
-        }
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-        b.life -= dt;
-        if (b.kind === "enemy") {
-          if (segmentDistance(this.player, old, b) < b.r + 15) {
-            this.hurt(1, "bullet");
-            b.life = 0;
-            if (this.phase !== "fight") return;
-          }
+          const center = centers[batch.group];
+          this.spawnExpeditionBatch(batch.formation, batch.count, 75, center);
         } else {
-          const e = this.enemies.find((e) => {
-            if (
-              e.hp <= 0 ||
-              e.born > 0 ||
-              b.hitIds?.has(e.id) ||
-              segmentDistance(e, old, b) >= e.r + b.r
-            )
-              return false;
-            return true;
-          });
-          if (e) {
-            if ((b.pierce ?? 0) > 0) {
-              b.hitIds ??= new Set();
-              b.hitIds.add(e.id);
-            }
-            if (b.kind === "rocket") {
-              this.explode(
-                b,
-                b.blastRadius ?? 92,
-                b.damage,
-                true,
-                0,
-                false,
-                "weapon",
-              );
-            } else
-              this.hit(
-                e,
-                b.damage,
-                old,
-                b.kind === "bonus" ? "secondary" : "weapon",
-                75,
-                0,
-                false,
-                b.kind === "bonus" ? "itemProc" : "weapon",
-              );
-            if (!b.hitIds || (b.pierce ?? 0) <= 0) b.life = 0;
-            else if (b.pierce! > 0) b.pierce!--;
-          }
-        }
-      }
-      for (let i = 0; i < 12 && this.pendingBlasts.length; i++) {
-        const blast = this.pendingBlasts.shift()!;
-        if (blast.dualRing)
-          this.effect("domino-ring", blast.p, 0.45, "#f6c35c", blast.radius);
-        this.queueMetrics.pendingBlasts.processed++;
-        this.explode(
-          blast.p,
-          blast.radius,
-          blast.damage,
-          false,
-          blast.chain,
-          !!blast.tier3,
-          blast.source,
-        );
-      }
-      // Reclaim chain roots with no queued work and no live remnant. Without
-      // this, sustained secondary kills keep refreshing chainTimer and finished
-      // roots would never be released in a long run. The xN readout is a separate
-      // scalar (chainCount) and still decays on its own 0.8s timer.
-      if (
-        this.chainCounts.size ||
-        this.rootSecondaryKills.size ||
-        (this.mode === "expedition20" && this.dominoRadius.size)
-      ) {
-        const live = new Set<number>();
-        for (const b of this.pendingBlasts) live.add(b.chain);
-        for (const k of this.corpses) live.add(k.chain);
-        for (const point of this.wakePoints) live.add(point.root);
-        for (const point of this.trailPoints) live.add(point.root);
-        for (const s of this.scraps)
-          if (this.branch === "ember" && (s.heat ?? 0) > 0 && s.root)
-            live.add(s.root);
-        for (const id of this.chainCounts.keys()) {
-          if (live.has(id)) continue;
-          this.chainCounts.delete(id);
-        }
-        // This map must prune independently: a radius can outlive deletion of
-        // its chainCounts key, and looping chainCounts alone would leak it.
-        if (this.mode === "expedition20")
-          for (const id of this.dominoRadius.keys()) {
-            if (!live.has(id)) this.dominoRadius.delete(id);
-          }
-        if (this.mode === "expedition20")
-          for (const id of this.rootSecondaryKills.keys()) {
-            if (!live.has(id)) this.rootSecondaryKills.delete(id);
-          }
-      }
-      const canEndFight =
-        this.mode === "expedition20"
-          ? isBossWave(this.wave)
-            ? this.bossKilled
-            : true
-          : this.wave === 1 || this.bossKilled;
-      if (
-        this.phase === "fight" &&
-        this.waveTime >= this.duration &&
-        canEndFight
-      ) {
-        if (this.mode === "expedition20") {
-          this.cancelExpeditionWavePending();
-        }
-        this.phase = "sweep";
-        this.sweepTime = 1;
-        this.enemies = [];
-        this.bullets = [];
-        this.pendingBlasts = [];
-        this.corpses = [];
-        this.trailPoints = [];
-        if (this.mode === "expedition20") {
-          this.wakePoints = [];
-          this.chainCounts.clear();
-          this.dominoRadius.clear();
-          this.chainCount = 0;
-          this.chainTimer = 0;
-          for (const s of this.scraps) {
-            if ((s.heat ?? 0) > 0) {
-              s.heat = 0;
-              s.vx = 0;
-              s.vy = 0;
-            }
-          }
-        }
-        this.event("wave");
-      }
-      const deadline =
-        this.mode === "expedition20"
-          ? this.waveTime > this.deadline
-          : this.waveTime > 50;
-      if (
-        this.phase === "fight" &&
-        deadline &&
-        (this.mode === "slice" ? this.wave === 2 : isBossWave(this.wave))
-      ) {
-        if (this.mode === "expedition20") this.settleExpeditionLoss();
-        else {
-          this.phase = "lost";
-          this.pendingBlasts = [];
-          this.scraps = [];
-          this.chests = [];
-          this.corpses = [];
-          this.trailPoints = [];
-          this.bullets = [];
-          this.event("end");
+          this.spawnExpeditionBatch(
+            batch.formation,
+            batch.count,
+            batch.formation === "stream" ? 45 : 75,
+          );
         }
       }
     } else {
-      this.sweepTime -= dt;
-      if (this.sweepTime <= 0) {
-        for (const s of this.scraps) {
-          if (this.mode === "expedition20") {
-            if (s.collected === true) continue;
-            const rawCash = Number.isFinite(s.rawCash) ? s.rawCash! : s.value;
-            const fuel = Number.isFinite(s.fuelUnits)
-              ? Math.max(0, Math.floor(s.fuelUnits!))
-              : 1;
-            s.collected = true;
-            const credit = creditRawCash(
-              this.money,
-              this.coinAccumulator,
-              rawCash,
-              itemCount(this.inventory, "siphon-bag"),
-            );
-            this.money = credit.wallet;
-            this.coinAccumulator = credit.remainder;
-            this.earned += credit.earned;
-            this.sweptFuelUnits += fuel;
-            this.collected += fuel;
-            this.picked++;
-            if (this.firstPickup === null) this.firstPickup = this.time;
-            this.effect("pickup", this.player, 0.25, "#eeb63c", 9);
-            this.event("pickup", undefined, rawCash);
-            s.value = 0;
-            // updateLooseScraps normally reaches collect() while sweeping.
-            // This fallback handles a late object not reached there; credit
-            // fuel in both paths without running fight-only pickup procs.
-            s.collected = true;
-          } else this.collect(s);
+      while (
+        this.pocketIndex < this.pocketTimes.length &&
+        this.waveTime >= this.pocketTimes[this.pocketIndex]
+      ) {
+        this.pocketIndex++;
+        this.spawnPocket(this.pocketSize);
+      }
+    }
+  }
+  spawnBossesAndElites() {
+    if (this.mode === "expedition20" && this.pendingBoss) {
+      const boss = bossForWave(this.wave)!;
+      if (this.spawn("boss", this.bossEntryPoint())) {
+        this.bossSpawned = true;
+        this.event("wave");
+        this.event("boss", undefined, boss.stage);
+      }
+    }
+    if (this.mode === "expedition20" && this.pendingElite) {
+      const info = eliteForWave(this.wave);
+      if (info && this.spawn("can", this.bossEntryPoint(), true)) {
+        this.eliteSpawned = true;
+        this.effect("tell", this.enemies.at(-1)!, 0.9, "#ffe071", 50);
+      }
+    }
+    if (
+      this.mode === "expedition20" &&
+      this.waveTime >= this.duration &&
+      isEliteWave(this.wave) &&
+      !this.eliteSpawned
+    ) {
+      this.eliteEscaped = true;
+    }
+    if (
+      this.mode === "slice" &&
+      this.wave === 2 &&
+      this.waveTime >= 18 &&
+      !this.bossSpawned
+    ) {
+      // F0: only a real spawn flips the flag and fires the event, so a
+      // cap-rejected attempt cannot fake "the boss is here" (or the HUD
+      // prompt). If the cap is full this step the boss retries next step,
+      // once the dead enemy is cleaned up at the end of a step.
+      if (this.spawn("boss", this.bossEntryPoint())) {
+        this.bossSpawned = true;
+        this.event("wave");
+      }
+    }
+  }
+  // Chase speed in px/s; `distance` is to the player.
+  enemySpeed(e: Enemy, distance: number) {
+    if (e.elite) return eliteForWave(this.wave)?.speed ?? ELITE_FALLBACK_SPEED;
+    if (e.kind === "spitter")
+      return distance > SPITTER_HOLD_DISTANCE ? ENEMY_SPEED.spitter : 0;
+    return ENEMY_SPEED[e.kind];
+  }
+  updateEnemies(dt: number): boolean {
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      e.age += dt;
+      e.born = Math.max(0, e.born - dt);
+      e.flash = Math.max(0, e.flash - dt);
+      if (e.born > 0) continue;
+      const dx = this.player.x - e.x,
+        dy = this.player.y - e.y,
+        l = Math.hypot(dx, dy) || 1,
+        speed = this.enemySpeed(e, l);
+      e.vx = (dx / l) * speed;
+      e.vy = (dy / l) * speed;
+      // Simple symmetric soft separation; contact and targeting still use world geometry.
+      for (const other of this.enemies) {
+        if (other.id <= e.id || other.hp <= 0 || other.born > 0) continue;
+        const d = dist(e, other),
+          need = (e.r + other.r) * 0.8;
+        if (d > 0 && d < need) {
+          const push = (need - d) * 0.07;
+          e.x += ((e.x - other.x) / d) * push;
+          e.y += ((e.y - other.y) / d) * push;
+          other.x -= ((e.x - other.x) / d) * push;
+          other.y -= ((e.y - other.y) / d) * push;
         }
-        this.scraps = [];
-        if (this.mode === "expedition20") this.openStop();
-        else {
-          this.phase = this.wave === 1 ? "shop" : "won";
-          if (this.phase === "won") this.event("end");
+      }
+      if (Math.hypot(e.knockX, e.knockY) > 250)
+        for (const other of this.enemies) {
+          if (
+            other.id !== e.id &&
+            other.hp > 0 &&
+            !e.bowled.has(other.id) &&
+            dist(other, e) < other.r + e.r
+          ) {
+            e.bowled.add(other.id);
+            this.hit(
+              other,
+              30,
+              e,
+              "secondary",
+              170,
+              0,
+              false,
+              "secondaryWeapon",
+            );
+            if (this.phase !== "fight") return true;
+          }
+        }
+      e.x = clamp(e.x + (e.vx + e.knockX) * dt, 18, ARENA_W - 18);
+      e.y = clamp(e.y + (e.vy + e.knockY) * dt, 18, ARENA_H - 18);
+      e.knockX *= Math.exp(-dt * 7);
+      e.knockY *= Math.exp(-dt * 7);
+      if (dist(e, this.player) < e.r + 17) {
+        this.hurt(1, "contact");
+        if (this.phase !== "fight") return true;
+      }
+      if (e.kind === "boss") this.updateBossAttack(e, dt);
+      else if (e.kind === "spitter") this.updateSpitterAttack(e, dt);
+    }
+    return false;
+  }
+  updateBossAttack(e: Enemy, dt: number) {
+    e.attack -= dt;
+    if (e.tell && e.tell > 0) {
+      e.tell = Math.max(0, e.tell - dt);
+      if (e.tell === 0) e.attack = 0;
+    }
+    if (e.attack <= 0) {
+      const stage = this.mode === "expedition20" ? (e.bossStage ?? 1) : 1,
+        info =
+          this.mode === "expedition20"
+            ? bossForWave(this.wave)!
+            : { interval: 2.4, radial: 8, stage: 1 as const };
+      e.attack = info.interval;
+      e.volleys = (e.volleys ?? 0) + 1;
+      const volley = e.volleys;
+      if ((stage === 2 || stage === 4) && volley % 3 === 0) {
+        const a = Math.atan2(this.player.y - e.y, this.player.x - e.x);
+        for (const offset of [-0.24, 0, 0.24])
+          this.shoot(e, a + offset, 1, "enemy", 0, 150);
+      } else {
+        for (let i = 0; i < info.radial; i++)
+          this.shoot(
+            e,
+            (i * Math.PI * 2) / info.radial + e.age * 0.15,
+            1,
+            "enemy",
+            0,
+            120,
+          );
+      }
+      if (stage === 3 && volley % 3 === 0) {
+        for (let i = 0; i < 3; i++)
+          this.spawn("runner", {
+            x: clamp(e.x + (i - 1) * 35, 28, ARENA_W - 28),
+            y: clamp(e.y + 50, 28, ARENA_H - 28),
+          });
+      }
+      if (stage === 4 && volley % 4 === 0) {
+        for (let i = 0; i < 4; i++)
+          this.spawn("chip", {
+            x: clamp(e.x + (i - 1.5) * 26, 18, ARENA_W - 18),
+            y: clamp(e.y + 58, 18, ARENA_H - 18),
+          });
+      }
+      this.effect("blast", e, 0.3, "#ed7552", 60);
+    }
+  }
+  updateSpitterAttack(e: Enemy, dt: number) {
+    e.attack -= dt;
+    if (e.attack <= 0) {
+      if (!e.tell) {
+        this.event("spitter-tell");
+        this.effect("tell", e, 0.8, "#e5a04d", 34);
+      }
+      e.attack = 2.2;
+      e.tell = 0.8;
+    }
+    if (e.tell && e.tell > 0) {
+      e.tell = Math.max(0, e.tell - dt);
+      if (e.tell === 0) {
+        const a = Math.atan2(this.player.y - e.y, this.player.x - e.x);
+        this.shoot(e, a, 1, "enemy", 0, 190, false, 3.5);
+      }
+    }
+  }
+  updateCorpses(dt: number) {
+    // S1b: spring-fist remnants keep flying after a lethal hit. They are not
+    // targetable and never touch the player; each enemy can be bowled once.
+    for (const k of this.corpses) {
+      k.life -= dt;
+      k.x = clamp(k.x + k.vx * dt, 18, ARENA_W - 18);
+      k.y = clamp(k.y + k.vy * dt, 18, ARENA_H - 18);
+      k.vx *= Math.exp(-dt * 7);
+      k.vy *= Math.exp(-dt * 7);
+      for (const e of this.enemies) {
+        if (e.hp <= 0 || e.born > 0 || k.hitIds.has(e.id)) continue;
+        if (dist(e, k) < e.r + k.r) {
+          k.hitIds.add(e.id);
+          const damage =
+            this.mode === "expedition20"
+              ? this.derivedItemStats().fistRemnantDamage
+              : (k.damage ?? 30);
+          this.hit(
+            e,
+            damage,
+            k,
+            "secondary",
+            170,
+            k.chain,
+            false,
+            "secondaryWeapon",
+          );
         }
       }
     }
-    this.updateLooseScraps(dt);
-    this.enemies = this.enemies.filter((e) => e.hp > 0);
-    this.bullets = this.bullets.filter(
-      (b) =>
-        b.life > 0 && b.x > -30 && b.x < W + 30 && b.y > -30 && b.y < H + 30,
-    );
-    this.scraps = this.scraps.filter((s) =>
-      this.mode === "expedition20" ? s.collected !== true : s.value > 0,
-    );
+    if (this.corpses.length)
+      this.corpses = this.corpses.filter((k) => k.life > 0);
+  }
+  updateBullets(dt: number): boolean {
+    for (const b of this.bullets) {
+      if (b.life <= 0) continue;
+      const old = { x: b.x, y: b.y };
+      if (b.homing) {
+        const target = this.enemies.find((e) => e.id === b.target && e.hp > 0);
+        if (target) {
+          const d = dist(target, b) || 1,
+            speed = b.kind === "rocket" ? 390 : 500;
+          b.vx += (((target.x - b.x) / d) * speed - b.vx) * dt * 5;
+          b.vy += (((target.y - b.y) / d) * speed - b.vy) * dt * 5;
+        }
+      }
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.kind === "enemy") {
+        if (segmentDistance(this.player, old, b) < b.r + 15) {
+          this.hurt(1, "bullet");
+          b.life = 0;
+          if (this.phase !== "fight") return true;
+        }
+      } else {
+        const e = this.enemies.find((e) => {
+          if (
+            e.hp <= 0 ||
+            e.born > 0 ||
+            b.hitIds?.has(e.id) ||
+            segmentDistance(e, old, b) >= e.r + b.r
+          )
+            return false;
+          return true;
+        });
+        if (e) {
+          if ((b.pierce ?? 0) > 0) {
+            b.hitIds ??= new Set();
+            b.hitIds.add(e.id);
+          }
+          if (b.kind === "rocket") {
+            this.explode(
+              b,
+              b.blastRadius ?? 92,
+              b.damage,
+              true,
+              0,
+              false,
+              "weapon",
+            );
+          } else
+            this.hit(
+              e,
+              b.damage,
+              old,
+              b.kind === "bonus" ? "secondary" : "weapon",
+              75,
+              0,
+              false,
+              b.kind === "bonus" ? "itemProc" : "weapon",
+            );
+          if (!b.hitIds || (b.pierce ?? 0) <= 0) b.life = 0;
+          else if (b.pierce! > 0) b.pierce!--;
+        }
+      }
+    }
+    return false;
+  }
+  processPendingBlasts() {
+    for (let i = 0; i < 12 && this.pendingBlasts.length; i++) {
+      const blast = this.pendingBlasts.shift()!;
+      if (blast.dualRing)
+        this.effect("domino-ring", blast.p, 0.45, "#f6c35c", blast.radius);
+      this.queueMetrics.pendingBlasts.processed++;
+      this.explode(
+        blast.p,
+        blast.radius,
+        blast.damage,
+        false,
+        blast.chain,
+        !!blast.tier3,
+        blast.source,
+      );
+    }
+  }
+  pruneChainRoots() {
+    // Reclaim chain roots with no queued work and no live remnant. Without
+    // this, sustained secondary kills keep refreshing chainTimer and finished
+    // roots would never be released in a long run. The xN readout is a separate
+    // scalar (chainCount) and still decays on its own 0.8s timer.
+    if (
+      this.chainCounts.size ||
+      this.rootSecondaryKills.size ||
+      (this.mode === "expedition20" && this.dominoRadius.size)
+    ) {
+      const live = new Set<number>();
+      for (const b of this.pendingBlasts) live.add(b.chain);
+      for (const k of this.corpses) live.add(k.chain);
+      for (const point of this.wakePoints) live.add(point.root);
+      for (const point of this.trailPoints) live.add(point.root);
+      for (const s of this.scraps)
+        if (this.branch === "ember" && (s.heat ?? 0) > 0 && s.root)
+          live.add(s.root);
+      for (const id of this.chainCounts.keys()) {
+        if (live.has(id)) continue;
+        this.chainCounts.delete(id);
+      }
+      // This map must prune independently: a radius can outlive deletion of
+      // its chainCounts key, and looping chainCounts alone would leak it.
+      if (this.mode === "expedition20")
+        for (const id of this.dominoRadius.keys()) {
+          if (!live.has(id)) this.dominoRadius.delete(id);
+        }
+      if (this.mode === "expedition20")
+        for (const id of this.rootSecondaryKills.keys()) {
+          if (!live.has(id)) this.rootSecondaryKills.delete(id);
+        }
+    }
+  }
+  checkWaveCleared() {
+    const canEndFight =
+      this.mode === "expedition20"
+        ? isBossWave(this.wave)
+          ? this.bossKilled
+          : true
+        : this.wave === 1 || this.bossKilled;
+    if (
+      this.phase === "fight" &&
+      this.waveTime >= this.duration &&
+      canEndFight
+    ) {
+      if (this.mode === "expedition20") {
+        this.cancelExpeditionWavePending();
+      }
+      this.phase = "sweep";
+      this.sweepTime = 1;
+      this.enemies = [];
+      this.bullets = [];
+      this.pendingBlasts = [];
+      this.corpses = [];
+      this.trailPoints = [];
+      if (this.mode === "expedition20") {
+        this.wakePoints = [];
+        this.chainCounts.clear();
+        this.dominoRadius.clear();
+        this.chainCount = 0;
+        this.chainTimer = 0;
+        for (const s of this.scraps) {
+          if ((s.heat ?? 0) > 0) {
+            s.heat = 0;
+            s.vx = 0;
+            s.vy = 0;
+          }
+        }
+      }
+      this.event("wave");
+    }
+  }
+  checkBossDeadline() {
+    const deadline =
+      this.mode === "expedition20"
+        ? this.waveTime > this.deadline
+        : this.waveTime > 50;
+    if (
+      this.phase === "fight" &&
+      deadline &&
+      (this.mode === "slice" ? this.wave === 2 : isBossWave(this.wave))
+    ) {
+      if (this.mode === "expedition20") this.settleExpeditionLoss();
+      else {
+        this.phase = "lost";
+        this.pendingBlasts = [];
+        this.scraps = [];
+        this.chests = [];
+        this.corpses = [];
+        this.trailPoints = [];
+        this.bullets = [];
+        this.event("end");
+      }
+    }
+  }
+  updateSweep(dt: number) {
+    this.sweepTime -= dt;
+    if (this.sweepTime <= 0) {
+      for (const s of this.scraps) {
+        if (this.mode === "expedition20") {
+          if (s.collected === true) continue;
+          const rawCash = Number.isFinite(s.rawCash) ? s.rawCash! : s.value;
+          const fuel = Number.isFinite(s.fuelUnits)
+            ? Math.max(0, Math.floor(s.fuelUnits!))
+            : 1;
+          s.collected = true;
+          const credit = creditRawCash(
+            this.money,
+            this.coinAccumulator,
+            rawCash,
+            itemCount(this.inventory, "siphon-bag"),
+          );
+          this.money = credit.wallet;
+          this.coinAccumulator = credit.remainder;
+          this.earned += credit.earned;
+          this.sweptFuelUnits += fuel;
+          this.collected += fuel;
+          this.picked++;
+          if (this.firstPickup === null) this.firstPickup = this.time;
+          this.effect("pickup", this.player, 0.25, "#eeb63c", 9);
+          this.event("pickup", undefined, rawCash);
+          s.value = 0;
+          // updateLooseScraps normally reaches collect() while sweeping.
+          // This fallback handles a late object not reached there; credit
+          // fuel in both paths without running fight-only pickup procs.
+          s.collected = true;
+        } else this.collect(s);
+      }
+      this.scraps = [];
+      if (this.mode === "expedition20") this.openStop();
+      else {
+        this.phase = this.wave === 1 ? "shop" : "won";
+        if (this.phase === "won") this.event("end");
+      }
+    }
   }
   updateMilestoneTrail(dt: number) {
     for (const point of this.trailPoints) {

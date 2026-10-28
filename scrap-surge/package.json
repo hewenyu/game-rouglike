@@ -7,6 +7,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "test:golden": "tsx tests/golden-trace.ts",
     "test:browser": "node tests/browser.mjs",
     "test:browser:expedition": "node tests/browser-expedition.mjs",
     "test:browser:first-shop": "node tests/browser-first-shop.mjs",
@@ -18,6 +20,7 @@
     "test:p3:measure": "tsx tests/p3-measure.ts",
     "test:p3:report": "tsx tests/p3-report.ts",
     "format": "prettier --write src tests vite.config.ts",
+    "format:check": "prettier --check src tests vite.config.ts",
     "test:browser:regression": "node tests/browser-regression.mjs",
     "test:browser:p2-visuals": "node tests/browser-p2-visuals.mjs",
     "test:browser:p2-lifecycle": "node tests/browser-p2-lifecycle.mjs"

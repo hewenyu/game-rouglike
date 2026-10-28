@@ -12,8 +12,7 @@ import { performance } from "node:perf_hooks";
 import os from "node:os";
 
 const SOURCE_SHA = process.env.SOURCE_SHA || process.env.REVIEW_SHA;
-if (!SOURCE_SHA)
-  throw Error("SOURCE_SHA (or legacy REVIEW_SHA) is required");
+if (!SOURCE_SHA) throw Error("SOURCE_SHA (or legacy REVIEW_SHA) is required");
 const OUTPUT_FILE =
   process.env.OUTPUT_FILE ||
   join(
@@ -25,9 +24,10 @@ await mkdir(dirname(OUTPUT_FILE), { recursive: true });
 
 const pct = (values: number[], quantile: number) => {
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[
-    Math.min(sorted.length - 1, Math.floor(quantile * sorted.length))
-  ] ?? 0;
+  return (
+    sorted[Math.min(sorted.length - 1, Math.floor(quantile * sorted.length))] ??
+    0
+  );
 };
 
 function input(game: Game) {
@@ -59,13 +59,11 @@ function input(game: Game) {
   if (nearest) {
     const repel = 2.4 * (1 - nearestDistance / 105);
     x +=
-      (nearestDistance
-        ? (game.player.x - nearest.x) / nearestDistance
-        : 1) * repel;
+      (nearestDistance ? (game.player.x - nearest.x) / nearestDistance : 1) *
+      repel;
     y +=
-      (nearestDistance
-        ? (game.player.y - nearest.y) / nearestDistance
-        : 0) * repel;
+      (nearestDistance ? (game.player.y - nearest.y) / nearestDistance : 0) *
+      repel;
   }
   return {
     x: x > 0.32 ? 1 : x < -0.32 ? -1 : 0,
@@ -128,11 +126,7 @@ const groups = new Map<
 >();
 let held = { x: 0, y: 0 };
 let steps = 0;
-for (
-  ;
-  steps < 90000 && !["won", "lost"].includes(game.phase);
-  steps++
-) {
+for (; steps < 90000 && !["won", "lost"].includes(game.phase); steps++) {
   panels(game);
   if (steps % 5 === 0) held = input(game);
   const wave = game.wave;

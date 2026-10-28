@@ -60,7 +60,14 @@ class RecordingContext {
   restore() {
     this.state = this.stack.pop() ?? [1, 0, 0, 1, 0, 0];
   }
-  setTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
+  setTransform(
+    a: number,
+    b: number,
+    c: number,
+    d: number,
+    e: number,
+    f: number,
+  ) {
     this.state = [a, b, c, d, e, f];
   }
   translate(x: number, y: number) {
@@ -291,10 +298,8 @@ function enemy(kind: Enemy["kind"], id: number, maxHp: number): Enemy {
 
 function snapshot(game: Game) {
   return JSON.stringify(game, (_key, value) => {
-    if (value instanceof Map)
-      return { __map: [...value.entries()] };
-    if (value instanceof Set)
-      return { __set: [...value] };
+    if (value instanceof Map) return { __map: [...value.entries()] };
+    if (value instanceof Set) return { __set: [...value] };
     return value;
   });
 }
@@ -334,10 +339,7 @@ test("expedition hurt bars add only bag, runner and chip at damaged health", () 
     ]);
 
     const full = rendererWith(new RecordingContext());
-    full.enemy(
-      { ...enemy(kind, index + 1, 2), hp: 2 },
-      "expedition20",
-    );
+    full.enemy({ ...enemy(kind, index + 1, 2), hp: 2 }, "expedition20");
     assert.deepEqual(rects(full.ctx as unknown as RecordingContext), []);
   }
 });
@@ -386,7 +388,7 @@ test("existing can, splitter and spitter hurt bars are unchanged", () => {
 test("bag, runner and chip keep frozen slice rendering and get no new bars", () => {
   const rendered = rendererWith(new RecordingContext());
   let id = 20;
-  for (const kind of (["bag", "runner", "chip"] as const)) {
+  for (const kind of ["bag", "runner", "chip"] as const) {
     rendered.enemy(enemy(kind, id++, 2));
     rendered.enemy({ ...enemy(kind, id++, 2), hp: 2 });
   }

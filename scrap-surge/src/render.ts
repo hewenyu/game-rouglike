@@ -1,5 +1,5 @@
-import { Game, type Bullet, type Enemy, type Gun } from "./sim";
-import { W, H, WEAPONS, BLAST, type WeaponId } from "./data";
+import type { Bullet, Enemy, Game, Gun } from "./sim";
+import { ARENA_W, ARENA_H, WEAPONS, BLAST, type WeaponId } from "./data";
 import {
   bossForWave,
   effectiveWeaponProfile,
@@ -93,8 +93,8 @@ export class Renderer {
     return {
       x: this.ox,
       y: this.oy,
-      w: W * this.scale,
-      h: H * this.scale,
+      w: ARENA_W * this.scale,
+      h: ARENA_H * this.scale,
       scale: this.scale,
     };
   }
@@ -553,8 +553,14 @@ export class Renderer {
     this.scale = Math.min(w / (w < 700 ? 740 : 1260), availH / 890);
     const vw = w / this.scale,
       vh = availH / this.scale,
-      cx = vw < W ? Math.max(vw / 2, Math.min(W - vw / 2, g.player.x)) : W / 2,
-      cy = vh < H ? Math.max(vh / 2, Math.min(H - vh / 2, g.player.y)) : H / 2;
+      cx =
+        vw < ARENA_W
+          ? Math.max(vw / 2, Math.min(ARENA_W - vw / 2, g.player.x))
+          : ARENA_W / 2,
+      cy =
+        vh < ARENA_H
+          ? Math.max(vh / 2, Math.min(ARENA_H - vh / 2, g.player.y))
+          : ARENA_H / 2;
     this.ox = w / 2 - cx * this.scale;
     this.oy = midY - cy * this.scale;
     const shake = this.reduced ? 0 : g.shake * 16;
@@ -569,9 +575,9 @@ export class Renderer {
       const a = Math.min(1, (g.magnetPulse / 0.6) * 1.5),
         edges = [
           { x: 16, y: 16 },
-          { x: W - 16, y: 16 },
-          { x: W - 16, y: H - 16 },
-          { x: 16, y: H - 16 },
+          { x: ARENA_W - 16, y: 16 },
+          { x: ARENA_W - 16, y: ARENA_H - 16 },
+          { x: 16, y: ARENA_H - 16 },
         ];
       c.save();
       c.globalAlpha = a;
@@ -600,11 +606,11 @@ export class Renderer {
     c.strokeStyle = "#846f4b55";
     c.lineWidth = 2;
     c.setLineDash([3, 10]);
-    c.strokeRect(16, 16, W - 32, H - 32);
+    c.strokeRect(16, 16, ARENA_W - 32, ARENA_H - 32);
     c.setLineDash([]);
     for (let i = 0; i < 12; i++) {
-      const x = (Math.sin(i * 12.7) * 0.5 + 0.5) * W,
-        y = (Math.sin(i * 47.1) * 0.5 + 0.5) * H;
+      const x = (Math.sin(i * 12.7) * 0.5 + 0.5) * ARENA_W,
+        y = (Math.sin(i * 47.1) * 0.5 + 0.5) * ARENA_H;
       c.save();
       c.translate(x, y);
       c.rotate(i * 1.9);
@@ -1118,7 +1124,7 @@ export class Renderer {
       c.restore();
     }
     if (g.phase === "sweep") {
-      this.text("退潮了！统统收回来", 600, 350, 36, CREAM, true);
+      this.text("退潮了！统统收回来", ARENA_W / 2, 350, 36, CREAM, true);
     }
     // Real chain readout: N is the number of genuine secondary deaths in the
     // strongest chain still alive, never a faked counter.

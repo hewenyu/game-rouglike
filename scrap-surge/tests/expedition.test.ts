@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../src/sim";
-import { DT, BLAST, W, H, WEAPONS } from "../src/data";
+import { DT, BLAST, ARENA_W, ARENA_H, WEAPONS } from "../src/data";
 import { dist } from "../src/math";
 import {
   BAG_HP,
@@ -876,10 +876,10 @@ test("expedition two-cluster fallback centres are safe, bounded and 640 apart", 
   g.random = () => 0;
   const [a, b] = g.twoClusterCenters();
   g.random = saved;
-  assert.equal(a.x, W - 70);
-  assert.equal(b.x, W - 70);
+  assert.equal(a.x, ARENA_W - 70);
+  assert.equal(b.x, ARENA_W - 70);
   assert.equal(a.y, 80);
-  assert.equal(b.y, H - 80);
+  assert.equal(b.y, ARENA_H - 80);
   assert(dist(a, b) >= 200);
   assert(dist(a, g.player) >= 310);
   assert(dist(b, g.player) >= 310);

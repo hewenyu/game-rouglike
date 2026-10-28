@@ -249,7 +249,10 @@ export type EffectiveWeaponProfile = {
 export type PurchasePreview = {
   accepted: boolean;
   reason: "no-space" | null;
+  // Highest tier in the loadout after the purchase.
   tier: GunTier;
+  // Final tier of the bought gun after every fusion it triggers (despite the
+  // name, not the tier of the incoming copy, which is always I).
   incomingTier: GunTier;
   merged: boolean;
 };
@@ -308,7 +311,10 @@ export const BRANCHES: Record<
   },
 };
 
-export const WEAPON_BASE_PRICE: Record<WeaponId, number> = {
+// Expedition gun prices. Deliberately separate from `WEAPONS[id].price`, which
+// the frozen slice shop charges flat: tuning the 20-wave economy here must not
+// move the slice. The values start out equal.
+export const WEAPON_BASE_PRICE: Readonly<Record<WeaponId, number>> = {
   slinger: 15,
   shotgun: 22,
   saw: 21,

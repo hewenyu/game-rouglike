@@ -35,7 +35,10 @@ function steer(state) {
   let nearest = 105,
     near = null;
   for (const enemy of state.enemyPositions || []) {
-    const d = Math.hypot(enemy.x - state.position.x, enemy.y - state.position.y);
+    const d = Math.hypot(
+      enemy.x - state.position.x,
+      enemy.y - state.position.y,
+    );
     if (d < nearest) {
       nearest = d;
       near = enemy;
@@ -179,7 +182,10 @@ async function run(browser, kind) {
             noteText: note?.textContent?.replace(/\s+/g, " ").trim() ?? "",
           };
         });
-        assert(layout.noteVisible, "shared theoretical-DPS note must be visible");
+        assert(
+          layout.noteVisible,
+          "shared theoretical-DPS note must be visible",
+        );
         assert.match(layout.noteText, /单目标、散弹全中/);
         assert.match(layout.noteText, /餐叉持续接触/);
         if (mobile) {
@@ -188,7 +194,10 @@ async function run(browser, kind) {
             layout.viewportWidth,
             "390px shop must not overflow horizontally",
           );
-          assert(!layout.cardOverflow, "390px shop cards must stay in viewport");
+          assert(
+            !layout.cardOverflow,
+            "390px shop cards must stay in viewport",
+          );
           assert(
             layout.summaryMetrics.every(
               (row) => row.scrollWidth <= row.clientWidth + 1,
